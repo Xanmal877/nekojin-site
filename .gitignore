@@ -30,3 +30,6 @@ tmp/
 
 # Debug screenshots
 sh-debug-screenshot.png
+
+# Browser profiles
+chrome-profile/
