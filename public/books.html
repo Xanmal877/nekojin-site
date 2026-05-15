@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Books & Serials - Nekojin Interactive</title>
+  <meta name="description" content="All stories set within the Xanrea universe. Read free on Royal Road and ScribbleHub.">
+  <meta property="og:title" content="Books & Serials - Nekojin Interactive">
+  <meta property="og:description" content="All stories set within the Xanrea universe. Read free on Royal Road and ScribbleHub.">
+  <meta property="og:image" content="https://worldofxanrea.com/covers/game-cover-1772952121717.png">
+  <meta property="og:url" content="https://worldofxanrea.com/books">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#0a0614">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/covers/game-cover-1772952121717.png">
+  <link rel="alternate" type="application/atom+xml" title="Nekojin Interactive Feed" href="https://worldofxanrea.com/rss.xml">
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    /* ── HERO ── */
+    .books-hero {
+      padding: 6rem 2rem 3.5rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .books-hero-orbs { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+    .books-hero-orbs .orb { opacity: 0.11; }
+    .books-hero-eyebrow {
+      font-size: 0.72rem; font-weight: 700;
+      letter-spacing: 0.24em; text-transform: uppercase;
+      color: var(--royal-light); margin-bottom: 1rem;
+      animation: fadeup 0.6s 0.1s both;
+      display: inline-flex; align-items: center; gap: 0.65rem;
+    }
+    .books-hero-eyebrow::before, .books-hero-eyebrow::after {
+      content: ''; display: inline-block;
+      width: 28px; height: 1px;
+      background: var(--royal-light); opacity: 0.45;
+    }
+    .books-hero-title {
+      font-family: var(--font-display);
+      font-size: clamp(2.8rem, 6vw, 5rem);
+      color: var(--ink); line-height: 1.05;
+      animation: fadeup 0.6s 0.2s both; margin-bottom: 0.75rem;
+    }
+    .books-hero-sub {
+      font-size: 0.95rem; font-weight: 300;
+      color: rgba(212,200,240,0.5);
+      max-width: 460px; margin: 0 auto;
+      line-height: 1.75;
+      animation: fadeup 0.6s 0.35s both;
+    }
+
+    /* ── SERIES BLOCK ── */
+    .series-block { margin-bottom: 5rem; }
+
+    .series-header {
+      margin-bottom: 2rem;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .series-eyebrow {
+      font-size: 0.65rem; font-weight: 700;
+      letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--royal-light); margin-bottom: 0.35rem; display: block;
+    }
+    .series-name {
+      font-family: var(--font-display);
+      font-size: clamp(1.5rem, 3vw, 2rem);
+      color: var(--ink); line-height: 1.1;
+    }
+    .series-desc {
+      font-size: 0.85rem; color: rgba(212,200,240,0.45);
+      max-width: 440px; line-height: 1.7; font-weight: 300;
+      text-align: right;
+    }
+    @media (max-width: 600px) {
+      .series-header { flex-direction: column; align-items: flex-start; }
+      .series-desc { text-align: left; }
+    }
+
+    /* ── BOOK GRID ── */
+    .book-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1.5rem;
+    }
+
+    /* ── BOOK CARD ── */
+    .book-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+      display: flex; flex-direction: column;
+      transition: all 0.3s cubic-bezier(0.25,0.46,0.45,0.94);
+      position: relative;
+    }
+    .book-card::before {
+      content: ''; position: absolute; inset: 0;
+      border-radius: 20px;
+      background: radial-gradient(ellipse at 50% 0%, rgba(124,58,237,0.07), transparent 60%);
+      opacity: 0; transition: opacity 0.3s; pointer-events: none;
+    }
+    .book-card:hover {
+      transform: translateY(-8px);
+      border-color: var(--border2);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.45);
+    }
+    .book-card:hover::before { opacity: 1; }
+
+    .book-cover-wrap {
+      aspect-ratio: 2/3; overflow: hidden;
+      background: linear-gradient(160deg, #1a0a3d, #0f1a3a);
+      position: relative; flex-shrink: 0;
+    }
+    .book-cover-wrap img {
+      width: 100%; height: 100%; object-fit: cover;
+      display: block; transition: transform 0.5s ease;
+    }
+    .book-card:hover .book-cover-wrap img { transform: scale(1.04); }
+    .book-cover-placeholder {
+      width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 4rem; position: relative;
+      background: linear-gradient(160deg, #1a0a3d, #0f1a3a);
+    }
+    .book-cover-placeholder::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 30% 30%, rgba(124,58,237,0.28), transparent 60%);
+    }
+    .book-cover-placeholder span { position: relative; z-index: 1; }
+
+    .book-body {
+      padding: 1.1rem; flex: 1;
+      display: flex; flex-direction: column; gap: 0.4rem;
+    }
+    .book-volume {
+      font-size: 0.63rem; font-weight: 700;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--royal-light);
+    }
+    .book-title {
+      font-family: var(--font-display);
+      font-size: 1rem; color: var(--ink); line-height: 1.25;
+    }
+    .book-desc {
+      font-size: 0.78rem; color: rgba(212,200,240,0.45);
+      line-height: 1.65; flex: 1;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .book-tags {
+      display: flex; flex-wrap: wrap; gap: 0.3rem;
+      margin-top: 0.25rem;
+      max-height: 50px;
+      overflow: hidden;
+      position: relative;
+    }
+    .book-tag {
+      font-size: 0.6rem; font-weight: 700;
+      letter-spacing: 0.07em; text-transform: uppercase;
+      padding: 0.18rem 0.5rem; border-radius: 5px;
+      background: rgba(124,58,237,0.1);
+      color: var(--royal-light);
+      border: 1px solid rgba(124,58,237,0.18);
+      flex-shrink: 0;
+    }
+    .book-platforms {
+      display: flex; flex-wrap: wrap; gap: 0.4rem;
+      padding-top: 0.6rem;
+      border-top: 1px solid rgba(124,58,237,0.1);
+      margin-top: 0.25rem;
+    }
+    .plat-btn {
+      font-size: 0.65rem; font-weight: 700;
+      letter-spacing: 0.06em;
+      padding: 0.22rem 0.65rem; border-radius: 999px;
+      text-decoration: none; border: 1.5px solid;
+      transition: all 0.18s; white-space: nowrap;
+    }
+    .plat-btn.rr  { color: #f59e0b; border-color: rgba(245,158,11,0.4); }
+    .plat-btn.sh  { color: #a78bfa; border-color: rgba(167,139,250,0.4); }
+    .plat-btn.wp  { color: #fb923c; border-color: rgba(251,146,60,0.4); }
+    .plat-btn.kdp { color: #FF9900; border-color: rgba(255,153,0,0.4); }
+    .plat-btn.other { color: var(--muted); border-color: var(--border); }
+    .plat-btn:hover { opacity: 0.72; transform: scale(1.05); }
+    .no-platforms {
+      font-size: 0.72rem; color: var(--muted);
+      font-style: italic;
+    }
+
+    /* ── STANDALONE DIVIDER ── */
+    .standalone-header {
+      margin: 4rem 0 2rem;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .standalone-eyebrow {
+      font-size: 0.65rem; font-weight: 700;
+      letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 0.35rem; display: block;
+    }
+    .standalone-title {
+      font-family: var(--font-display);
+      font-size: clamp(1.4rem, 2.5vw, 1.8rem);
+      color: var(--ink);
+    }
+
+    /* ── PATREON BANNER ── */
+    .patreon-banner {
+      background: linear-gradient(135deg, rgba(76,29,149,0.4), rgba(30,58,138,0.35));
+      border: 1px solid rgba(124,58,237,0.25);
+      border-radius: 24px; padding: 3.5rem;
+      text-align: center; position: relative;
+      overflow: hidden; margin-top: 4rem;
+    }
+    .patreon-banner::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 50% 0%, rgba(124,58,237,0.15), transparent 60%);
+      pointer-events: none;
+    }
+    .patreon-eyebrow {
+      font-size: 0.68rem; font-weight: 700;
+      letter-spacing: 0.2em; text-transform: uppercase;
+      color: rgba(167,139,250,0.6);
+      margin-bottom: 0.75rem; position: relative; z-index: 1;
+    }
+    .patreon-title {
+      font-family: var(--font-display);
+      font-size: clamp(1.8rem, 3vw, 2.5rem);
+      color: var(--ink); margin-bottom: 0.75rem;
+      position: relative; z-index: 1;
+    }
+    .patreon-desc {
+      color: rgba(212,200,240,0.5);
+      max-width: 400px; margin: 0 auto 2rem;
+      line-height: 1.75; font-size: 0.9rem;
+      font-weight: 300; position: relative; z-index: 1;
+    }
+    .btn-patreon {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.75rem 1.75rem; border-radius: 10px;
+      background: linear-gradient(135deg, #d4900a, #a06808);
+      color: white; text-decoration: none;
+      font-weight: 700; font-size: 0.88rem;
+      letter-spacing: 0.04em;
+      border: 1px solid rgba(212,144,10,0.4);
+      box-shadow: 0 4px 20px rgba(166,104,8,0.35);
+      transition: all 0.22s;
+      position: relative; z-index: 1;
+    }
+    .btn-patreon:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(166,104,8,0.5);
+    }
+
+    /* ── EMPTY / LOADING ── */
+    .books-loading {
+      text-align: center; padding: 5rem 2rem;
+      color: var(--muted); font-size: 0.9rem;
+    }
+    .books-loading-dots::after {
+      content: '...';
+      animation: dots 1.2s steps(4, end) infinite;
+    }
+    @keyframes dots {
+      0%,20%  { content: '.'; }
+      40%     { content: '..'; }
+      60%,100%{ content: '...'; }
+    }
+
+    /* ── REVEAL ── */
+    .reveal {
+      opacity: 0; transform: translateY(22px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .reveal-d1 { transition-delay: 0.05s; }
+    .reveal-d2 { transition-delay: 0.12s; }
+    .reveal-d3 { transition-delay: 0.19s; }
+    .reveal-d4 { transition-delay: 0.26s; }
+
+    @keyframes fadeup {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo"><div class="paw" aria-hidden="true"></div> Nekojin Interactive</a>
+  <ul class="nav-links">
+    <li><a href="/">Home</a></li>
+    <li><a href="/books" class="active">Books</a></li>
+    <li><a href="/games">Games</a></li>
+    <li><a href="/about">About</a></li>
+  </ul>
+  <div class="nav-search-wrap">
+    <input type="text" class="nav-search" id="nav-search" placeholder="Search books…" autocomplete="off">
+    <div class="nav-search-results" id="nav-search-results"></div>
+  </div>
+  <button class="nav-hamburger" id="nav-hamburger" aria-label="Menu" onclick="toggleNav()">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+<div class="nav-drawer" id="nav-drawer">
+  <ul>
+    <li><input type="text" class="drawer-search" id="drawer-search" placeholder="Search books…" autocomplete="off"></li>
+    <li><div class="drawer-search-results" id="drawer-search-results"></div></li>
+    <li><a href="/">Home</a></li>
+    <li><a href="/books" class="active">Books</a></li>
+    <li><a href="/games">Games</a></li>
+    <li><a href="/about">About</a></li>
+  </ul>
+</div>
+
+<main>
+
+  <!-- HERO -->
+  <section class="books-hero">
+    <div class="books-hero-orbs">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+    </div>
+    <p class="books-hero-eyebrow">Published Series</p>
+    <h1 class="books-hero-title">Books &amp; Serials</h1>
+    <p class="books-hero-sub">All stories set within the Xanrea universe. Read free on Royal Road and ScribbleHub.</p>
+  </section>
+
+  <!-- CONTENT -->
+  <section style="padding: 2rem 2rem 5rem;">
+    <div class="section-inner" id="books-container">
+      <div class="books-loading">
+        <span class="books-loading-dots">Loading</span>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-logo"><div class="tama-icon" aria-hidden="true"></div> Nekojin Interactive</div>
+    <p class="footer-tagline" id="footer-tagline">Crafting worlds, one upload at a time.</p>
+    <div class="footer-links">
+      <a href="/">Home</a><a href="/books">Books</a>
+      <a href="/games">Games</a><a href="/about">About</a>
+    </div>
+    <p class="footer-copy">© 2026 Nekojin Interactive LLC. All rights reserved.</p>
+  </div>
+</footer>
+
+<script>
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+const PLAT_LABEL = { rr: 'Royal Road', sh: 'ScribbleHub', wp: 'Wattpad', kdp: 'Kindle' };
+
+function platLabel(p) {
+  return PLAT_LABEL[p.type] || p.name || p.type || 'Read';
+}
+
+function renderPlatforms(platforms) {
+  if (!platforms || !platforms.length) return `<span class="no-platforms">Links coming soon</span>`;
+  return platforms.filter(p => p.url).map(p => `
+    <a href="${esc(p.url)}" target="_blank" rel="noopener"
+       class="plat-btn ${esc(p.type || 'other')}">${esc(platLabel(p))}</a>
+  `).join('');
+}
+
+function renderBook(book) {
+  const cover = book.cover
+    ? `<img src="${esc(book.cover)}" alt="${esc(book.title)} cover" loading="lazy">`
+    : `<div class="book-cover-placeholder"><span>📖</span></div>`;
+
+  const tags = (book.tags || []).map(t => `<span class="book-tag">${esc(t)}</span>`).join('');
+
+  return `
+    <div class="book-card" onclick="goBook('${esc(book.id)}', event)">
+      <div class="book-cover-wrap">${cover}</div>
+      <div class="book-body">
+        ${book.volume ? `<div class="book-volume">${esc(book.volume)}</div>` : ''}
+        <h3 class="book-title">${esc(book.title)}</h3>
+        <p class="book-desc">${esc(book.description)}</p>
+        ${tags ? `<div class="book-tags">${tags}</div>` : ''}
+        <div class="book-platforms">${renderPlatforms(book.platforms)}</div>
+      </div>
+    </div>
+  `;
+}
+
+const revealObs = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); revealObs.unobserve(e.target); } });
+}, { threshold: 0.08, rootMargin: '0px 0px -20px 0px' });
+
+function goBook(id, ev) {
+  if (ev) {
+    const t = ev.target.closest('a');
+    if (t) return;
+  }
+  location.href = '/book?id=' + encodeURIComponent(id);
+}
+
+async function loadBooks() {
+  const container = document.getElementById('books-container');
+  try {
+    const res = await fetch('/content');
+    const data = await res.json();
+
+    const books = (data.books || []).filter(b => b.visible !== false);
+
+    if (!books.length) {
+      container.innerHTML = '<p style="text-align:center;color:var(--muted);padding:4rem 0;">No books available yet.</p>';
+      return;
+    }
+
+    let html = `
+      <div class="book-grid reveal">
+        ${books.map((b, i) => `<div class="reveal reveal-d${Math.min(i+1,4)}">${renderBook(b)}</div>`).join('')}
+      </div>
+    `;
+
+    // ── PATREON BANNER ──
+    html += `
+      <div class="patreon-banner reveal">
+        <p class="patreon-eyebrow">✦ Support the Work</p>
+        <h2 class="patreon-title">Read Ahead on Patreon</h2>
+        <p class="patreon-desc">Early access chapters, exclusive content, and behind-the-scenes updates. Join any tier to get ahead of the public release.</p>
+        <a href="https://www.patreon.com/purplexanmal" target="_blank" rel="noopener" class="btn-patreon">
+          ☕ Support on Patreon
+        </a>
+      </div>
+    `;
+
+    container.innerHTML = html;
+
+    // Footer tagline
+    if (data.about && data.about.tagline) {
+      document.getElementById('footer-tagline').textContent = data.about.tagline;
+    }
+
+    // Patreon URL from CMS
+    const patreonUrl = data.about?.links?.patreon || 'https://www.patreon.com';
+    const patreonBtn = container.querySelector('.btn-patreon');
+    if (patreonBtn) patreonBtn.href = patreonUrl;
+
+    // Trigger reveal observers on new elements
+    container.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+
+  } catch(e) {
+    container.innerHTML = '<p style="text-align:center;color:var(--muted);padding:4rem 0;">Could not load books.</p>';
+    console.error(e);
+  }
+}
+
+function toggleNav() {
+  const btn = document.getElementById('nav-hamburger');
+  const drawer = document.getElementById('nav-drawer');
+  const open = btn.classList.toggle('open');
+  drawer.classList.toggle('open', open);
+  document.body.style.overflow = open ? 'hidden' : '';
+}
+document.addEventListener('click', function(e) {
+  const btn = document.getElementById('nav-hamburger');
+  const drawer = document.getElementById('nav-drawer');
+  if (btn && drawer && !btn.contains(e.target) && !drawer.contains(e.target)) {
+    btn.classList.remove('open'); drawer.classList.remove('open'); document.body.style.overflow = '';
+  }
+});
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.nav-drawer a').forEach(a => {
+    a.addEventListener('click', () => {
+      document.getElementById('nav-hamburger').classList.remove('open');
+      document.getElementById('nav-drawer').classList.remove('open');
+      document.body.style.overflow = '';
+    });
+  });
+});
+
+// ── SITE SEARCH ────────────────────────────────────────
+(async function() {
+  let searchIndex = [];
+  try {
+    const res = await fetch('/content');
+    const data = await res.json();
+    searchIndex = (data.books || []).filter(b => b.visible !== false).map(b => ({
+      id: b.id,
+      title: b.title,
+      volume: b.volume || '',
+      description: b.description || '',
+      tags: (b.tags || []).join(' '),
+      cover: b.cover || ''
+    }));
+  } catch(e) { console.warn('Search init failed', e); }
+
+  function setupSearch(inputId, resultsId) {
+    const input = document.getElementById(inputId);
+    const results = document.getElementById(resultsId);
+    if (!input || !results) return;
+
+    function esc(str) { return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function render(q) {
+      q = q.trim().toLowerCase();
+      if (!q || !searchIndex.length) { results.classList.remove('visible'); return; }
+      const matches = searchIndex.filter(b =>
+        b.title.toLowerCase().includes(q) ||
+        b.description.toLowerCase().includes(q) ||
+        b.tags.toLowerCase().includes(q) ||
+        b.volume.toLowerCase().includes(q)
+      ).slice(0, 6);
+
+      if (!matches.length) {
+        results.innerHTML = '<div class="sr-empty">No books found</div>';
+      } else {
+        results.innerHTML = matches.map(b => `
+          <a href="/book?id=${encodeURIComponent(b.id)}" class="sr-item" onclick="document.querySelectorAll('.nav-search-results,.drawer-search-results').forEach(r=>r.classList.remove('visible'));document.getElementById('nav-drawer').classList.remove('open');document.body.style.overflow='';document.getElementById('nav-hamburger').classList.remove('open')">
+            ${b.cover ? `<img src="${b.cover}" alt="">` : '<div style="width:32px;height:48px;background:linear-gradient(160deg,#2d1065,#1e1b4b);border-radius:4px;flex-shrink:0;"></div>'}
+            <div>
+              <div class="sr-title">${esc(b.title)}</div>
+              <div class="sr-meta">${esc(b.volume || b.tags.slice(0, 30) || 'Book')}</div>
+            </div>
+          </a>
+        `).join('');
+      }
+      results.classList.add('visible');
+    }
+
+    let debounce;
+    input.addEventListener('input', (e) => {
+      clearTimeout(debounce);
+      debounce = setTimeout(() => render(e.target.value), 150);
+    });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { input.value = ''; results.classList.remove('visible'); input.blur(); }
+    });
+    document.addEventListener('click', (e) => {
+      if (!input.contains(e.target) && !results.contains(e.target)) results.classList.remove('visible');
+    });
+  }
+
+  setupSearch('nav-search', 'nav-search-results');
+  setupSearch('drawer-search', 'drawer-search-results');
+})();
+
+loadBooks();
+
+// Register PWA service worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>

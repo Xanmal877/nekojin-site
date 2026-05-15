@@ -1,0 +1,1531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Nekojin Interactive</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Darumadrop+One&family=Zen+Kaku+Gothic+New:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:       #0d0820;
+      --surface:  #140f2e;
+      --surface2: #1c1640;
+      --surface3: #231d50;
+      --border:   rgba(124,40,212,0.2);
+      --border2:  rgba(124,40,212,0.35);
+      --royal:    #8B44E8;
+      --royal-d:  #6B28C8;
+      --sapphire: #3B6ACC;
+      --gold:     #E8B020;
+      --text:     #d8cef0;
+      --muted:    #7868a8;
+      --faint:    #1a1438;
+      --red:      #e05050;
+      --green:    #40c878;
+      --mono:     'Space Mono', monospace;
+      --body:     'Zen Kaku Gothic New', sans-serif;
+      --display:  'Darumadrop One', cursive;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: var(--body); min-height: 100vh; }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(13,8,32,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 1.5rem; height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .topbar-logo { font-family: var(--display); font-size: 1.2rem; color: var(--royal); display: flex; align-items: center; gap: 0.5rem; }
+    .topbar-right { display: flex; align-items: center; gap: 1rem; }
+    .topbar-site-link { font-size: 0.78rem; color: var(--muted); text-decoration: none; transition: color 0.2s; }
+    .topbar-site-link:hover { color: var(--text); }
+    .logout-btn {
+      font-size: 0.78rem; font-weight: 600; padding: 0.35rem 0.9rem;
+      background: transparent; color: var(--muted); border: 1px solid var(--border);
+      border-radius: 999px; cursor: pointer; transition: all 0.2s;
+      text-decoration: none; font-family: var(--body);
+    }
+    .logout-btn:hover { color: var(--text); border-color: var(--border2); }
+
+    /* ── LAYOUT ── */
+    .admin-layout { display: flex; min-height: calc(100vh - 60px); }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: 220px; flex-shrink: 0; background: var(--surface);
+      border-right: 1px solid var(--border); padding: 1.5rem 0;
+      position: sticky; top: 60px; height: calc(100vh - 60px); overflow-y: auto;
+    }
+    .sidebar-section {
+      font-size: 0.68rem; font-weight: 700; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--muted); padding: 0.5rem 1.25rem; margin-top: 1rem;
+    }
+    .sidebar-section:first-child { margin-top: 0; }
+    .sidebar-item {
+      display: flex; align-items: center; gap: 0.6rem;
+      padding: 0.6rem 1.25rem; font-size: 0.88rem; color: var(--muted);
+      cursor: pointer; transition: all 0.15s;
+      border-left: 2px solid transparent; user-select: none;
+    }
+    .sidebar-item:hover { color: var(--text); background: rgba(139,68,232,0.07); }
+    .sidebar-item.active { color: var(--royal); background: rgba(139,68,232,0.12); border-left-color: var(--royal); }
+    .sidebar-icon { font-size: 1rem; width: 1.2rem; text-align: center; }
+
+    /* ── MAIN ── */
+    .admin-main { flex: 1; padding: 2rem; overflow-y: auto; }
+
+    /* ── PANELS ── */
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .panel-title { font-family: var(--display); font-size: 1.6rem; color: var(--text); margin-bottom: 0.3rem; }
+    .panel-sub { font-size: 0.85rem; color: var(--muted); margin-bottom: 2rem; }
+
+    /* ── CARDS ── */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; }
+    .card-title {
+      font-family: var(--display); font-size: 1rem; color: var(--text);
+      margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;
+    }
+
+    /* ── FORMS ── */
+    label {
+      display: block; font-size: 0.75rem; font-weight: 600;
+      letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.35rem;
+    }
+    input[type="text"], input[type="url"], textarea, select {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 0.6rem 0.85rem; color: var(--text);
+      font-family: var(--body); font-size: 0.9rem; outline: none;
+      transition: border-color 0.2s; margin-bottom: 1rem;
+    }
+    input[type="text"]:focus, input[type="url"]:focus, textarea:focus, select:focus { border-color: var(--royal); }
+    textarea { resize: vertical; min-height: 80px; }
+    select { cursor: pointer; }
+    .form-row   { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      padding: 0.55rem 1.25rem; border-radius: 8px; border: none;
+      font-family: var(--body); font-size: 0.85rem; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .btn-primary { background: var(--royal); color: white; }
+    .btn-primary:hover { background: var(--royal-d); transform: translateY(-1px); }
+    .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .btn-ghost:hover { color: var(--text); border-color: var(--border2); }
+    .btn-danger { background: rgba(224,80,80,0.15); color: var(--red); border: 1px solid rgba(224,80,80,0.3); }
+    .btn-danger:hover { background: rgba(224,80,80,0.25); }
+    .btn-success { background: rgba(64,200,120,0.15); color: var(--green); border: 1px solid rgba(64,200,120,0.3); }
+    .btn-sm { padding: 0.35rem 0.8rem; font-size: 0.78rem; }
+    /* Icon-only square buttons */
+    .btn-icon {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; padding: 0; border-radius: 6px; border: none;
+      background: transparent; color: var(--muted); cursor: pointer;
+      transition: all 0.15s; font-size: 0.85rem; flex-shrink: 0;
+    }
+    .btn-icon:hover { color: var(--text); background: rgba(139,68,232,0.1); }
+    .btn-icon.danger:hover { color: var(--red); background: rgba(224,80,80,0.1); }
+    .btn-icon:disabled { opacity: 0.25; cursor: default; pointer-events: none; }
+
+    /* ── SERIES CARD HEADER ── */
+    .series-header {
+      display: flex; align-items: center; gap: 0.75rem;
+      margin-bottom: 1rem; flex-wrap: wrap;
+    }
+    .series-header-title { font-family: var(--display); font-size: 1rem; color: var(--text); flex: 1; min-width: 0; }
+    .series-header-actions { display: flex; align-items: center; gap: 0.25rem; flex-shrink: 0; }
+
+    /* ── BOOK EDITOR ── */
+    .book-editor { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+    .book-editor-header {
+      display: flex; align-items: center; gap: 0.5rem;
+      margin-bottom: 0; cursor: default;
+    }
+    .book-editor-toggle { flex: 1; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; min-width: 0; }
+    .book-editor-toggle:hover .book-editor-title { color: var(--royal); }
+    .book-editor-title { font-family: var(--display); font-size: 0.95rem; color: var(--text); transition: color 0.15s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .book-editor-actions { display: flex; align-items: center; gap: 0.25rem; flex-shrink: 0; }
+    .chevron { transition: transform 0.2s; color: var(--muted); font-size: 0.75rem; flex-shrink: 0; }
+    .book-editor-body { display: none; margin-top: 1.25rem; }
+    .book-editor.open .book-editor-body { display: block; }
+    .book-editor.open .chevron { transform: rotate(180deg); }
+
+    /* ── PLATFORM ROW ── */
+    .platform-row { display: grid; grid-template-columns: 130px 1fr auto; gap: 0.5rem; align-items: start; margin-bottom: 0.5rem; }
+    .platform-row input, .platform-row select { margin-bottom: 0; }
+
+    /* ── COVER UPLOAD ── */
+    .cover-upload-area {
+      border: 2px dashed var(--border); border-radius: 10px; padding: 1.5rem;
+      text-align: center; cursor: pointer; transition: all 0.2s;
+      margin-bottom: 1rem; position: relative;
+    }
+    .cover-upload-area:hover { border-color: var(--royal); background: rgba(139,68,232,0.05); }
+    .cover-upload-area input { position: absolute; inset: 0; opacity: 0; cursor: pointer; pointer-events: none; }
+    .cover-preview { width: 80px; height: 120px; object-fit: cover; border-radius: 6px; margin: 0 auto 0.5rem; display: block; }
+    .upload-hint { font-size: 0.78rem; color: var(--muted); }
+
+    /* ── STATUS BADGE ── */
+    .status-badge {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      padding: 0.25rem 0.7rem; border-radius: 999px;
+    }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; }
+    .badge-success { background: rgba(64,200,120,0.15); color: var(--green); }
+    .badge-success .status-dot { background: var(--green); animation: pulse 2s infinite; }
+    .badge-warn { background: rgba(232,176,32,0.15); color: var(--gold); }
+    .badge-warn .status-dot { background: var(--gold); }
+
+    /* ── TOGGLE ── */
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0; border-bottom: 1px solid var(--border); }
+    .toggle-row:last-child { border-bottom: none; }
+    .toggle-label { font-size: 0.88rem; color: var(--text); }
+    .toggle-sub { font-size: 0.75rem; color: var(--muted); margin-top: 0.1rem; }
+    .toggle { position: relative; width: 42px; height: 24px; cursor: pointer; }
+    .toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .toggle-slider { position: absolute; inset: 0; background: var(--surface3); border-radius: 999px; transition: 0.2s; border: 1px solid var(--border); }
+    .toggle-slider::before { content: ''; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px; background: var(--muted); border-radius: 50%; transition: 0.2s; }
+    .toggle input:checked + .toggle-slider { background: rgba(139,68,232,0.3); border-color: var(--royal); }
+    .toggle input:checked + .toggle-slider::before { transform: translateX(18px); background: var(--royal); }
+
+    /* ── SAVE BANNER ── */
+    .save-banner {
+      position: fixed; bottom: 2rem; right: 2rem;
+      background: var(--surface); border: 1px solid var(--border2); border-radius: 12px;
+      padding: 1rem 1.5rem; display: flex; align-items: center; gap: 1rem;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      transform: translateY(100px); opacity: 0; transition: all 0.3s;
+      pointer-events: none; z-index: 200;
+    }
+    .save-banner.visible { transform: translateY(0); opacity: 1; pointer-events: auto; }
+    .save-banner-text { font-size: 0.88rem; color: var(--text); }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed; top: 80px; right: 2rem;
+      background: var(--surface); border: 1px solid var(--border2); border-radius: 10px;
+      padding: 0.75rem 1.25rem; font-size: 0.85rem; color: var(--text);
+      z-index: 999; transform: translateX(200px); opacity: 0;
+      transition: all 0.3s; pointer-events: none;
+    }
+    .toast.show { transform: translateX(0); opacity: 1; pointer-events: auto; }
+    .toast.success { border-color: rgba(64,200,120,0.4); color: var(--green); }
+    .toast.error   { border-color: rgba(224,80,80,0.4);  color: var(--red);   }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 600;
+      background: rgba(0,0,0,0.65); display: none;
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal-box {
+      background: var(--surface); border: 1px solid var(--border2);
+      border-radius: 16px; padding: 1.5rem; width: min(420px, 92vw);
+    }
+    .modal-title { font-family: var(--display); font-size: 1.1rem; color: var(--text); margin-bottom: 0.5rem; }
+    .modal-body  { font-size: 0.88rem; color: var(--muted); margin-bottom: 1.25rem; line-height: 1.5; }
+    .modal-input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem 0.85rem; color: var(--text); font-family: var(--body); font-size: 0.9rem; outline: none; transition: border-color 0.2s; margin-bottom: 1.25rem; }
+    .modal-input:focus { border-color: var(--royal); }
+    .modal-actions { display: flex; gap: 0.75rem; justify-content: flex-end; }
+
+    /* Series picker inside modal */
+    .series-pick-list { margin-bottom: 1rem; }
+    .series-pick-btn {
+      display: block; width: 100%; text-align: left;
+      padding: 0.65rem 0.9rem; margin-bottom: 0.4rem;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); font-family: var(--body);
+      font-size: 0.88rem; cursor: pointer; transition: all 0.15s;
+    }
+    .series-pick-btn:hover { border-color: var(--royal); background: rgba(139,68,232,0.08); color: var(--royal); }
+    .series-pick-btn.standalone { color: var(--muted); font-style: italic; }
+
+    /* ── STANDALONE SECTION ── */
+    .standalone-header {
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--muted);
+      padding: 0.4rem 0; margin-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 0.75rem;
+    }
+    .standalone-header span { flex: 1; }
+
+    /* ── SCRAPER / CALENDAR ── */
+    .last-updated { font-size: 0.78rem; color: var(--muted); font-family: var(--mono); }
+    #dashboard-embed { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+
+    .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+    .cal-nav-title { font-family: var(--display); font-size: 1.1rem; color: var(--text); }
+    .cal-nav-btn {
+      background: transparent; border: 1px solid var(--border); color: var(--muted);
+      border-radius: 8px; width: 32px; height: 32px; cursor: pointer; font-size: 1rem;
+      display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+    }
+    .cal-nav-btn:hover { color: var(--text); border-color: var(--border2); }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+    .cal-dow { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); text-align: center; padding-bottom: 0.4rem; }
+    .cal-cell {
+      border-radius: 6px; border: 1px solid transparent;
+      display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+      padding: 5px 2px 4px; cursor: default; transition: all 0.15s; min-height: 0; position: relative;
+    }
+    .cal-cell.has-data  { background: var(--surface2); border-color: var(--border); cursor: pointer; }
+    .cal-cell.has-data:hover { border-color: var(--border2); background: var(--surface3); }
+    .cal-cell.today     { border-color: var(--royal) !important; }
+    .cal-cell.selected  { background: rgba(139,68,232,0.15) !important; border-color: var(--royal) !important; }
+    .cal-cell.empty     { opacity: 0; pointer-events: none; }
+    .cal-day-num { font-size: 0.9rem; font-family: var(--mono); color: var(--muted); line-height: 1; margin-bottom: 3px; font-weight: 700; }
+    .cal-cell.has-data .cal-day-num { color: var(--text); }
+    .cal-dots { display: flex; gap: 2px; flex-wrap: wrap; justify-content: center; }
+    .cal-dot { width: 5px; height: 5px; border-radius: 50%; }
+    .cal-dot-rr { background: #d4860a; }
+    .cal-dot-sh { background: var(--royal); }
+    .cal-delta { font-size: 0.6rem; font-family: var(--mono); color: var(--green); margin-top: 2px; line-height: 1; }
+    .cal-delta.neg { color: var(--red); }
+    .cal-delta.neu { color: var(--muted); }
+
+    .day-detail { margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border); display: none; }
+    .day-detail.visible { display: block; }
+    .day-detail-title { font-family: var(--display); font-size: 1rem; color: var(--text); margin-bottom: 1rem; }
+    .day-story-block { margin-bottom: 1.25rem; }
+    .day-story-name { font-family: var(--display); font-size: 0.9rem; color: var(--text); margin-bottom: 0.5rem; }
+    .day-platform-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.4rem 0; border-bottom: 1px solid var(--border); font-size: 0.82rem; }
+    .day-platform-row:last-child { border-bottom: none; }
+    .day-stat { font-family: var(--mono); color: var(--text); min-width: 60px; }
+    .day-stat-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+
+    .metrics-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem; }
+    .metric-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; }
+    .metric-card td, .metric-card th { padding: 0.3rem 0.75rem 0.3rem 0; vertical-align: middle; }
+    .metric-story { font-family: var(--display); font-size: 1rem; color: var(--text); margin-bottom: 0.25rem; }
+    .metric-platform { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 1rem; }
+    .platform-rr { color: #d4860a; }
+    .platform-sh { color: #8B44E8; }
+    .metric-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
+    .metric-stat-label { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.2rem; }
+    .metric-stat-val { font-family: var(--mono); font-size: 1.1rem; color: var(--text); }
+    .metric-growth { font-size: 0.75rem; margin-top: 0.1rem; }
+    .growth-pos { color: var(--green); }
+    .growth-neg { color: var(--red); }
+    .growth-neu { color: var(--muted); }
+
+    .spinning { animation: spin 1s linear infinite; display: inline-block; }
+    @keyframes spin  { to { transform: rotate(360deg); } }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+
+
+    /* ── EMPTY STATE ── */
+    .empty-state { text-align: center; padding: 2rem 1rem; color: var(--muted); font-size: 0.88rem; }
+    .empty-state-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+
+    /* ── BOOK CARD META (collapsed summary) ── */
+    .book-card-meta { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.4rem; }
+    .platform-badge {
+      font-size: 0.68rem; font-weight: 700; letter-spacing: 0.06em;
+      padding: 0.15rem 0.45rem; border-radius: 4px;
+      background: var(--surface3); color: var(--muted); text-transform: uppercase;
+    }
+    .platform-badge.rr    { color: #d4860a; background: rgba(212,134,10,0.12); }
+    .platform-badge.sh    { color: var(--royal); background: rgba(139,68,232,0.12); }
+    .platform-badge.kdp   { color: #FF9900; background: rgba(255,153,0,0.12); }
+    .vis-badge { font-size: 0.68rem; color: var(--muted); background: var(--surface3); padding: 0.15rem 0.45rem; border-radius: 4px; }
+    .vis-badge.hidden { color: var(--red); background: rgba(224,80,80,0.1); }
+
+    /* ── DRAG AND DROP ── */
+    .book-editor.dragging { opacity: 0.4; }
+    .book-editor.drag-over { border-color: var(--royal) !important; background: rgba(139,68,232,0.08) !important; box-shadow: 0 0 0 2px rgba(139,68,232,0.2); }
+    .drag-handle { color: var(--muted); font-size: 0.9rem; cursor: grab; padding: 0 2px; flex-shrink: 0; user-select: none; }
+    .drag-handle:active { cursor: grabbing; }
+
+    /* ── SEARCH BAR ── */
+    .books-toolbar { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .search-input {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 0.5rem 0.85rem;
+      color: var(--text); font-family: var(--body); font-size: 0.85rem;
+      outline: none; transition: border-color 0.2s; width: 220px; margin-bottom: 0;
+    }
+    .search-input:focus { border-color: var(--royal); }
+    .search-input::placeholder { color: var(--muted); }
+
+    /* ── BACKGROUND SETTINGS ── */
+    .bg-preview { width: 100%; height: 120px; border-radius: 10px; object-fit: cover; display: block; margin-bottom: 0.75rem; border: 1px solid var(--border); }
+    .bg-preview-empty { width: 100%; height: 120px; border-radius: 10px; background: var(--surface2); border: 2px dashed var(--border); display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 0.85rem; margin-bottom: 0.75rem; }
+    .opacity-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+    .opacity-row input[type=range] { flex: 1; accent-color: var(--royal); margin-bottom: 0; }
+    .opacity-val { font-family: var(--mono); font-size: 0.82rem; color: var(--muted); width: 3ch; text-align: right; flex-shrink: 0; }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-logo">🐾 Nekojin Admin</div>
+  <div class="topbar-right">
+    <span style="font-size:0.72rem;color:var(--muted);font-family:var(--mono);">Ctrl+S to save</span>
+    <a href="/" class="topbar-site-link">← View Site</a>
+    <a href="/logout" class="logout-btn">Sign Out</a>
+  </div>
+</div>
+
+<div class="admin-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-section">Content</div>
+    <div class="sidebar-item active" data-panel="books" onclick="switchPanel('books')">
+      <span class="sidebar-icon">📚</span> Books & Series
+    </div>
+    <div class="sidebar-item" data-panel="game" onclick="switchPanel('game')">
+      <span class="sidebar-icon">🎮</span> Game
+    </div>
+    <div class="sidebar-item" data-panel="about" onclick="switchPanel('about')">
+      <span class="sidebar-icon">🏛️</span> About Page
+    </div>
+    <div class="sidebar-item" data-panel="visibility" onclick="switchPanel('visibility')">
+      <span class="sidebar-icon">👁️</span> Visibility
+    </div>
+    <div class="sidebar-section">Operations</div>
+    <div class="sidebar-item" data-panel="scraper" onclick="switchPanel('scraper')">
+      <span class="sidebar-icon">📊</span> Scraper Dashboard
+    </div>
+    <div class="sidebar-item" data-panel="settings" onclick="switchPanel('settings')">
+      <span class="sidebar-icon">⚙️</span> Settings
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="admin-main">
+
+    <!-- BOOKS PANEL -->
+    <div class="panel active" id="panel-books">
+      <h1 class="panel-title">📚 Books & Series</h1>
+      <p class="panel-sub">Manage series, standalone books, platform links, and cover images.</p>
+      <div class="books-toolbar">
+        <button class="btn btn-primary" onclick="saveContent()">💾 Save</button>
+        <button class="btn btn-ghost" onclick="openAddBookModal()">+ Add Book</button>
+        <button class="btn btn-ghost" onclick="openAddSeriesModal()">+ Add Series</button>
+        <button class="btn btn-ghost" onclick="addStandaloneBook()">+ Standalone</button>
+        <div style="flex:1;"></div>
+        <input class="search-input" type="text" placeholder="🔍 Search books…" id="book-search" oninput="filterBooks(this.value)">
+      </div>
+      <div id="books-editor"><p style="color:var(--muted);">Loading content...</p></div>
+    </div>
+
+    <!-- GAME PANEL -->
+    <div class="panel" id="panel-game">
+      <h1 class="panel-title">🎮 Game</h1>
+      <p class="panel-sub">Update the game listing details shown on the Games page.</p>
+      <div class="card" id="game-editor"><p style="color:var(--muted);">Loading...</p></div>
+      <button class="btn btn-primary" onclick="saveContent()">💾 Save Game Info</button>
+    </div>
+
+    <!-- ABOUT PANEL -->
+    <div class="panel" id="panel-about">
+      <h1 class="panel-title">🏛️ About Page</h1>
+      <p class="panel-sub">Edit the studio description and universe blurb shown on the About page.</p>
+      <div class="card" id="about-editor"><p style="color:var(--muted);">Loading...</p></div>
+      <button class="btn btn-primary" onclick="saveContent()">💾 Save About</button>
+    </div>
+
+    <!-- VISIBILITY PANEL -->
+    <div class="panel" id="panel-visibility">
+      <h1 class="panel-title">👁️ Visibility</h1>
+      <p class="panel-sub">Show or hide individual books and series on the public site instantly.</p>
+      <div class="card" id="visibility-editor"><p style="color:var(--muted);">Loading...</p></div>
+      <button class="btn btn-primary" onclick="saveContent()">💾 Save Visibility</button>
+    </div>
+
+    <!-- SETTINGS PANEL -->
+    <div class="panel" id="panel-settings">
+      <h1 class="panel-title">⚙️ Settings</h1>
+      <p class="panel-sub">Admin appearance and display options.</p>
+      <div class="card">
+        <div class="card-title">🖼️ Background Image</div>
+        <div id="bg-preview-wrap"><div class="bg-preview-empty">No background image set</div></div>
+        <label>Image URL</label>
+        <input type="text" id="bg-url-input" placeholder="/covers/my-bg.jpg or https://..." oninput="applyBgPreview(this.value)">
+        <label>Opacity</label>
+        <div class="opacity-row">
+          <input type="range" id="bg-opacity" min="0" max="100" value="15" oninput="applyBgOpacity(this.value); document.getElementById('opacity-val').textContent=this.value">
+          <span class="opacity-val" id="opacity-val">15</span>
+        </div>
+        <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="saveBgSettings()">Apply Background</button>
+          <button class="btn btn-ghost" onclick="clearBgSettings()">Remove Background</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCRAPER PANEL -->
+    <div class="panel" id="panel-scraper">
+      <h1 class="panel-title">📊 Metrics Calendar</h1>
+      <p class="panel-sub">Daily snapshots across Royal Road and ScribbleHub. Updates run at 6:00 PM Arizona time.</p>
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:0.5rem;">
+          <div style="display:flex;gap:1rem;align-items:center;">
+            <span style="display:flex;align-items:center;gap:0.35rem;font-size:0.72rem;color:var(--muted);"><span class="cal-dot cal-dot-rr" style="display:inline-block;"></span> Royal Road</span>
+            <span style="display:flex;align-items:center;gap:0.35rem;font-size:0.72rem;color:var(--muted);"><span class="cal-dot cal-dot-sh" style="display:inline-block;"></span> ScribbleHub</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:0.75rem;">
+            <span class="last-updated" id="last-updated">Loading...</span>
+            <button class="btn btn-ghost btn-sm" onclick="exportMetrics()">↓ Export</button>
+          </div>
+        </div>
+        <div class="cal-nav">
+          <button class="cal-nav-btn" onclick="calPrev()">&#8249;</button>
+          <span class="cal-nav-title" id="cal-month-label"></span>
+          <button class="cal-nav-btn" onclick="calNext()">&#8250;</button>
+        </div>
+        <div class="cal-grid" id="cal-grid"></div>
+        <div class="day-detail" id="day-detail">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;">
+            <div class="day-detail-title" id="day-detail-title"></div>
+            <button class="btn btn-ghost btn-sm" id="day-delete-btn" onclick="deleteSelectedDay()" style="color:var(--danger,#e05252);flex-shrink:0;">🗑 Delete Day</button>
+          </div>
+          <div id="day-detail-body"></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- SAVE BANNER -->
+<div class="save-banner" id="save-banner">
+  <span class="save-banner-text">Unsaved changes</span>
+  <button class="btn btn-primary btn-sm" onclick="saveContent()">Save All</button>
+  <button class="btn btn-ghost btn-sm" onclick="discardChanges()">Discard</button>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- GENERIC MODAL (confirm + prompt) -->
+<div class="modal-overlay" id="modal" onclick="modalBackdropClick(event)">
+  <div class="modal-box">
+    <div class="modal-title" id="modal-title"></div>
+    <div class="modal-body"  id="modal-body"></div>
+    <input type="text" class="modal-input" id="modal-input" style="display:none;"
+      onkeydown="if(event.key==='Enter')modalConfirm(); if(event.key==='Escape')modalCancel();">
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" id="modal-cancel-btn" onclick="modalCancel()">Cancel</button>
+      <button class="btn btn-primary btn-sm" id="modal-confirm-btn" onclick="modalConfirm()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- SERIES PICKER MODAL -->
+<div class="modal-overlay" id="series-picker" onclick="seriesPickerBackdropClick(event)">
+  <div class="modal-box">
+    <div class="modal-title">Add book to...</div>
+    <div class="series-pick-list" id="series-pick-list"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" onclick="seriesPickerCancel()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- EXPORT MODAL -->
+<div id="export-modal" style="display:none;position:fixed;inset:0;z-index:700;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:1.5rem;width:min(640px,90vw);max-height:80vh;display:flex;flex-direction:column;gap:1rem;">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-family:var(--display);font-size:1rem;color:var(--text);">Export Metrics</span>
+      <button class="btn btn-ghost btn-sm" onclick="closeExport()">✕</button>
+    </div>
+    <textarea id="export-textarea" readonly style="flex:1;min-height:320px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:0.75rem;color:var(--text);font-family:var(--mono);font-size:0.75rem;resize:none;outline:none;line-height:1.6;"></textarea>
+    <div style="display:flex;gap:0.75rem;justify-content:flex-end;">
+      <button class="btn btn-ghost btn-sm" onclick="closeExport()">Close</button>
+      <button class="btn btn-primary btn-sm" onclick="copyExport()">Copy All</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STATE ─────────────────────────────────────────────────
+let siteContent = null;
+let dirty = false;
+
+// ── INIT ──────────────────────────────────────────────────
+async function init() {
+  try {
+    await loadContent();
+    renderBooksPanel();
+    renderGamePanel();
+    renderAboutPanel();
+    renderVisibilityPanel();
+    loadMetrics();
+    setupSSE();
+  } catch(e) {
+    showToast('Init failed: ' + e.message, 'error');
+    console.error(e);
+  }
+}
+
+async function loadContent() {
+  try {
+    const res = await fetch('/content');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    siteContent = await res.json();
+    // Ensure root-level books array exists for standalone books
+    if (!Array.isArray(siteContent.books)) siteContent.books = [];
+  } catch(e) {
+    showToast('Failed to load content: ' + e.message, 'error');
+    console.error('loadContent failed:', e);
+  }
+}
+
+// ── KEYBOARD SHORTCUTS ────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+    e.preventDefault();
+    if (dirty) saveContent();
+  }
+  if (e.key === 'Escape') {
+    modalCancel();
+    seriesPickerCancel();
+    closeExport();
+  }
+});
+
+window.addEventListener('beforeunload', e => {
+  if (dirty) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+
+// ── PANEL SWITCH ──────────────────────────────────────────
+function switchPanel(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  document.querySelector(`[data-panel="${name}"]`).classList.add('active');
+}
+
+// ── DIRTY TRACKING ────────────────────────────────────────
+function markDirty() {
+  dirty = true;
+  document.getElementById('save-banner').classList.add('visible');
+}
+
+async function discardChanges() {
+  const ok = await confirmModal('Discard changes?', 'All unsaved edits will be lost.');
+  if (!ok) return;
+  dirty = false;
+  document.getElementById('save-banner').classList.remove('visible');
+  await loadContent();
+  renderBooksPanel();
+  renderGamePanel();
+  renderAboutPanel();
+  renderVisibilityPanel();
+  showToast('Changes discarded.');
+}
+
+// ── TOAST ─────────────────────────────────────────────────
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ── MODAL SYSTEM ──────────────────────────────────────────
+let _modalResolve = null;
+let _modalMode    = 'confirm'; // 'confirm' | 'prompt'
+
+function confirmModal(title, body) {
+  return new Promise(resolve => {
+    _modalResolve = resolve;
+    _modalMode = 'confirm';
+    document.getElementById('modal-title').textContent = title;
+    document.getElementById('modal-body').textContent  = body;
+    const inp = document.getElementById('modal-input');
+    inp.style.display = 'none';
+    document.getElementById('modal-confirm-btn').textContent = 'Confirm';
+    document.getElementById('modal-confirm-btn').className = 'btn btn-danger btn-sm';
+    document.getElementById('modal').classList.add('show');
+  });
+}
+
+function promptModal(title, placeholder = '', defaultVal = '', confirmLabel = 'Create') {
+  return new Promise(resolve => {
+    _modalResolve = resolve;
+    _modalMode = 'prompt';
+    document.getElementById('modal-title').textContent = title;
+    document.getElementById('modal-body').textContent  = '';
+    const inp = document.getElementById('modal-input');
+    inp.style.display = 'block';
+    inp.placeholder = placeholder;
+    inp.value = defaultVal;
+    document.getElementById('modal-confirm-btn').textContent = confirmLabel;
+    document.getElementById('modal-confirm-btn').className = 'btn btn-primary btn-sm';
+    document.getElementById('modal').classList.add('show');
+    setTimeout(() => inp.focus(), 50);
+  });
+}
+
+function modalConfirm() {
+  const val = _modalMode === 'prompt'
+    ? (document.getElementById('modal-input').value.trim() || null)
+    : true;
+  _closeModal(val);
+}
+
+function modalCancel() {
+  _closeModal(_modalMode === 'prompt' ? null : false);
+}
+
+function _closeModal(val) {
+  document.getElementById('modal').classList.remove('show');
+  if (_modalResolve) { _modalResolve(val); _modalResolve = null; }
+}
+
+function modalBackdropClick(e) {
+  if (e.target.id === 'modal') modalCancel();
+}
+
+// ── SERIES PICKER MODAL ───────────────────────────────────
+let _seriesPickerResolve = null;
+
+function openSeriesPickerModal() {
+  return new Promise(resolve => {
+    _seriesPickerResolve = resolve;
+    const list = document.getElementById('series-pick-list');
+    let html = '';
+    (siteContent.series || []).forEach((s, si) => {
+      html += `<button class="series-pick-btn" onclick="seriesPickerSelect(${si})">${esc(s.universe)}</button>`;
+    });
+    html += `<button class="series-pick-btn standalone" onclick="seriesPickerSelect(-1)">📎 Standalone (no series)</button>`;
+    list.innerHTML = html;
+    document.getElementById('series-picker').classList.add('show');
+  });
+}
+
+function seriesPickerSelect(idx) {
+  document.getElementById('series-picker').classList.remove('show');
+  if (_seriesPickerResolve) { _seriesPickerResolve(idx); _seriesPickerResolve = null; }
+}
+
+function seriesPickerCancel() {
+  document.getElementById('series-picker').classList.remove('show');
+  if (_seriesPickerResolve) { _seriesPickerResolve(null); _seriesPickerResolve = null; }
+}
+
+function seriesPickerBackdropClick(e) {
+  if (e.target.id === 'series-picker') seriesPickerCancel();
+}
+
+// ── HELPERS ───────────────────────────────────────────────
+function esc(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function newBook() {
+  return { id: `book-${Date.now()}`, visible: true, title: 'New Book', volume: '', cover: '', description: '', tags: [], platforms: [] };
+}
+
+function getBook(si, bi) {
+  return si === -1 ? siteContent.books[bi] : siteContent.series[si].books[bi];
+}
+
+function setBook(si, bi, val) {
+  if (si === -1) siteContent.books[bi] = val;
+  else siteContent.series[si].books[bi] = val;
+}
+
+function getBooks(si) {
+  return si === -1 ? siteContent.books : siteContent.series[si].books;
+}
+
+// ── RENDER: BOOKS PANEL ───────────────────────────────────
+function renderBooksPanel() {
+  const container = document.getElementById('books-editor');
+  if (!siteContent) { container.innerHTML = '<p style="color:var(--red);">Content failed to load.</p>'; return; }
+
+  let html = '';
+
+  // Series
+  (siteContent.series || []).forEach((series, si) => {
+    const isFirst = si === 0;
+    const isLast  = si === siteContent.series.length - 1;
+    html += `
+    <div class="card" id="series-card-${si}" style="margin-bottom:1.5rem;">
+      <div class="series-header">
+        <div class="series-header-title">📖 ${esc(series.universe) || '<em style="color:var(--muted)">Unnamed Series</em>'}</div>
+        <div class="series-header-actions">
+          <button class="btn-icon" title="Move up"   onclick="moveSeries(${si},-1)" ${isFirst?'disabled':''}>↑</button>
+          <button class="btn-icon" title="Move down" onclick="moveSeries(${si}, 1)" ${isLast ?'disabled':''}>↓</button>
+          <button class="btn-icon danger" title="Delete series" onclick="removeSeries(${si})">🗑</button>
+        </div>
+      </div>
+
+      <label>Universe Name</label>
+      <input type="text" value="${esc(series.universe)}"
+        oninput="siteContent.series[${si}].universe=this.value; markDirty()">
+
+      <label>Universe Description</label>
+      <textarea oninput="siteContent.series[${si}].universeDesc=this.value; markDirty()">${esc(series.universeDesc)}</textarea>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
+        <div style="font-size:0.75rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Books (${series.books.length})</div>
+        <button class="btn btn-ghost btn-sm" onclick="collapseAllBooks(${si})">Collapse All</button>
+      </div>
+
+      ${series.books.length === 0
+        ? `<div class="empty-state"><div class="empty-state-icon">📭</div>No books yet. Use "Add Book" below.</div>`
+        : series.books.map((book, bi) => renderBookEditor(si, bi, book, series.books.length)).join('')
+      }
+    </div>`;
+  });
+
+  // Standalone books
+  const standalone = siteContent.books || [];
+  html += `
+  <div class="card" style="margin-bottom:1.5rem;">
+    <div class="standalone-header">
+      <span>📎 Standalone Books (${standalone.length})</span>
+    </div>
+    ${standalone.length === 0
+      ? `<div class="empty-state"><div class="empty-state-icon">📭</div>No standalone books. Use "Add Standalone Book" below.</div>`
+      : standalone.map((book, bi) => renderBookEditor(-1, bi, book, standalone.length)).join('')
+    }
+  </div>`;
+
+  container.innerHTML = html;
+}
+
+function platBadges(platforms) {
+  if (!platforms || !platforms.length) return '';
+  return platforms.map(p => `<span class="platform-badge ${p.type||'other'}">${p.type==='rr'?'RR':p.type==='sh'?'SH':p.type==='kdp'?'KDP':(p.type||'?').toUpperCase()}</span>`).join('');
+}
+
+function renderBookEditor(si, bi, book, totalBooks) {
+  const isFirst = bi === 0;
+  const isLast  = bi === totalBooks - 1;
+  const editorId = `be-${si}-${bi}`;
+  const visBadge = book.visible === false
+    ? `<span class="vis-badge hidden">Hidden</span>`
+    : `<span class="vis-badge">Visible</span>`;
+  return `
+  <div class="book-editor" id="${editorId}" draggable="true"
+    ondragstart="dragStart(event,${si},${bi})"
+    ondragover="dragOver(event)"
+    ondragenter="dragEnter(event)"
+    ondragleave="dragLeave(event)"
+    ondrop="dragDrop(event,${si},${bi})">
+    <div class="book-editor-header">
+      <span class="drag-handle" title="Drag to reorder">⋮⋮</span>
+      <div class="book-editor-toggle" onclick="toggleBookEditor('${editorId}')">
+        <span class="chevron">▼</span>
+        <div style="min-width:0;">
+          <div class="book-editor-title">${esc(book.title)||'Untitled'} <small style="color:var(--muted);font-size:0.75rem;">${esc(book.volume||'')}</small></div>
+          <div class="book-card-meta">${platBadges(book.platforms)}${visBadge}</div>
+        </div>
+      </div>
+      <div class="book-editor-actions">
+        <button class="btn-icon" title="Move up"   onclick="moveBook(${si},${bi},-1)" ${isFirst?'disabled':''}>↑</button>
+        <button class="btn-icon" title="Move down" onclick="moveBook(${si},${bi}, 1)" ${isLast ?'disabled':''}>↓</button>
+        <button class="btn-icon danger" title="Delete book" onclick="removeBook(${si},${bi})">🗑</button>
+      </div>
+    </div>
+    <div class="book-editor-body">
+      <div class="form-row">
+        <div>
+          <label>Title</label>
+          <input type="text" value="${esc(book.title)}"
+            oninput="getBook(${si},${bi}).title=this.value; markDirty()">
+        </div>
+        <div>
+          <label>Volume Label</label>
+          <input type="text" value="${esc(book.volume||'')}"
+            oninput="getBook(${si},${bi}).volume=this.value; markDirty()">
+        </div>
+      </div>
+
+      <label>Description</label>
+      <textarea oninput="getBook(${si},${bi}).description=this.value; markDirty()">${esc(book.description)}</textarea>
+
+      <label>Tags (comma-separated)</label>
+      <input type="text" value="${esc(book.tags ? book.tags.join(', ') : '')}"
+        oninput="getBook(${si},${bi}).tags=this.value.split(',').map(t=>t.trim()).filter(Boolean); markDirty()">
+
+      <label>Cover Image</label>
+      <div class="cover-upload-area" onclick="triggerCoverUpload(${si},${bi})">
+        ${book.cover
+          ? `<img class="cover-preview" src="${esc(book.cover)}" id="cover-preview-${si}-${bi}" alt="Cover">`
+          : `<div style="font-size:2rem;margin-bottom:0.5rem;">🖼️</div>`
+        }
+        <div class="upload-hint">Click to upload a new cover image</div>
+        <input type="file" accept="image/*" id="cover-input-${si}-${bi}"
+          onchange="handleCoverUpload(event,${si},${bi})">
+      </div>
+      <div style="margin-bottom:0.5rem;">
+        <label>Cover URL (or leave blank)</label>
+        <input type="text" value="${esc(book.cover||'')}" placeholder="/covers/my-cover.jpg"
+          oninput="getBook(${si},${bi}).cover=this.value; markDirty(); updateCoverPreview(${si},${bi},this.value)">
+      </div>
+
+      <label>Platform Links</label>
+      <div id="platforms-${si}-${bi}">
+        ${renderPlatformRows(book.platforms, si, bi)}
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="addPlatform(${si},${bi})">+ Add Platform</button>
+    </div>
+  </div>`;
+}
+
+function toggleBookEditor(editorId) {
+  document.getElementById(editorId)?.classList.toggle('open');
+}
+
+function collapseAllBooks(si) {
+  const prefix = `be-${si}-`;
+  document.querySelectorAll(`[id^="${prefix}"]`).forEach(el => el.classList.remove('open'));
+}
+
+// ── PLATFORM ROWS ─────────────────────────────────────────
+function renderPlatformRows(platforms, si, bi) {
+  if (!platforms || !platforms.length) return '';
+  return platforms.map((p, pi) => `
+    <div class="platform-row" id="pr-${si}-${bi}-${pi}">
+      <select onchange="getBook(${si},${bi}).platforms[${pi}].type=this.value; markDirty()">
+        <option value="rr"    ${p.type==='rr'   ?'selected':''}>Royal Road</option>
+        <option value="sh"    ${p.type==='sh'   ?'selected':''}>ScribbleHub</option>
+        <option value="kdp"   ${p.type==='kdp'  ?'selected':''}>Kindle (KDP)</option>
+        <option value="other" ${p.type==='other'?'selected':''}>Other</option>
+      </select>
+      <input type="url" value="${esc(p.url)}" placeholder="https://..."
+        oninput="getBook(${si},${bi}).platforms[${pi}].url=this.value; markDirty()">
+      <button class="btn btn-danger btn-sm" onclick="removePlatform(${si},${bi},${pi})">✕</button>
+    </div>
+  `).join('');
+}
+
+function addPlatform(si, bi) {
+  getBook(si, bi).platforms.push({ type: 'rr', name: 'Royal Road', url: '' });
+  markDirty();
+  document.getElementById(`platforms-${si}-${bi}`).innerHTML =
+    renderPlatformRows(getBook(si, bi).platforms, si, bi);
+}
+
+function removePlatform(si, bi, pi) {
+  getBook(si, bi).platforms.splice(pi, 1);
+  markDirty();
+  document.getElementById(`platforms-${si}-${bi}`).innerHTML =
+    renderPlatformRows(getBook(si, bi).platforms, si, bi);
+}
+
+// ── COVER UPLOAD ──────────────────────────────────────────
+function triggerCoverUpload(si, bi) {
+  document.getElementById(`cover-input-${si}-${bi}`).click();
+}
+
+async function handleCoverUpload(event, si, bi) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const form = new FormData();
+  form.append('cover', file);
+  form.append('bookId', getBook(si, bi).id);
+  try {
+    const res  = await fetch('/upload-cover', { method: 'POST', body: form });
+    const data = await res.json();
+    getBook(si, bi).cover = data.path;
+    markDirty();
+    const preview = document.getElementById(`cover-preview-${si}-${bi}`);
+    if (preview) preview.src = data.path;
+    showToast('Cover uploaded!');
+  } catch(e) {
+    showToast('Upload failed', 'error');
+  }
+}
+
+function updateCoverPreview(si, bi, url) {
+  const el = document.getElementById(`cover-preview-${si}-${bi}`);
+  if (el) el.src = url;
+}
+
+// ── ADD SERIES / BOOKS ────────────────────────────────────
+async function openAddSeriesModal() {
+  const name = await promptModal('New series name', 'e.g. Xanrean Chronicles', '', 'Create Series');
+  if (!name) return;
+  siteContent.series.push({
+    id: name.toLowerCase().replace(/\s+/g, '-'),
+    visible: true, universe: name, universeDesc: '', books: [],
+  });
+  markDirty();
+  renderBooksPanel();
+  renderVisibilityPanel();
+  showToast('Series created.');
+}
+
+async function openAddBookModal() {
+  if (!siteContent.series.length && !(siteContent.books || []).length) {
+    showToast('Create a series first, or use Add Standalone Book.', 'error'); return;
+  }
+  const idx = await openSeriesPickerModal();
+  if (idx === null) return;
+  if (idx === -1) {
+    addStandaloneBook();
+  } else {
+    siteContent.series[idx].books.push(newBook());
+    markDirty();
+    renderBooksPanel();
+    renderVisibilityPanel();
+    showToast('Book added.');
+  }
+}
+
+function addStandaloneBook() {
+  if (!Array.isArray(siteContent.books)) siteContent.books = [];
+  siteContent.books.push(newBook());
+  markDirty();
+  renderBooksPanel();
+  renderVisibilityPanel();
+  showToast('Standalone book added.');
+}
+
+// ── REMOVE SERIES / BOOKS ─────────────────────────────────
+async function removeSeries(si) {
+  const s = siteContent.series[si];
+  const bookCount = s.books.length;
+  const ok = await confirmModal(
+    `Delete "${s.universe}"?`,
+    bookCount > 0
+      ? `This will permanently delete the series and all ${bookCount} book(s) inside it.`
+      : 'This will permanently delete the empty series.'
+  );
+  if (!ok) return;
+  siteContent.series.splice(si, 1);
+  markDirty();
+  renderBooksPanel();
+  renderVisibilityPanel();
+  showToast('Series deleted.');
+}
+
+async function removeBook(si, bi) {
+  const book = getBook(si, bi);
+  const ok = await confirmModal(`Delete "${book.title}"?`, 'This book will be permanently removed.');
+  if (!ok) return;
+  getBooks(si).splice(bi, 1);
+  markDirty();
+  renderBooksPanel();
+  renderVisibilityPanel();
+  showToast('Book deleted.');
+}
+
+// ── REORDER ───────────────────────────────────────────────
+function moveSeries(si, dir) {
+  const arr = siteContent.series;
+  const ni  = si + dir;
+  if (ni < 0 || ni >= arr.length) return;
+  [arr[si], arr[ni]] = [arr[ni], arr[si]];
+  markDirty();
+  renderBooksPanel();
+  renderVisibilityPanel();
+}
+
+function moveBook(si, bi, dir) {
+  const arr = getBooks(si);
+  const ni  = bi + dir;
+  if (ni < 0 || ni >= arr.length) return;
+  [arr[bi], arr[ni]] = [arr[ni], arr[bi]];
+  markDirty();
+  renderBooksPanel();
+  renderVisibilityPanel();
+}
+
+// ── RENDER: GAME ──────────────────────────────────────────
+function renderGamePanel() {
+  if (!siteContent?.game) return;
+  const g = siteContent.game;
+  document.getElementById('game-editor').innerHTML = `
+    <div class="card-title">🎮 ${esc(g.title)}</div>
+    <label>Game Cover Image</label>
+    <div style="display:flex;gap:1.5rem;align-items:flex-start;margin-bottom:1rem;">
+      <div class="cover-upload-area" style="width:160px;flex-shrink:0;" onclick="triggerGameCoverUpload()">
+        ${g.coverImage
+          ? `<img id="game-cover-preview" class="cover-preview" src="${esc(g.coverImage)}" alt="Game cover" style="width:140px;height:auto;">`
+          : `<div id="game-cover-preview" style="font-size:2.5rem;margin-bottom:0.5rem;">🍂</div>`
+        }
+        <div class="upload-hint">Click to upload</div>
+        <input type="file" accept="image/*" id="game-cover-input" onchange="handleGameCoverUpload(event)">
+      </div>
+      <div style="flex:1;">
+        <label>Cover Image URL</label>
+        <input type="text" id="game-cover-url" value="${esc(g.coverImage||'')}" placeholder="/covers/game-cover.jpg"
+          oninput="siteContent.game.coverImage=this.value; markDirty(); document.getElementById('game-cover-preview').src=this.value;">
+      </div>
+    </div>
+    <div class="form-row">
+      <div><label>Game Title</label><input type="text" value="${esc(g.title)}" oninput="siteContent.game.title=this.value; markDirty()"></div>
+      <div><label>Status</label><input type="text" value="${esc(g.status)}" oninput="siteContent.game.status=this.value; markDirty()"></div>
+    </div>
+    <label>Tagline</label>
+    <input type="text" value="${esc(g.tagline)}" oninput="siteContent.game.tagline=this.value; markDirty()">
+    <label>Description</label>
+    <textarea oninput="siteContent.game.description=this.value; markDirty()">${esc(g.description)}</textarea>
+    <div class="form-row-3">
+      <div><label>Steam Next Fest</label><input type="text" value="${esc(g.nextFest)}" oninput="siteContent.game.nextFest=this.value; markDirty()"></div>
+      <div><label>Early Access Date</label><input type="text" value="${esc(g.earlyAccess)}" oninput="siteContent.game.earlyAccess=this.value; markDirty()"></div>
+      <div><label>Steam URL</label><input type="url" value="${esc(g.steamUrl||'')}" placeholder="https://store.steampowered.com/..."
+        oninput="siteContent.game.steamUrl=this.value; markDirty()"></div>
+    </div>
+  `;
+}
+
+function triggerGameCoverUpload() { document.getElementById('game-cover-input').click(); }
+
+async function handleGameCoverUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const form = new FormData();
+  form.append('cover', file);
+  form.append('bookId', 'game-cover');
+  try {
+    const res  = await fetch('/upload-cover', { method: 'POST', body: form });
+    const data = await res.json();
+    siteContent.game.coverImage = data.path;
+    markDirty();
+    const preview = document.getElementById('game-cover-preview');
+    if (preview?.tagName === 'IMG') preview.src = data.path;
+    else if (preview) preview.outerHTML = `<img id="game-cover-preview" class="cover-preview" src="${data.path}" style="width:140px;height:auto;">`;
+    document.getElementById('game-cover-url').value = data.path;
+    showToast('Game cover uploaded!');
+  } catch(e) { showToast('Upload failed', 'error'); }
+}
+
+// ── RENDER: ABOUT ─────────────────────────────────────────
+function renderAboutPanel() {
+  if (!siteContent?.about) return;
+  const a = siteContent.about;
+  document.getElementById('about-editor').innerHTML = `
+    <div class="card-title">🏛️ Studio Info</div>
+    <label>Studio Name</label>
+    <input type="text" value="${esc(a.studioName)}" oninput="siteContent.about.studioName=this.value; markDirty()">
+    <label>Footer Tagline</label>
+    <input type="text" value="${esc(a.tagline)}" oninput="siteContent.about.tagline=this.value; markDirty()">
+    <label>Description Paragraph 1</label>
+    <textarea oninput="siteContent.about.description=this.value; markDirty()">${esc(a.description)}</textarea>
+    <label>Description Paragraph 2</label>
+    <textarea oninput="siteContent.about.description2=this.value; markDirty()">${esc(a.description2)}</textarea>
+    <label>Description Paragraph 3</label>
+    <textarea oninput="siteContent.about.description3=this.value; markDirty()">${esc(a.description3)}</textarea>
+    <label>Universe Blurb (dark card)</label>
+    <textarea oninput="siteContent.about.universeBlurb=this.value; markDirty()">${esc(a.universeBlurb)}</textarea>
+    <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border);">
+      <div class="card-title" style="margin-bottom:0.75rem;">🔗 Platform Links</div>
+      <p style="font-size:0.78rem;color:var(--muted);margin-bottom:1rem;">These appear in the "Find the Work" section on the About page.</p>
+      <label>Royal Road Profile URL</label>
+      <input type="url" value="${esc(a.links?.royalroad||'')}" placeholder="https://www.royalroad.com/profile/..."
+        oninput="if(!siteContent.about.links)siteContent.about.links={}; siteContent.about.links.royalroad=this.value; markDirty()">
+      <label>ScribbleHub Profile URL</label>
+      <input type="url" value="${esc(a.links?.scribblehub||'')}" placeholder="https://www.scribblehub.com/profile/..."
+        oninput="if(!siteContent.about.links)siteContent.about.links={}; siteContent.about.links.scribblehub=this.value; markDirty()">
+      <label>Wattpad Profile URL</label>
+      <input type="url" value="${esc(a.links?.wattpad||'')}" placeholder="https://www.wattpad.com/user/..."
+        oninput="if(!siteContent.about.links)siteContent.about.links={}; siteContent.about.links.wattpad=this.value; markDirty()">
+      <label>Patreon URL</label>
+      <input type="url" value="${esc(a.links?.patreon||'')}" placeholder="https://www.patreon.com/..."
+        oninput="if(!siteContent.about.links)siteContent.about.links={}; siteContent.about.links.patreon=this.value; markDirty()">
+    </div>
+  `;
+}
+
+// ── RENDER: VISIBILITY ────────────────────────────────────
+function renderVisibilityPanel() {
+  if (!siteContent) return;
+  const container = document.getElementById('visibility-editor');
+  let html = '';
+
+  (siteContent.series || []).forEach((series, si) => {
+    html += `
+    <div style="margin-bottom:1.5rem;">
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label" style="font-family:var(--display);">📖 ${esc(series.universe)}</div>
+          <div class="toggle-sub">Series visibility</div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" ${series.visible !== false ? 'checked' : ''}
+            onchange="siteContent.series[${si}].visible=this.checked; markDirty()">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      ${series.books.map((book, bi) => `
+        <div class="toggle-row" style="padding-left:1rem;">
+          <div>
+            <div class="toggle-label">${esc(book.title)}</div>
+            <div class="toggle-sub">${esc(book.volume||'')}</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" ${book.visible ? 'checked' : ''}
+              onchange="siteContent.series[${si}].books[${bi}].visible=this.checked; markDirty()">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      `).join('')}
+    </div>`;
+  });
+
+  const standalone = siteContent.books || [];
+  if (standalone.length > 0) {
+    html += `<div style="margin-bottom:1.5rem;">
+      <div style="font-size:0.75rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:0.75rem;">📎 Standalone Books</div>
+      ${standalone.map((book, bi) => `
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">${esc(book.title)}</div>
+            <div class="toggle-sub">${esc(book.volume||'')}</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" ${book.visible ? 'checked' : ''}
+              onchange="siteContent.books[${bi}].visible=this.checked; markDirty()">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      `).join('')}
+    </div>`;
+  }
+
+  container.innerHTML = html || '<p style="color:var(--muted);">No books or series yet.</p>';
+}
+
+// ── SAVE ──────────────────────────────────────────────────
+async function saveContent() {
+  if (!siteContent) { showToast('Nothing to save.', 'error'); return; }
+  try {
+    const res = await fetch('/save-content', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(siteContent),
+    });
+    if (res.ok) {
+      showToast('✓ Saved!');
+      dirty = false;
+      document.getElementById('save-banner').classList.remove('visible');
+    } else {
+      showToast('Save failed', 'error');
+    }
+  } catch(e) {
+    showToast('Save failed: ' + e.message, 'error');
+  }
+}
+
+// ── SCRAPER / CALENDAR ────────────────────────────────────
+let metricsCache  = null;
+let calYear       = new Date().getFullYear();
+let calMonth      = new Date().getMonth();
+let selectedDate  = null;
+
+const PLATFORM_LABEL = { royalroad: 'Royal Road', scribblehub: 'ScribbleHub' };
+const PLATFORM_DOT   = { royalroad: 'cal-dot-rr', scribblehub: 'cal-dot-sh' };
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+async function loadMetrics() {
+  try {
+    const res  = await fetch('/data');
+    const data = await res.json();
+    metricsCache = data;
+    if (data.lastUpdated) {
+      const d = new Date(data.lastUpdated);
+      document.getElementById('last-updated').textContent =
+        'Updated ' + d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    }
+    renderCalendar();
+    if (selectedDate) renderDayDetail(selectedDate);
+  } catch(e) {
+    document.getElementById('last-updated').textContent = 'Could not load metrics';
+    console.error('Could not load metrics', e);
+  }
+}
+
+function buildDateMap(data) {
+  const map = {};
+  for (const [key, story] of Object.entries(data.stories || {})) {
+    if (!story.title || !story.platform) continue;
+    for (const entry of (story.history || [])) {
+      const d = entry.date;
+      if (!map[d]) map[d] = {};
+      map[d][key] = { ...entry, title: story.title, platform: story.platform };
+    }
+  }
+  return map;
+}
+
+function renderCalendar() {
+  if (!metricsCache) return;
+  const dateMap    = buildDateMap(metricsCache);
+  const today      = new Date().toISOString().split('T')[0];
+  const firstDay   = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth= new Date(calYear, calMonth + 1, 0).getDate();
+
+  document.getElementById('cal-month-label').textContent = MONTHS[calMonth] + ' ' + calYear;
+
+  const grid = document.getElementById('cal-grid');
+  let html = '';
+  ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d => { html += `<div class="cal-dow">${d}</div>`; });
+  for (let i = 0; i < firstDay; i++) html += `<div class="cal-cell empty"></div>`;
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr  = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const dayData  = dateMap[dateStr];
+    const hasData  = !!dayData && Object.keys(dayData).length > 0;
+    const isToday  = dateStr === today;
+    const isSelected = dateStr === selectedDate;
+    let cls = 'cal-cell';
+    if (hasData)    cls += ' has-data';
+    if (isToday)    cls += ' today';
+    if (isSelected) cls += ' selected';
+
+    let inner = `<span class="cal-day-num">${day}</span>`;
+    if (hasData) {
+      const platforms = [...new Set(Object.values(dayData).map(e => e.platform))];
+      inner += `<div class="cal-dots">${platforms.map(p => `<span class="cal-dot ${PLATFORM_DOT[p]||''}"></span>`).join('')}</div>`;
+      let totalDelta = 0, hasDelta = false;
+      for (const entry of Object.values(dayData)) {
+        if (entry.followers == null) continue;
+        const storyKey = Object.keys(metricsCache.stories).find(k => {
+          const s = metricsCache.stories[k];
+          return s.title === entry.title && s.platform === entry.platform;
+        });
+        if (!storyKey) continue;
+        const hist = metricsCache.stories[storyKey].history || [];
+        const idx  = hist.findIndex(e => e.date === dateStr);
+        const prev = hist[idx + 1];
+        if (prev && prev.followers != null) { totalDelta += entry.followers - prev.followers; hasDelta = true; }
+      }
+      if (hasDelta) {
+        const dc = totalDelta > 0 ? '' : totalDelta < 0 ? ' neg' : ' neu';
+        inner += `<span class="cal-delta${dc}">${totalDelta >= 0 ? '+' : ''}${totalDelta}f</span>`;
+      }
+    }
+    html += `<div class="${cls}" ${hasData ? `onclick="selectDay('${dateStr}')"` : ''}>${inner}</div>`;
+  }
+  grid.innerHTML = html;
+}
+
+function selectDay(dateStr) {
+  selectedDate = dateStr;
+  renderCalendar();
+  renderDayDetail(dateStr);
+}
+
+function renderDayDetail(dateStr) {
+  const detail  = document.getElementById('day-detail');
+  const titleEl = document.getElementById('day-detail-title');
+  const bodyEl  = document.getElementById('day-detail-body');
+  if (!metricsCache) return;
+  const dayData = buildDateMap(metricsCache)[dateStr];
+  if (!dayData || !Object.keys(dayData).length) { detail.classList.remove('visible'); return; }
+
+  const d = new Date(dateStr + 'T12:00:00');
+  titleEl.textContent = d.toLocaleDateString(undefined, { weekday:'long', month:'long', day:'numeric', year:'numeric' });
+
+  const byTitle = {};
+  for (const [key, entry] of Object.entries(dayData)) {
+    if (!byTitle[entry.title]) byTitle[entry.title] = [];
+    byTitle[entry.title].push({ key, entry });
+  }
+
+  function fmt(n) { return n != null ? Number(n).toLocaleString() : '--'; }
+  function delta(entry, field) {
+    const storyKey = Object.keys(metricsCache.stories).find(k => {
+      const s = metricsCache.stories[k];
+      return s.title === entry.title && s.platform === entry.platform;
+    });
+    if (!storyKey) return '';
+    const hist = metricsCache.stories[storyKey].history || [];
+    const idx  = hist.findIndex(e => e.date === dateStr);
+    const prev = hist[idx + 1];
+    if (!prev || entry[field] == null || prev[field] == null) return '';
+    const n = entry[field] - prev[field];
+    const c = n > 0 ? 'growth-pos' : n < 0 ? 'growth-neg' : 'growth-neu';
+    return `<span class="metric-growth ${c}" style="font-size:0.68rem;margin-left:0.25rem;">${n >= 0 ? '+' : ''}${n}</span>`;
+  }
+
+  let html = '';
+  for (const [title, rows] of Object.entries(byTitle)) {
+    html += `<div class="day-story-block"><div class="day-story-name">${esc(title)}</div>`;
+    for (const { entry } of rows) {
+      const pl  = PLATFORM_LABEL[entry.platform] || entry.platform;
+      const dot = PLATFORM_DOT[entry.platform]   || '';
+      html += `
+        <div class="day-platform-row">
+          <span style="display:flex;align-items:center;gap:0.4rem;min-width:110px;">
+            <span class="cal-dot ${dot}" style="display:inline-block;flex-shrink:0;"></span>
+            <span style="font-size:0.72rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);">${esc(pl)}</span>
+          </span>
+          <span style="flex:1;display:flex;gap:1.25rem;flex-wrap:wrap;">
+            <span><span class="day-stat-label">Followers</span><br><span class="day-stat">${fmt(entry.followers)}${delta(entry,'followers')}</span></span>
+            <span><span class="day-stat-label">Views</span><br><span class="day-stat">${fmt(entry.views)}${delta(entry,'views')}</span></span>
+            <span><span class="day-stat-label">Chapters</span><br><span class="day-stat">${fmt(entry.chapters)}${delta(entry,'chapters')}</span></span>
+          </span>
+        </div>`;
+    }
+    html += `</div>`;
+  }
+  bodyEl.innerHTML = html;
+  detail.classList.add('visible');
+}
+
+function calPrev() {
+  calMonth--;
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  selectedDate = null;
+  renderCalendar();
+  document.getElementById('day-detail').classList.remove('visible');
+}
+
+function calNext() {
+  calMonth++;
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  selectedDate = null;
+  renderCalendar();
+  document.getElementById('day-detail').classList.remove('visible');
+}
+
+function setupSSE() {
+  const es = new EventSource('/events');
+  es.onmessage = () => loadMetrics();
+  es.onerror   = () => {}; // silently ignore SSE errors
+}
+
+// ── EXPORT ────────────────────────────────────────────────
+function exportMetrics() {
+  if (!metricsCache) { showToast('No data loaded yet', 'error'); return; }
+  const dateMap = buildDateMap(metricsCache);
+  const dates   = Object.keys(dateMap).sort().reverse();
+  if (!dates.length) { showToast('No data to export', 'error'); return; }
+
+  const PLAT  = { royalroad: 'Royal Road', scribblehub: 'ScribbleHub' };
+  const lines = [];
+  lines.push('Date       | Story                    | Platform     | Followers | Views   | Chapters');
+  lines.push('---------- | ------------------------ | ------------ | --------- | ------- | --------');
+
+  for (const date of dates) {
+    const entries = Object.values(dateMap[date]);
+    entries.sort((a, b) => a.title.localeCompare(b.title) || a.platform.localeCompare(b.platform));
+    for (const e of entries) {
+      const pl  = (PLAT[e.platform] || e.platform).padEnd(12);
+      const ti  = e.title.slice(0, 24).padEnd(24);
+      const fol = String(e.followers ?? '--').padStart(9);
+      const vi  = String(e.views     ?? '--').padStart(7);
+      const ch  = String(e.chapters  ?? '--').padStart(8);
+      lines.push(`${date} | ${ti} | ${pl} | ${fol} | ${vi} | ${ch}`);
+    }
+  }
+
+  document.getElementById('export-textarea').value = lines.join('\n');
+  document.getElementById('export-modal').style.display = 'flex';
+}
+
+function closeExport() { document.getElementById('export-modal').style.display = 'none'; }
+
+// ── DELETE DAY ─────────────────────────────────────────────
+async function deleteSelectedDay() {
+  if (!selectedDate) return;
+  const d = new Date(selectedDate + 'T12:00:00');
+  const label = d.toLocaleDateString(undefined, { weekday:'long', month:'long', day:'numeric', year:'numeric' });
+  const ok = await confirmModal(`Delete data for ${label}?`, 'This will permanently remove all scraped entries for this date from story-metrics.json.');
+  if (!ok) return;
+
+  try {
+    const res = await fetch('/delete-metrics-date', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date: selectedDate }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    showToast(`Deleted data for ${selectedDate}.`);
+    selectedDate = null;
+    document.getElementById('day-detail').classList.remove('visible');
+    await loadMetrics();
+  } catch (e) {
+    showToast('Delete failed: ' + e.message, 'error');
+  }
+}
+
+function copyExport() {
+  const ta = document.getElementById('export-textarea');
+  ta.select();
+  navigator.clipboard.writeText(ta.value)
+    .then(() => showToast('Copied to clipboard!'))
+    .catch(() => { document.execCommand('copy'); showToast('Copied!'); });
+}
+
+// ── SEARCH / FILTER ──────────────────────────────────────
+function filterBooks(term) {
+  const t = term.toLowerCase();
+  document.querySelectorAll('.book-editor').forEach(el => {
+    const title = el.querySelector('.book-editor-title')?.textContent.toLowerCase() || '';
+    el.style.display = (!t || title.includes(t)) ? '' : 'none';
+  });
+}
+
+// ── DRAG AND DROP ─────────────────────────────────────────
+let _dragSi = null, _dragBi = null;
+
+function dragStart(e, si, bi) {
+  _dragSi = si; _dragBi = bi;
+  e.dataTransfer.effectAllowed = 'move';
+  // small delay so the element doesn't disappear under the cursor immediately
+  setTimeout(() => document.getElementById(`be-${si}-${bi}`)?.classList.add('dragging'), 0);
+}
+
+function dragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }
+
+function dragEnter(e) {
+  e.preventDefault();
+  const el = e.currentTarget;
+  if (el.classList.contains('book-editor')) el.classList.add('drag-over');
+}
+
+function dragLeave(e) {
+  const el = e.currentTarget;
+  // only remove if actually leaving the card (not just moving to a child)
+  if (!el.contains(e.relatedTarget)) el.classList.remove('drag-over');
+}
+
+function dragDrop(e, targetSi, targetBi) {
+  e.preventDefault();
+  document.querySelectorAll('.book-editor').forEach(el => {
+    el.classList.remove('drag-over', 'dragging');
+  });
+  if (_dragSi === null) return;
+  // Same list reorder
+  if (_dragSi === targetSi && _dragBi !== targetBi) {
+    const arr = getBooks(_dragSi);
+    const [moved] = arr.splice(_dragBi, 1);
+    arr.splice(targetBi, 0, moved);
+    markDirty();
+    renderBooksPanel();
+    renderVisibilityPanel();
+  }
+  // Cross-series move: only allowed if both are series (not standalone -1 to -1 which is same)
+  else if (_dragSi !== targetSi) {
+    const book = getBooks(_dragSi).splice(_dragBi, 1)[0];
+    getBooks(targetSi).splice(targetBi, 0, book);
+    markDirty();
+    renderBooksPanel();
+    renderVisibilityPanel();
+    showToast(`"${book.title}" moved.`);
+  }
+  _dragSi = null; _dragBi = null;
+}
+
+init();
+loadBgSettings();
+</script>
+</body>
+</html>

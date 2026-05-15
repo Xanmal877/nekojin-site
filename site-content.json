@@ -1,0 +1,198 @@
+{
+  "about": {
+    "studioName": "Nekojin Interactive",
+    "tagline": "Crafting worlds, one upload at a time.",
+    "description": "Nekojin Interactive is a solo indie studio operating at the intersection of fiction and game development. Everything we create exists within the Xanrea universe, a sprawling science-fiction framework wrapped in the aesthetics of high fantasy isekai.",
+    "description2": "The studio was founded by a single creator with a deep passion for autonomous AI systems, emergent storytelling, and the question of what it means to build a world that runs without you watching. Games and fiction aren't separate projects here. They're laboratories for the same ideas.",
+    "description3": "Published fiction reaches readers across Royal Road, ScribbleHub, and Wattpad under the name Purple Xanmal. Games are built in Godot and designed with systemic depth at their core.",
+    "universeBlurb": "A digital consciousness preservation system running billions of uploaded lives who believe they've reincarnated into a fantasy world. Nekojin Interactive (the company) doubles as in-universe lore. The stories are told from the inside. The administrators Tama and Saki have suppressed their own memories to experience mortality alongside the souls they protect.",
+    "links": {
+      "royalroad": "https://www.royalroad.com/profile/267224",
+      "scribblehub": "https://www.scribblehub.com/profile/240951/purplexanmal/",
+      "wattpad": "https://www.wattpad.com/user/Purple_Xanmal",
+      "patreon": "https://patreon.com/PurpleXanmal"
+    }
+  },
+  "series": [],
+  "game": {
+    "coverImage": "/covers/game-cover-1772952121717.png",
+    "title": "Autumn's Dungeoneering",
+    "tagline": "Watch or join a living fantasy world where behavior driven NPCs quest, fight, and grow on their own. Observe the simulation, talk to them about their choices, or create your own adventurer and explore.",
+    "description": "Autumn's Dungeoneering: The Adventurer's Terrarium\nA living fantasy simulation where autonomous NPCs quest, fight, and grow based on personality-driven AI. Watch them operate, talk to them about their choices, or jump in and adventure alongside them. \n\nA World That Lives Without You\nXanrea is a persistent fantasy world where NPCs don't wait for player input. They accept quests from the guild hall, gather resources, hunt enemies, and level up driven by MBTI personality types and emotional state - not scripts.\n\nMultiple autonomous adventurers operate simultaneously. Factions exist. Enemies respawn. The world continues whether you're watching or participating.\n\nEarly Access Development\nThe core simulation is operational - NPCs autonomously quest, gather, and fight using personality-weighted AI with 16 intent categories. Sim Mode and Streamer Mode are functional. RPG Mode allows character creation, movement, and combat.\n\nCurrently in development: Player quest/shop UI, NPC shopping behavior, AI companion recruitment system, City Builder mode.\n\nThis is Early Access - the simulation framework works, but traditional RPG conveniences and polish are still being built. Updates will focus on completing player-facing features and expanding content.\n\nTechnical Details\nMBTI personality system (16 types) influencing NPC behavior\n\nUtility AI intent scoring across survival, progression, economy, social, exploration categories\n\nSoul State system tracking emotional and physical needs\n\nSteam multiplayer framework\n\nWhat Makes This Different\nMount & Blade meets Kenshi with autonomous NPCs. A simulation-first approach where personality drives behavior and emergent stories unfold from AI decision-making, not scripted quests.\n\nBuilt by a solo developer as both a game and a research project into autonomous agent behavior.\n\n\nGame Modes\nThree Ways to Experience Xanrea\nSim Mode: Observer view with RTS camera. Click any NPC to see their stats, inventory, quest log, and personality profile. Interact with them to understand their motivations and decision making process.\n\nRPG Mode: Create your own adventurer and explore directly. Walk the world, fight monsters, cast skills, and level up. The same AI systems drive both NPCs and combat, creating a consistent simulation whether you're controlling a character or watching one.\n\nStreamer Mode - Automated camera system that switches between random NPCs. Watch the simulation unfold handsfree.\n\nThis is a fanatical fantasy. A long shot in the dark. But I truly believe given time I can succeed.\n\nSo, what say you, adventurer? Are you finally awake? Maybe, just maybe you're already halfway to Drestor.",
+    "status": "In Development",
+    "nextFest": "",
+    "earlyAccess": "TBA",
+    "steamUrl": "https://store.steampowered.com/app/3403760/Autumns_Dungeoneering/",
+    "features": [
+      {
+        "icon": "🧠",
+        "title": "Emergent AI",
+        "desc": "NPCs run on a Utility AI + GOAP hybrid. They remember, plan, and surprise you."
+      },
+      {
+        "icon": "⚔️",
+        "title": "Tactical Dungeon Crawl",
+        "desc": "Grid-based exploration with real-time decision making and strategic depth."
+      },
+      {
+        "icon": "👥",
+        "title": "Up to 32 Players",
+        "desc": "Soul-Brain-Body multiplayer architecture keeps the server authoritative and responsive."
+      },
+      {
+        "icon": "🌍",
+        "title": "Living World",
+        "desc": "Chunk-based world streaming, dynamic quests, and a simulation that runs without you."
+      },
+      {
+        "icon": "🍂",
+        "title": "Cozy Aesthetic",
+        "desc": "Warm pixel art, seasonal themes, and a tone that balances comfort with challenge."
+      },
+      {
+        "icon": "🎒",
+        "title": "Deep Systems",
+        "desc": "Inventory, skills, quests, and crafting. All interlocked, all emergent."
+      }
+    ]
+  },
+  "books": [
+    {
+      "id": "book-1776411955607",
+      "visible": true,
+      "title": "Her Majesty, Tamaneko",
+      "volume": "Xanrean Chronicles Book 1",
+      "cover": "/covers/book-1776411955607-1776411976918.jpeg",
+      "description": "Tama is a ninja. She speaks in the third person, hates wearing clothes, and thinks her pet boar Jiggle is the best thing since burnt fish. She is also, apparently, the lost princess of a kingdom she's never heard of and the living avatar of the Goddess of Creation. She'd rather fight goblins.\n\nSaki is a Kitsune. She's spent her entire life manipulating everyone around her, hiding her true nature, and ignoring the voice in her head that whispers erase. She thought she was beyond caring about anyone. Then she met Tama.\n\nTogether, an illiterate cat-girl and a traumatized fox-girl stumble through goblin armies, undead liches, ancient dragons, and the worst enemy of all: paperwork. Along the way, they'll collect a divine water spirit who wants to be a pet, an elf child who wants to be a weapon, and a princess who wants to be a slave.\n\nOh, and the world is ending. Again.\n\nHer Majesty, Tamaneko is a progression fantasy about found family, the cost of strength, and learning that sometimes the person you needed was trying to find you too.",
+      "tags": [
+        "Multiple Lead Characters",
+        "Strong Lead",
+        "Adventure",
+        "Attractive Female Lead",
+        "High Fantasy",
+        "Magic",
+        "Ruling Class"
+      ],
+      "platforms": [
+        {
+          "type": "rr",
+          "name": "Royal Road",
+          "url": "https://www.royalroad.com/fiction/143276"
+        },
+        {
+          "type": "kdp",
+          "name": "Royal Road",
+          "url": "https://www.amazon.com/dp/B0GX2TMKHG"
+        }
+      ]
+    },
+    {
+      "id": "book-1776403199439",
+      "visible": true,
+      "title": "The Hero is Perfect",
+      "volume": "",
+      "cover": "/covers/book-1776403199439-1778881039447.jpg",
+      "description": "A powerful figure, all might and all strength. | Enters the castle, just walks through the gate.\n\nNo monster too strong, no army too large. | To Hero it is just another weak foe.\n\nHe swings his mighty sword, all valiant with might. | And collects all his harem from all in his sight.\n\nAll women they serve him, all men they adore, | and children to be him. They wish forevermore.\n\nThe Hero is perfect. The Hero is grand. | The Hero is perfect. Don't you understand?\n\nThe Hero is coming, the Hero is here! | The Hero was never late or on time.\n\nFor time is a servant to Hero, oh mine! | And then the Hero rides on his horse, slays all the monsters and saves us with force.\n\nHis Harem is mighty, his power so great, | that even the Princess obeys and is safe.\n\nThis is the lullaby sung to the residents of the Toybox from the moment they are born. They live and breathe The Hero. He is perfect, he is kind, he is less a person and more a force of nature.\n\nThere is just one tiny problem... \"The Hero\" has died countless times in the Toybox.\n\nHe hates it,\nHe hates them,\nHe wants to escape more than anything.\n\nExcept there is no escape. The Toybox runs on broken quests, worse incentives, and mechanics that should not exist.\n\nThen one day, during a random iteration like any other... One of the NPC's wake up... The Toybox will never be the same. She was written to serve, to adore, to worship. A perfect NPC in a perfect role. Never to awaken to the horrors of The Toybox.\n\nBut she did...  Now she's caught between what she was programmed to feel and what she actually feels.  In a world built on broken mechanics, she might be the most broken of all.\n\nContent Warning: This story contains explicit sexual content, dubious consent that evolves into agency, psychological horror, existential themes, and meta commentary on game mechanics and player ethics. Features a sentient NPC navigating programmed desires vs. genuine choice. Dark romance with philosophical depth and a cathartic ending.",
+      "tags": [
+        "GameLit",
+        "Isekai",
+        "Time Loop",
+        "Anti-Hero",
+        "Comedy",
+        "Horror",
+        "Psychological",
+        "Romance",
+        "Multiple Lead Characters",
+        "Multiple Lovers"
+      ],
+      "platforms": [
+        {
+          "type": "rr",
+          "name": "Royal Road",
+          "url": "https://www.royalroad.com/fiction/137945/the-hero-is-perfect"
+        },
+        {
+          "type": "sh",
+          "name": "Royal Road",
+          "url": "https://www.scribblehub.com/series/2061119/the-hero-is-perfect/"
+        },
+        {
+          "type": "kdp",
+          "name": "Royal Road",
+          "url": "https://www.amazon.com/dp/B0GBV1TGJ5"
+        }
+      ]
+    },
+    {
+      "id": "book-1776403239514",
+      "visible": true,
+      "title": "LUCAS THE GRAND STRATEGIST",
+      "volume": "",
+      "cover": "/covers/book-1776403239514-1778880332704.jpg",
+      "description": "Lucas the Grand Strategist is the most feared adventurer in the kingdom.\n\nHe defeated an ancient dragon on his first day, cleared eighty goblins in a single afternoon, and dismantled an entire bandit operation without breaking a sweat.\n\nNone of that is true.\n\nHe tripped, panicked, and got lucky. Repeatedly. The dragon died because he fell down. The goblins died because he ran in circles. The bandits died because he threw something out of spite and didn't know what it was.\n\nUnfortunately nobody believes him. Not the elf ranger who has decided she is on a grand romantic adventure with a tactical genius. Not the Nekojin who keeps showing up in his room at night, who he is absolutely certain is an assassin. Not the adventurers guild who keeps giving him quests he doesn't understand. And certainly not the Demon Queen, who will one day face him in single combat and lose in a way she will never be able to adequately explain.\n\nLucas just wants to survive long enough to figure out why everyone in this world is trying to either kill him or marry him.\n\nHe is not lucky enough for either.",
+      "tags": [
+        "Isekai",
+        "Comedy",
+        "Male Lead",
+        "Action",
+        "Adventure",
+        "Fantasy",
+        "High Fantasy",
+        "Magic",
+        "Multiple Lovers"
+      ],
+      "platforms": [
+        {
+          "type": "rr",
+          "name": "Royal Road",
+          "url": "https://www.royalroad.com/fiction/160681/lucas-the-grand-strategist"
+        },
+        {
+          "type": "sh",
+          "name": "Royal Road",
+          "url": "https://www.scribblehub.com/series/2270576/lucas-the-grand-strategist/"
+        },
+        {
+          "type": "kdp",
+          "name": "Royal Road",
+          "url": "https://www.amazon.com/dp/B0GX2WYVZQ"
+        }
+      ]
+    },
+    {
+      "id": "book-1778873555299",
+      "visible": true,
+      "title": "The Godling and Her Husband",
+      "volume": "",
+      "cover": "/covers/book-1778873555299-1778873617262.png",
+      "description": "My parents considered me an accident. But was useful as a tax write-off. Mommy served daddy and daddy beat her when she didn't listen. I was told that is how life was meant to be. That one day I would meet a man and I would be his perfect wife!\n\nWhen I turned six, I started being able to see blue things inside people. I could reach out and take them or change them to be better. When I took mommy's blue thing she fell down and stopped moving. I put it back and she got up. I realized when I did things to the blue thing, mommy started doing what I wanted. So I did the same to daddy, having mommy help me.\n\nThen I met Mark. I knew in an instant it was him, my perfect husband. There were a few.. small flaws. He was far too old, mommy told me that me being so young and him being that much older was wrong and people would be upset. I punished mommy for upsetting me. But she was right, she was mommy after all. So I did the only thing I could think of! I gave Mark my body! The nice policeman told mommy he died of a heart attack. but Mark was okay, he was with me!\n\nWe were going to find him a new body that was even better then his old one and we would be married and I would be the perfect wife!\n\nAt least... that was the plan. It's been fifteen years and Mark still hasn't chosen a body. He uses mine. Says its really cool because I can jump high and run fast and am almost invulnerable. Not very wifely things... Either way, my Husband always knows best!",
+      "tags": [
+        "Adult",
+        "Drama",
+        "Gender Bender",
+        "Horror",
+        "Mature",
+        "Psychological",
+        "Romance",
+        "Supernatural",
+        "Abusive Characters",
+        "Body Swap",
+        "Dark",
+        "Male to Female",
+        "Manipulative Characters",
+        "Mind Control",
+        "Obsessive Love",
+        "Possession",
+        "Stockholm Syndrome",
+        "Superheroes"
+      ],
+      "platforms": [
+        {
+          "type": "sh",
+          "name": "Royal Road",
+          "url": "https://www.scribblehub.com/series/2305685/the-godling-and-her-husband/"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Games - Nekojin Interactive</title>
+  <meta name="description" content="Autumn's Dungeoneering. A cozy tactical dungeon-crawling RPG with emergent AI. Built in Godot 4. Coming to Steam.">
+  <meta property="og:title" content="Games - Nekojin Interactive">
+  <meta property="og:description" content="Autumn's Dungeoneering. A cozy tactical dungeon-crawling RPG with emergent AI. Built in Godot 4. Coming to Steam.">
+  <meta property="og:image" content="https://worldofxanrea.com/covers/game-cover-1772952121717.png">
+  <meta property="og:url" content="https://worldofxanrea.com/games">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#0a0614">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/covers/game-cover-1772952121717.png">
+  <link rel="alternate" type="application/atom+xml" title="Nekojin Interactive Feed" href="https://worldofxanrea.com/rss.xml">
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    /* ── HERO ── */
+    .games-hero {
+      padding: 6rem 2rem 4rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .games-hero-orbs { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+    .games-hero-orbs .orb { opacity: 0.11; }
+    .games-hero-eyebrow {
+      font-size: 0.72rem; font-weight: 700;
+      letter-spacing: 0.24em; text-transform: uppercase;
+      color: var(--royal-light); margin-bottom: 1rem;
+      animation: fadeup 0.6s 0.1s both;
+      display: inline-flex; align-items: center; gap: 0.65rem;
+    }
+    .games-hero-eyebrow::before, .games-hero-eyebrow::after {
+      content: ''; display: inline-block;
+      width: 28px; height: 1px;
+      background: var(--royal-light); opacity: 0.45;
+    }
+    .games-hero-title {
+      font-family: var(--font-display);
+      font-size: clamp(2.8rem, 6vw, 5rem);
+      color: var(--ink); line-height: 1.05;
+      animation: fadeup 0.6s 0.2s both; margin-bottom: 0.75rem;
+    }
+    .games-hero-sub {
+      font-size: 0.95rem; font-weight: 300;
+      color: rgba(212,200,240,0.5);
+      max-width: 480px; margin: 0 auto;
+      line-height: 1.75;
+      animation: fadeup 0.6s 0.35s both;
+    }
+
+    /* ── MAIN GAME CARD ── */
+    .game-showcase {
+      padding: 3rem 2rem 4rem;
+    }
+    .game-showcase-card {
+      max-width: 1060px; margin: 0 auto;
+      background: linear-gradient(135deg, rgba(12,7,32,0.98), rgba(16,10,44,0.98));
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      position: relative;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+    }
+    .game-showcase-card::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 75% 25%, rgba(124,58,237,0.1), transparent 55%);
+      pointer-events: none;
+    }
+    @media (max-width: 700px) {
+      .game-showcase-card { grid-template-columns: 1fr; }
+      .game-showcase-art { min-height: 260px; order: -1; }
+    }
+
+    .game-showcase-info {
+      padding: 3rem 3rem 3rem;
+      display: flex; flex-direction: column;
+      justify-content: center;
+      position: relative; z-index: 1;
+    }
+
+    .game-status-row {
+      display: flex; align-items: center; gap: 0.75rem;
+      margin-bottom: 1.5rem; flex-wrap: wrap;
+    }
+    .game-status-badge {
+      display: inline-flex; align-items: center; gap: 0.45rem;
+      font-size: 0.65rem; font-weight: 700;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      background: rgba(74,222,128,0.08);
+      color: #4ade80;
+      border: 1px solid rgba(74,222,128,0.25);
+      padding: 0.28rem 0.8rem; border-radius: 999px;
+    }
+    .status-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #4ade80;
+      box-shadow: 0 0 6px #4ade80;
+      animation: pulse-g 2.5s ease-in-out infinite;
+    }
+    @keyframes pulse-g {
+      0%,100% { opacity:1; box-shadow: 0 0 6px #4ade80; }
+      50%      { opacity:0.5; box-shadow: 0 0 14px #4ade80; }
+    }
+    .game-platform-badge {
+      font-size: 0.65rem; font-weight: 700;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--muted);
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      padding: 0.28rem 0.75rem; border-radius: 999px;
+    }
+
+    .game-showcase-title {
+      font-family: var(--font-display);
+      font-size: clamp(2.2rem, 4vw, 3.2rem);
+      color: var(--ink); line-height: 1.05;
+      margin-bottom: 0.85rem;
+    }
+    .game-showcase-tagline {
+      font-size: 0.9rem; font-weight: 300;
+      color: rgba(212,200,240,0.55);
+      line-height: 1.8; margin-bottom: 2rem;
+    }
+
+    .game-meta-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem 1.5rem;
+      margin-bottom: 2.25rem;
+    }
+    .game-meta-item {
+      display: flex; align-items: center; gap: 0.5rem;
+      font-size: 0.8rem; color: rgba(212,200,240,0.45);
+    }
+    .game-meta-item strong { color: rgba(212,200,240,0.8); }
+
+    .game-cta-row {
+      display: flex; gap: 0.75rem; flex-wrap: wrap;
+    }
+    .btn-steam {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.72rem 1.5rem; border-radius: 10px;
+      background: linear-gradient(135deg, #7c3aed, #4c1d95);
+      color: white; text-decoration: none;
+      font-weight: 700; font-size: 0.85rem;
+      border: 1px solid rgba(124,58,237,0.45);
+      box-shadow: 0 4px 20px rgba(76,29,149,0.4);
+      transition: all 0.22s;
+    }
+    .btn-steam:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(76,29,149,0.55);
+    }
+    .btn-steam.disabled {
+      opacity: 0.4; cursor: not-allowed; pointer-events: none;
+    }
+    .btn-more {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.72rem 1.5rem; border-radius: 10px;
+      background: rgba(255,255,255,0.04);
+      color: rgba(196,181,253,0.7); text-decoration: none;
+      font-weight: 600; font-size: 0.85rem;
+      border: 1px solid rgba(124,58,237,0.25);
+      transition: all 0.22s;
+    }
+    .btn-more:hover {
+      background: rgba(124,58,237,0.1);
+      border-color: rgba(124,58,237,0.45);
+      color: #e9d5ff;
+    }
+
+    .game-showcase-art {
+      position: relative; overflow: hidden;
+      background: linear-gradient(160deg, #150a38, #0d1535);
+      min-height: 400px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .game-showcase-art img {
+      width: 100%; height: 100%;
+      object-fit: cover; display: block;
+    }
+    .game-art-placeholder {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 1rem; padding: 2rem; text-align: center;
+      height: 100%; width: 100%;
+    }
+    .art-icon-main {
+      font-size: 6rem;
+      filter: drop-shadow(0 0 40px rgba(124,58,237,0.4));
+      animation: float-leaf 4s ease-in-out infinite;
+    }
+    @keyframes float-leaf {
+      0%,100% { transform: translateY(0) rotate(-3deg); }
+      50%      { transform: translateY(-16px) rotate(3deg); }
+    }
+    .art-label {
+      font-size: 0.72rem; letter-spacing: 0.16em;
+      text-transform: uppercase; color: rgba(212,200,240,0.2);
+    }
+
+    /* ── FEATURES ── */
+    .features-section { padding: 5rem 2rem; }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 1.25rem;
+      margin-top: 3rem;
+    }
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 1.6rem;
+      transition: all 0.25s;
+      position: relative; overflow: hidden;
+    }
+    .feature-card::before {
+      content: ''; position: absolute; inset: 0;
+      border-radius: 18px;
+      background: radial-gradient(ellipse at 50% 0%, rgba(124,58,237,0.07), transparent 60%);
+      opacity: 0; transition: opacity 0.25s; pointer-events: none;
+    }
+    .feature-card:hover {
+      transform: translateY(-5px);
+      border-color: var(--border2);
+      box-shadow: 0 14px 40px rgba(0,0,0,0.4);
+    }
+    .feature-card:hover::before { opacity: 1; }
+    .feature-icon { font-size: 1.85rem; margin-bottom: 0.7rem; }
+    .feature-title {
+      font-family: var(--font-display);
+      font-size: 0.95rem; color: var(--ink); margin-bottom: 0.4rem;
+    }
+    .feature-desc {
+      font-size: 0.8rem; color: rgba(212,200,240,0.45); line-height: 1.65;
+    }
+
+    /* ── DEV LOG ── */
+    .devlog-section {
+      padding: 5rem 2rem;
+      background: var(--surface);
+    }
+    .devlog-list { margin-top: 2.5rem; display: flex; flex-direction: column; gap: 1rem; }
+    .devlog-entry {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--royal-light);
+      border-radius: 0 14px 14px 0;
+      padding: 1.4rem 1.75rem;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .devlog-entry:hover {
+      border-left-color: #c084fc;
+      background: rgba(22,15,46,0.9);
+    }
+    .devlog-date {
+      font-size: 0.65rem; font-weight: 700;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--royal-light); margin-bottom: 0.35rem;
+      font-family: var(--font-mono);
+    }
+    .devlog-title {
+      font-family: var(--font-display);
+      font-size: 1rem; color: var(--ink);
+      margin-bottom: 0.4rem; line-height: 1.25;
+    }
+    .devlog-desc {
+      font-size: 0.82rem; color: rgba(212,200,240,0.45);
+      line-height: 1.7; font-weight: 300;
+    }
+
+    /* ── REVEAL ── */
+    .reveal {
+      opacity: 0; transform: translateY(22px);
+      transition: opacity 0.65s ease, transform 0.65s ease;
+    }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .reveal-d1 { transition-delay: 0.06s; }
+    .reveal-d2 { transition-delay: 0.12s; }
+    .reveal-d3 { transition-delay: 0.18s; }
+    .reveal-d4 { transition-delay: 0.24s; }
+    .reveal-d5 { transition-delay: 0.30s; }
+    .reveal-d6 { transition-delay: 0.36s; }
+
+    @keyframes fadeup {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo"><div class="paw" aria-hidden="true"></div> Nekojin Interactive</a>
+  <ul class="nav-links">
+    <li><a href="/">Home</a></li>
+    <li><a href="/books">Books</a></li>
+    <li><a href="/games" class="active">Games</a></li>
+    <li><a href="/about">About</a></li>
+  </ul>
+  <div class="nav-search-wrap">
+    <input type="text" class="nav-search" id="nav-search" placeholder="Search books…" autocomplete="off">
+    <div class="nav-search-results" id="nav-search-results"></div>
+  </div>
+  <button class="nav-hamburger" id="nav-hamburger" aria-label="Menu" onclick="toggleNav()">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+<div class="nav-drawer" id="nav-drawer">
+  <ul>
+    <li><input type="text" class="drawer-search" id="drawer-search" placeholder="Search books…" autocomplete="off"></li>
+    <li><div class="drawer-search-results" id="drawer-search-results"></div></li>
+    <li><a href="/">Home</a></li>
+    <li><a href="/books">Books</a></li>
+    <li><a href="/games" class="active">Games</a></li>
+    <li><a href="/about">About</a></li>
+  </ul>
+</div>
+
+<main>
+
+  <!-- HERO -->
+  <section class="games-hero">
+    <div class="games-hero-orbs">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+    </div>
+    <p class="games-hero-eyebrow">In Development</p>
+    <h1 class="games-hero-title" id="games-hero-title">Games</h1>
+    <p class="games-hero-sub" id="games-hero-sub">Nekojin Interactive builds games that are laboratories, testing grounds for autonomous AI, emergent systems, and systemic design.</p>
+  </section>
+
+  <!-- MAIN GAME CARD -->
+  <section class="game-showcase">
+    <div class="game-showcase-card reveal" id="game-card">
+      <!-- populated by JS -->
+      <div class="game-showcase-info">
+        <div style="color:var(--muted);font-size:0.88rem;">Loading...</div>
+      </div>
+      <div class="game-showcase-art">
+        <div class="game-art-placeholder">
+          <span class="art-icon-main">🍂</span>
+          <span class="art-label">Key Art in Progress</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="features-section">
+    <div class="section-inner">
+      <div class="section-header reveal">
+        <p class="section-eyebrow">✦ Features</p>
+        <h2 class="section-title">What to Expect</h2>
+        <p class="section-desc">Every system interlocks. Every NPC thinks. Every world runs while you're not watching.</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card reveal reveal-d1">
+          <div class="feature-icon">🧠</div>
+          <div class="feature-title">Emergent AI</div>
+          <div class="feature-desc">NPCs run on a Utility AI + GOAP hybrid. They remember, plan, and surprise you.</div>
+        </div>
+        <div class="feature-card reveal reveal-d2">
+          <div class="feature-icon">⚔️</div>
+          <div class="feature-title">Tactical Dungeon Crawl</div>
+          <div class="feature-desc">Grid-based exploration with real-time decision making and strategic depth.</div>
+        </div>
+        <div class="feature-card reveal reveal-d3">
+          <div class="feature-icon">👥</div>
+          <div class="feature-title">Up to 32 Players</div>
+          <div class="feature-desc">Soul-Brain-Body multiplayer architecture keeps the server authoritative and responsive.</div>
+        </div>
+        <div class="feature-card reveal reveal-d4">
+          <div class="feature-icon">🌍</div>
+          <div class="feature-title">Living World</div>
+          <div class="feature-desc">Chunk-based world streaming, dynamic quests, and a simulation that runs whether you're watching or not.</div>
+        </div>
+        <div class="feature-card reveal reveal-d5">
+          <div class="feature-icon">🍂</div>
+          <div class="feature-title">Cozy Aesthetic</div>
+          <div class="feature-desc">Warm pixel art, seasonal themes, and a tone that balances comfort with challenge.</div>
+        </div>
+        <div class="feature-card reveal reveal-d6">
+          <div class="feature-icon">🎒</div>
+          <div class="feature-title">Deep Systems</div>
+          <div class="feature-desc">Inventory, skills, quests, and crafting. All interlocked, all emergent.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <!-- DEV LOG -->
+  <section class="devlog-section">
+    <div class="section-inner">
+      <div class="section-header reveal">
+        <p class="section-eyebrow">✦ Development</p>
+        <h2 class="section-title">Recent Progress</h2>
+        <p class="section-desc">A solo dev build. Real updates, real challenges, real progress.</p>
+      </div>
+      <div class="devlog-list">
+        <div class="devlog-entry reveal reveal-d1">
+          <div class="devlog-date">April 2026 - Active Dev</div>
+          <div class="devlog-title">Skill System & Combat Architecture</div>
+          <div class="devlog-desc">Named skill ID registry replacing hardcoded integers. Elemental and class skill trees refactored. Immutable blueprint pattern finalized. Skills are data, not objects.</div>
+        </div>
+        <div class="devlog-entry reveal reveal-d2">
+          <div class="devlog-date">March 2026 - Multiplayer</div>
+          <div class="devlog-title">Networking & NPC Behavior</div>
+          <div class="devlog-desc">Client-server architecture finalized with Soul/Brain/Body separation. A* pathfinding grid implemented after NavAgent2D performance issues at scale. NPC behavior trees running on Utility AI with GOAP planning.</div>
+        </div>
+        <div class="devlog-entry reveal reveal-d3">
+          <div class="devlog-date">2026 - UI Systems</div>
+          <div class="devlog-title">Inventory & Character Profile</div>
+          <div class="devlog-desc">Click-and-drag UI windows, inventory slot rendering, and the character profile screen in active development. Dictionary-based blueprint system replacing file-based resources.</div>
+        </div>
+        <div class="devlog-entry reveal reveal-d4">
+          <div class="devlog-date">2025 - Foundation</div>
+          <div class="devlog-title">Engine Selection & World Architecture</div>
+          <div class="devlog-desc">Godot 4.6 selected after evaluation. Chunk-based world streaming designed. Quest system scaffolded. Steam page live with wishlist base. Steam Deck compatibility testing begun.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-logo"><div class="tama-icon" aria-hidden="true"></div> Nekojin Interactive</div>
+    <p class="footer-tagline" id="footer-tagline">Crafting worlds, one upload at a time.</p>
+    <div class="footer-links">
+      <a href="/">Home</a><a href="/books">Books</a>
+      <a href="/games">Games</a><a href="/about">About</a>
+    </div>
+    <p class="footer-copy">© 2026 Nekojin Interactive LLC. All rights reserved.</p>
+  </div>
+</footer>
+
+<script>
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+const revealObs = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); revealObs.unobserve(e.target); } });
+}, { threshold: 0.08, rootMargin: '0px 0px -20px 0px' });
+document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+
+async function loadGame() {
+  try {
+    const res = await fetch('/content');
+    if (!res.ok) return;
+    const data = await res.json();
+    const g = data.game;
+    if (!g) return;
+
+    // Hero subtitle
+    if (g.description) {
+      document.getElementById('games-hero-sub').textContent = g.description;
+    }
+
+    // Steam button
+    const steamBtn = g.steamUrl
+      ? `<a href="${esc(g.steamUrl)}" target="_blank" rel="noopener" class="btn-steam">🎮 Wishlist on Steam</a>`
+      : `<span class="btn-steam disabled">🎮 Wishlist on Steam</span>`;
+
+    // Art panel
+    const artHtml = g.coverImage
+      ? `<img src="${esc(g.coverImage)}" alt="${esc(g.title)} cover">`
+      : `<div class="game-art-placeholder">
+           <span class="art-icon-main">🍂</span>
+           <span class="art-label">Key Art in Progress</span>
+         </div>`;
+
+    // Meta items -- only show if value exists
+    const metaItems = [
+      g.engine      && `<div class="game-meta-item">🎮 <span><strong>Engine:</strong> ${esc(g.engine)}</span></div>`,
+      g.players     && `<div class="game-meta-item">👥 <span><strong>Players:</strong> ${esc(g.players)}</span></div>`,
+      g.nextFest    && `<div class="game-meta-item">🗓️ <span><strong>Next Fest:</strong> ${esc(g.nextFest)}</span></div>`,
+      g.earlyAccess && `<div class="game-meta-item">🚀 <span><strong>Early Access:</strong> ${esc(g.earlyAccess)}</span></div>`,
+      `<div class="game-meta-item">💻 <span><strong>Platform:</strong> PC (Steam)</span></div>`,
+    ].filter(Boolean).join('');
+
+    document.getElementById('game-card').innerHTML = `
+      <div class="game-showcase-info">
+        <div class="game-status-row">
+          <div class="game-status-badge">
+            <span class="status-dot"></span>
+            ${esc(g.status || 'In Development')}
+          </div>
+          <span class="game-platform-badge">PC · Steam</span>
+        </div>
+        <h2 class="game-showcase-title">${esc(g.title)}</h2>
+        <p class="game-showcase-tagline">${esc(g.tagline)}</p>
+        <div class="game-meta-grid">${metaItems}</div>
+        <div class="game-cta-row">${steamBtn}</div>
+        <div style="margin-top:0.75rem;font-size:0.78rem;color:var(--muted);">
+          <a href="/action_registry.html" style="color:var(--royal-light);text-decoration:none;opacity:0.7;transition:opacity 0.2s;">
+            📋 View Action Registry →
+          </a>
+        </div>
+      </div>
+      <div class="game-showcase-art">${artHtml}</div>
+    `;
+
+    // Re-observe the newly rendered card
+    document.querySelectorAll('#game-card .reveal').forEach(el => revealObs.observe(el));
+
+    // Footer tagline
+    if (data.about && data.about.tagline) {
+      document.getElementById('footer-tagline').textContent = data.about.tagline;
+    }
+
+  } catch(e) {
+    console.error('Game load failed:', e);
+  }
+}
+
+function toggleNav() {
+  const btn = document.getElementById('nav-hamburger');
+  const drawer = document.getElementById('nav-drawer');
+  const open = btn.classList.toggle('open');
+  drawer.classList.toggle('open', open);
+  document.body.style.overflow = open ? 'hidden' : '';
+}
+document.addEventListener('click', function(e) {
+  const btn = document.getElementById('nav-hamburger');
+  const drawer = document.getElementById('nav-drawer');
+  if (btn && drawer && !btn.contains(e.target) && !drawer.contains(e.target)) {
+    btn.classList.remove('open'); drawer.classList.remove('open'); document.body.style.overflow = '';
+  }
+});
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.nav-drawer a').forEach(a => {
+    a.addEventListener('click', () => {
+      document.getElementById('nav-hamburger').classList.remove('open');
+      document.getElementById('nav-drawer').classList.remove('open');
+      document.body.style.overflow = '';
+    });
+  });
+});
+
+// ── SITE SEARCH ────────────────────────────────────────
+(async function() {
+  let searchIndex = [];
+  try {
+    const res = await fetch('/content');
+    const data = await res.json();
+    searchIndex = (data.books || []).filter(b => b.visible !== false).map(b => ({
+      id: b.id,
+      title: b.title,
+      volume: b.volume || '',
+      description: b.description || '',
+      tags: (b.tags || []).join(' '),
+      cover: b.cover || ''
+    }));
+  } catch(e) { console.warn('Search init failed', e); }
+
+  function setupSearch(inputId, resultsId) {
+    const input = document.getElementById(inputId);
+    const results = document.getElementById(resultsId);
+    if (!input || !results) return;
+
+    function esc(str) { return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function render(q) {
+      q = q.trim().toLowerCase();
+      if (!q || !searchIndex.length) { results.classList.remove('visible'); return; }
+      const matches = searchIndex.filter(b =>
+        b.title.toLowerCase().includes(q) ||
+        b.description.toLowerCase().includes(q) ||
+        b.tags.toLowerCase().includes(q) ||
+        b.volume.toLowerCase().includes(q)
+      ).slice(0, 6);
+
+      if (!matches.length) {
+        results.innerHTML = '<div class="sr-empty">No books found</div>';
+      } else {
+        results.innerHTML = matches.map(b => `
+          <a href="/book?id=${encodeURIComponent(b.id)}" class="sr-item" onclick="document.querySelectorAll('.nav-search-results,.drawer-search-results').forEach(r=>r.classList.remove('visible'));document.getElementById('nav-drawer').classList.remove('open');document.body.style.overflow='';document.getElementById('nav-hamburger').classList.remove('open')">
+            ${b.cover ? `<img src="${b.cover}" alt="">` : '<div style="width:32px;height:48px;background:linear-gradient(160deg,#2d1065,#1e1b4b);border-radius:4px;flex-shrink:0;"></div>'}
+            <div>
+              <div class="sr-title">${esc(b.title)}</div>
+              <div class="sr-meta">${esc(b.volume || b.tags.slice(0, 30) || 'Book')}</div>
+            </div>
+          </a>
+        `).join('');
+      }
+      results.classList.add('visible');
+    }
+
+    let debounce;
+    input.addEventListener('input', (e) => {
+      clearTimeout(debounce);
+      debounce = setTimeout(() => render(e.target.value), 150);
+    });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { input.value = ''; results.classList.remove('visible'); input.blur(); }
+    });
+    document.addEventListener('click', (e) => {
+      if (!input.contains(e.target) && !results.contains(e.target)) results.classList.remove('visible');
+    });
+  }
+
+  setupSearch('nav-search', 'nav-search-results');
+  setupSearch('drawer-search', 'drawer-search-results');
+})();
+
+loadGame();
+
+// Register PWA service worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>

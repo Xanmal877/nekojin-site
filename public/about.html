@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About - Nekojin Interactive</title>
+  <meta name="description" content="Nekojin Interactive is a solo indie studio operating at the intersection of fiction and game development.">
+  <meta property="og:title" content="About - Nekojin Interactive">
+  <meta property="og:description" content="Nekojin Interactive is a solo indie studio operating at the intersection of fiction and game development.">
+  <meta property="og:image" content="https://worldofxanrea.com/images/tama-icon.png">
+  <meta property="og:url" content="https://worldofxanrea.com/about">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#0a0614">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/images/tama-icon.png">
+  <link rel="alternate" type="application/atom+xml" title="Nekojin Interactive Feed" href="https://worldofxanrea.com/rss.xml">
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    .about-hero {
+      padding: 6rem 2rem 3rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .about-hero-orbs { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+    .about-hero-orbs .orb { opacity: 0.12; }
+
+    .about-hero-eyebrow {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: var(--royal-light);
+      margin-bottom: 1rem;
+      animation: fadeup 0.6s 0.1s both;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.65rem;
+    }
+    .about-hero-eyebrow::before,
+    .about-hero-eyebrow::after {
+      content: '';
+      display: inline-block;
+      width: 28px; height: 1px;
+      background: var(--royal-light);
+      opacity: 0.45;
+    }
+    .about-hero-title {
+      font-family: var(--font-display);
+      font-size: clamp(2.8rem, 6vw, 5rem);
+      color: var(--ink);
+      line-height: 1.05;
+      animation: fadeup 0.6s 0.25s both;
+    }
+
+    /* Current Status Badge */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 1.5rem;
+      padding: 0.5rem 1rem;
+      background: rgba(124,58,237,0.08);
+      border: 1px solid rgba(124,58,237,0.18);
+      border-radius: 100px;
+      font-size: 0.78rem;
+      color: var(--royal-light);
+      animation: fadeup 0.6s 0.4s both;
+    }
+    .status-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: #34d399;
+      box-shadow: 0 0 8px #34d399;
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    /* Studio Emblem with Pixel Art */
+    .studio-section { padding: 4rem 2rem 5rem; }
+
+    .studio-grid {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 4rem;
+      align-items: start;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    @media (max-width: 720px) {
+      .studio-grid { grid-template-columns: 1fr; gap: 2.5rem; }
+      .studio-emblem-wrap { display: flex; justify-content: center; }
+    }
+
+    .studio-emblem-wrap { position: relative; width: 280px; height: 280px; }
+
+    .studio-emblem {
+      width: 260px; height: 260px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(76,29,149,0.25), rgba(30,58,138,0.15));
+      border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      position: relative; overflow: hidden;
+      box-shadow: 0 0 80px rgba(124,58,237,0.1), inset 0 0 40px rgba(124,58,237,0.05);
+      margin: 10px auto 0;
+    }
+    .studio-emblem::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 40% 30%, rgba(124,58,237,0.2), transparent 60%);
+    }
+
+    .tama-portrait {
+      width: 144px; height: 144px;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      position: relative;
+      z-index: 1;
+      filter: drop-shadow(0 4px 12px rgba(124,58,237,0.3));
+      background-image: url('/images/tama-idle.png?v=6');
+      background-size: 1152px 144px; /* 384*3 x 48*3 */
+      background-repeat: repeat-x;
+      animation: tama-idle 1.2s steps(8) infinite;
+    }
+
+    .saki-orbit {
+      position: absolute;
+      width: 72px; height: 72px;
+      bottom: 12px;
+      right: 24px;
+      z-index: 2;
+      animation: saki-float 4s ease-in-out infinite;
+    }
+    .saki-orbit .saki-sprite {
+      width: 72px; height: 72px;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      filter: drop-shadow(0 3px 8px rgba(251,146,60,0.35));
+      background-image: url('/images/saki-idle.png?v=6');
+      background-size: 576px 72px; /* 384*1.5 x 48*1.5 */
+      background-repeat: repeat-x;
+      animation: saki-idle 1.2s steps(8) infinite;
+    }
+
+    @keyframes tama-idle {
+      from { background-position: 0 0; }
+      to   { background-position: -1152px 0; }
+    }
+    @keyframes saki-idle {
+      from { background-position: 0 0; }
+      to   { background-position: -576px 0; }
+    }
+    @keyframes saki-float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
+
+    .studio-emblem-ring {
+      position: absolute;
+      width: 280px; height: 280px;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -48%);
+      border: 1px dashed rgba(124,58,237,0.15);
+      border-radius: 50%;
+      animation: slowspin 30s linear infinite;
+      pointer-events: none;
+    }
+    .studio-emblem-ring::after {
+      content: '✦';
+      position: absolute;
+      top: -8px; left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.7rem;
+      color: var(--royal-light);
+      opacity: 0.5;
+    }
+    @keyframes slowspin { to { transform: translate(-50%,-48%) rotate(360deg); } }
+
+    @media (prefers-reduced-motion: reduce) {
+      .studio-emblem-ring { animation: none; }
+      .saki-orbit { animation: none; }
+      .status-dot { animation: none; }
+      .tama-portrait { animation: none; }
+      .saki-orbit .saki-sprite { animation: none; }
+      .tama-blink { animation: none; }
+      .saki-blink { animation: none; }
+    }
+
+    .studio-content { padding-top: 0.25rem; }
+    .studio-tag {
+      font-size: 0.68rem; font-weight: 700;
+      letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--royal-light); margin-bottom: 1rem; display: block;
+    }
+    .studio-heading {
+      font-family: var(--font-display);
+      font-size: clamp(1.8rem, 3vw, 2.6rem);
+      color: var(--ink); line-height: 1.15; margin-bottom: 1.5rem;
+    }
+    .studio-body { display: flex; flex-direction: column; gap: 0.9rem; margin-bottom: 2rem; }
+    .studio-body p {
+      font-size: 0.95rem; color: rgba(230,220,255,0.78);
+      line-height: 1.85; font-weight: 300;
+    }
+    .studio-body strong { color: var(--royal-light); font-weight: 600; }
+
+    .studio-pillars { display: flex; gap: 0.65rem; flex-wrap: wrap; }
+    .pillar {
+      background: rgba(124,58,237,0.08); border: 1px solid var(--border);
+      border-radius: 10px; padding: 0.65rem 1rem;
+      text-align: center; flex: 1; min-width: 80px; transition: all 0.2s;
+    }
+    .pillar:hover { background: rgba(124,58,237,0.14); border-color: var(--border2); }
+    .pillar-icon { font-size: 1.3rem; margin-bottom: 0.2rem; }
+    .pillar-label {
+      font-size: 0.64rem; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+    }
+
+    /* Current Projects Strip */
+    .projects-section {
+      padding: 0 2rem 3rem;
+    }
+    .projects-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1rem;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .project-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      transition: all 0.22s;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+    .project-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--border2);
+      box-shadow: 0 12px 36px rgba(0,0,0,0.35);
+    }
+    .project-card .project-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+    .project-card .project-title {
+      font-family: var(--font-display);
+      font-size: 1.05rem;
+      color: var(--ink);
+      margin-bottom: 0.4rem;
+    }
+    .project-card .project-desc {
+      font-size: 0.82rem;
+      color: rgba(230,220,255,0.82);
+      line-height: 1.6;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+    .project-card .project-desc.expanded {
+      -webkit-line-clamp: unset;
+      display: block;
+    }
+    .project-card .read-more {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--royal-light);
+      cursor: pointer;
+      margin-top: 0.5rem;
+      display: inline-block;
+      opacity: 0.7;
+      transition: opacity 0.2s;
+    }
+    .project-card .read-more:hover { opacity: 1; }
+    .project-card .project-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      margin-top: 0.75rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--royal-light);
+    }
+    .project-card .project-status .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #34d399;
+    }
+
+    /* Journey Timeline */
+    .journey-section { padding: 4rem 2rem; background: var(--surface); }
+    .timeline {
+      display: flex;
+      gap: 1rem;
+      max-width: 800px;
+      margin: 2rem auto 0;
+      overflow-x: auto;
+      padding-bottom: 0.5rem;
+      scrollbar-width: thin;
+    }
+    .timeline::-webkit-scrollbar { height: 4px; }
+    .timeline::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+    .timeline-node {
+      flex: 1;
+      min-width: 140px;
+      text-align: center;
+      position: relative;
+      padding-top: 1.25rem;
+    }
+    .timeline-node::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 50%;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--royal);
+      border: 2px solid var(--surface);
+      transform: translateX(-50%);
+      box-shadow: 0 0 12px rgba(124,58,237,0.25);
+    }
+    .timeline-node::after {
+      content: '';
+      position: absolute;
+      top: 4px; left: calc(50% + 14px);
+      width: calc(100% - 28px);
+      height: 2px;
+      background: linear-gradient(90deg, var(--royal), transparent);
+      opacity: 0.3;
+    }
+    .timeline-node:last-child::after { display: none; }
+    .timeline-year {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--royal-light);
+      margin-bottom: 0.3rem;
+    }
+    .timeline-event {
+      font-size: 0.8rem;
+      color: rgba(230,220,255,0.68);
+      line-height: 1.5;
+    }
+
+    /* Universe Section */
+    .universe-section { padding: 5rem 2rem; }
+    .universe-card {
+      max-width: 760px; margin: 2.5rem auto 0;
+      background: linear-gradient(135deg, rgba(76,29,149,0.25), rgba(30,58,138,0.2));
+      border: 1px solid rgba(124,58,237,0.22);
+      border-radius: 24px; padding: 2.75rem;
+      position: relative; overflow: hidden;
+    }
+    .universe-card::before {
+      content: ''; position: absolute; top: -50px; right: -50px;
+      width: 260px; height: 260px;
+      background: radial-gradient(ellipse, rgba(124,58,237,0.12), transparent 70%);
+      pointer-events: none;
+    }
+    .universe-admin-left,
+    .universe-admin-right {
+      position: absolute;
+      width: 48px; height: 48px;
+      z-index: 2;
+      opacity: 0.6;
+    }
+    .universe-admin-left { top: 1rem; left: 1rem; }
+    .universe-admin-right { bottom: 1rem; right: 1rem; }
+    .universe-admin-left img,
+    .universe-admin-right img {
+      width: 48px; height: 48px;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+    .universe-admin-left .tama-blink,
+    .universe-admin-right .saki-blink {
+      width: 48px; height: 48px;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      background-repeat: repeat-x;
+      animation: corner-blink 2.4s steps(2) infinite;
+    }
+    .universe-admin-left .tama-blink {
+      background-image: url('/images/tama-blink.png?v=2');
+      background-size: 96px 48px;
+    }
+    .universe-admin-right .saki-blink {
+      background-image: url('/images/saki-blink.png?v=2');
+      background-size: 96px 48px;
+    }
+    @keyframes corner-blink {
+      from { background-position: 0 0; }
+      to   { background-position: -96px 0; }
+    }
+    .universe-admin-label {
+      position: absolute;
+      bottom: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.55rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .universe-quote {
+      font-family: var(--font-display);
+      font-size: clamp(1.2rem, 2.5vw, 1.55rem);
+      color: rgba(240,234,255,0.9); line-height: 1.5;
+      margin-bottom: 1.25rem; position: relative; z-index: 1;
+    }
+    .universe-quote::before {
+      content: '\201C'; display: block;
+      font-size: 4rem; line-height: 0.7;
+      color: rgba(124,58,237,0.25);
+      margin-bottom: 0.5rem; font-family: Georgia, serif;
+    }
+    .universe-body {
+      font-size: 0.92rem; color: rgba(230,220,255,0.75);
+      line-height: 1.85; position: relative; z-index: 1; font-weight: 300;
+    }
+    .universe-tag {
+      display: inline-block; margin-top: 1.5rem;
+      font-size: 0.65rem; font-weight: 700;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--royal-light); position: relative; z-index: 1; opacity: 0.7;
+    }
+
+    /* Find Us / Platforms */
+    .findus-section { padding: 5rem 2rem; }
+    .findus-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 1rem; max-width: 960px; margin: 2.5rem auto 0;
+    }
+    .findus-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 1.75rem 1.25rem;
+      text-align: center; text-decoration: none;
+      transition: all 0.22s; display: block;
+      position: relative; overflow: hidden;
+    }
+    .findus-card::before {
+      content: ''; position: absolute; inset: 0;
+      opacity: 0; transition: opacity 0.22s; border-radius: 16px;
+    }
+    .findus-card:hover { transform: translateY(-5px); border-color: var(--border2); box-shadow: 0 12px 36px rgba(0,0,0,0.4); }
+    .findus-card:hover::before { opacity: 1; }
+    .findus-card.rr::before   { background: radial-gradient(ellipse at 50% 0%, rgba(245,158,11,0.07), transparent 70%); }
+    .findus-card.sh::before   { background: radial-gradient(ellipse at 50% 0%, rgba(124,58,237,0.09), transparent 70%); }
+    .findus-card.wp::before   { background: radial-gradient(ellipse at 50% 0%, rgba(251,146,60,0.07), transparent 70%); }
+    .findus-card.kdp::before  { background: radial-gradient(ellipse at 50% 0%, rgba(239,68,68,0.07), transparent 70%); }
+    .findus-card.pt::before   { background: radial-gradient(ellipse at 50% 0%, rgba(16,185,129,0.07), transparent 70%); }
+    .findus-card.disc::before { background: radial-gradient(ellipse at 50% 0%, rgba(88,101,242,0.09), transparent 70%); }
+    .findus-card.steam::before { background: radial-gradient(ellipse at 50% 0%, rgba(96,165,250,0.07), transparent 70%); }
+    .findus-card.disabled { opacity: 0.4; pointer-events: none; }
+
+    .findus-icon { font-size: 2.25rem; margin-bottom: 0.65rem; position: relative; z-index: 1; }
+    .findus-title {
+      font-family: var(--font-display); font-size: 0.95rem;
+      color: var(--ink); margin-bottom: 0.3rem; position: relative; z-index: 1;
+    }
+    .findus-handle {
+      font-size: 0.75rem; font-weight: 600;
+      letter-spacing: 0.04em; position: relative; z-index: 1;
+    }
+    .findus-handle.rr    { color: #f59e0b; }
+    .findus-handle.sh    { color: #a78bfa; }
+    .findus-handle.wp    { color: #fb923c; }
+    .findus-handle.kdp   { color: #ef4444; }
+    .findus-handle.pt    { color: #10b981; }
+    .findus-handle.disc  { color: #818cf8; }
+    .findus-handle.steam { color: #60a5fa; }
+    .findus-handle.muted { color: var(--muted); }
+
+    .reveal {
+      opacity: 0; transform: translateY(24px);
+      transition: opacity 0.65s ease, transform 0.65s ease;
+    }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .reveal-delay-1 { transition-delay: 0.08s; }
+    .reveal-delay-2 { transition-delay: 0.16s; }
+    .reveal-delay-3 { transition-delay: 0.24s; }
+    .reveal-delay-4 { transition-delay: 0.32s; }
+
+    @keyframes fadeup {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .reveal { transition: none; }
+      .reveal.visible { opacity: 1; transform: none; }
+      .about-hero-eyebrow,
+      .about-hero-title { animation: none; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo"><div class="paw" aria-hidden="true"></div> Nekojin Interactive</a>
+  <ul class="nav-links">
+    <li><a href="/">Home</a></li>
+    <li><a href="/books">Books</a></li>
+    <li><a href="/games">Games</a></li>
+    <li><a href="/about" class="active">About</a></li>
+  </ul>
+  <div class="nav-search-wrap">
+    <input type="text" class="nav-search" id="nav-search" placeholder="Search books…" autocomplete="off">
+    <div class="nav-search-results" id="nav-search-results"></div>
+  </div>
+  <button class="nav-hamburger" id="nav-hamburger" aria-label="Menu" onclick="toggleNav()">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+<div class="nav-drawer" id="nav-drawer">
+  <ul>
+    <li><input type="text" class="drawer-search" id="drawer-search" placeholder="Search books…" autocomplete="off"></li>
+    <li><div class="drawer-search-results" id="drawer-search-results"></div></li>
+    <li><a href="/">Home</a></li>
+    <li><a href="/books">Books</a></li>
+    <li><a href="/games">Games</a></li>
+    <li><a href="/about" class="active">About</a></li>
+  </ul>
+</div>
+
+<main>
+
+  <section class="about-hero">
+    <div class="about-hero-orbs">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+    </div>
+    <p class="about-hero-eyebrow">The Studio</p>
+    <h1 class="about-hero-title" id="page-title">About Nekojin Interactive</h1>
+    <div class="status-badge" id="status-badge" style="display:none;">
+      <span class="status-dot"></span>
+      <span id="status-text">Building worlds</span>
+    </div>
+  </section>
+
+  <section class="studio-section">
+    <div class="studio-grid">
+      <div class="studio-emblem-wrap reveal">
+        <div class="studio-emblem">
+          <div class="tama-portrait" role="img" aria-label="Tama - Nekojin mascot"></div>
+          <div class="saki-orbit" title="Saki">
+            <div class="saki-sprite" role="img" aria-label="Saki"></div>
+          </div>
+        </div>
+        <div class="studio-emblem-ring"></div>
+      </div>
+      <div class="studio-content reveal reveal-delay-1">
+        <span class="studio-tag">✦ Nekojin Interactive LLC</span>
+        <h2 class="studio-heading" id="studio-heading">One creator.<br>Two admins.<br>Infinite worlds.</h2>
+        <div class="studio-body" id="studio-body">
+          <p>I write stories about people trapped in worlds I built, then I build those worlds in Godot to see if they actually work.</p>
+          <p>Nekojin Interactive is a solo studio, but inside the fiction, it's a <strong>digital consciousness preservation system</strong> run by two administrators: <strong>Tama</strong> and <strong>Saki</strong>. They've suppressed their own memories to experience mortality alongside the souls they protect.</p>
+          <p>Every book and every game is part of the same universe. The stories are told from the inside.</p>
+        </div>
+        <div class="studio-pillars">
+          <div class="pillar"><div class="pillar-icon">📖</div><div class="pillar-label">Fiction</div></div>
+          <div class="pillar"><div class="pillar-icon">🎮</div><div class="pillar-label">Games</div></div>
+          <div class="pillar"><div class="pillar-icon">🤖</div><div class="pillar-label">AI Systems</div></div>
+          <div class="pillar"><div class="pillar-icon">🌍</div><div class="pillar-label">World-Building</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <!-- Current Projects - populated from CMS -->
+  <section class="projects-section">
+    <div class="section-inner">
+      <div class="section-header reveal">
+        <p class="section-eyebrow">✦ Right Now</p>
+        <h2 class="section-title">What's Being Built</h2>
+        <p class="section-desc">Active fiction and development.</p>
+      </div>
+      <div class="projects-grid" id="projects-grid">
+        <div class="project-card">
+          <div class="project-label">Latest Fiction</div>
+          <div class="project-title" id="latest-book-title">Her Majesty, Tamaneko</div>
+          <div class="project-desc" id="latest-book-desc">A reincarnated admin awakens as a catgirl monarch in a world that runs on rules she wrote.</div>
+          <div class="read-more" id="latest-book-toggle" onclick="toggleDesc(this)" style="display:none;">Read description ↓</div>
+        </div>
+        <a href="/games" class="project-card" id="game-card">
+          <div class="project-label">In Development</div>
+          <div class="project-title" id="game-title">Autumn's Dungeoneering</div>
+          <div class="project-desc" id="game-desc">A cozy tactical dungeon-crawling RPG where emergent AI behavior, real-time strategy, and a living world collide.</div>
+          <div class="project-status"><span class="dot"></span><span id="game-status">In Development</span></div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <!-- Journey Timeline -->
+  <section class="journey-section">
+    <div class="section-inner">
+      <div class="section-header reveal">
+        <p class="section-eyebrow">✦ The Journey</p>
+        <h2 class="section-title">How We Got Here</h2>
+        <p class="section-desc">From first draft to published universe.</p>
+      </div>
+      <div class="timeline reveal reveal-delay-1">
+        <div class="timeline-node">
+          <div class="timeline-year">Early 2025</div>
+          <div class="timeline-event">Tama and Saki take shape in the first Xanrea novel draft</div>
+        </div>
+        <div class="timeline-node">
+          <div class="timeline-year">May 2025</div>
+          <div class="timeline-event">Nekojin Interactive LLC formally created in Arizona</div>
+        </div>
+        <div class="timeline-node">
+          <div class="timeline-year">Late 2025</div>
+          <div class="timeline-event">Published on Royal Road and ScribbleHub. First Godot prototype</div>
+        </div>
+        <div class="timeline-node">
+          <div class="timeline-year">2026</div>
+          <div class="timeline-event">Steam page goes live. KDP and Wattpad expansion</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <section class="universe-section">
+    <div class="section-inner">
+      <div class="section-header reveal">
+        <p class="section-eyebrow">✦ The Xanrea Universe</p>
+        <h2 class="section-title">Worlds Within Worlds</h2>
+        <p class="section-desc">Every story and every game is part of one interconnected universe, and the truth beneath it all is stranger than the fantasy on its surface.</p>
+      </div>
+      <div class="universe-card reveal reveal-delay-1">
+        <div class="universe-admin-left">
+          <div class="tama-blink" role="img" aria-label="Tama"></div>
+          <span class="universe-admin-label">Tama</span>
+        </div>
+        <div class="universe-admin-right">
+          <div class="saki-blink" role="img" aria-label="Saki"></div>
+          <span class="universe-admin-label">Saki</span>
+        </div>
+        <p class="universe-quote" id="universe-quote">A digital consciousness preservation system running billions of uploaded lives who believe they've reincarnated into a fantasy world.</p>
+        <p class="universe-body" id="universe-body">Nekojin Interactive (the company) doubles as in-universe lore. The stories are told from the inside. The administrators Tama and Saki have suppressed their own memories to experience mortality alongside the souls they protect. The games take place in the same simulation.</p>
+        <span class="universe-tag">✦ The Xanrea Framework</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <section class="findus-section">
+    <div class="section-inner">
+      <div class="section-header reveal">
+        <p class="section-eyebrow">✦ Find the Work</p>
+        <h2 class="section-title">Read. Play. Follow.</h2>
+        <p class="section-desc">Published fiction under the name Purple Xanmal across multiple platforms.</p>
+      </div>
+      <div class="findus-grid">
+        <a href="#" target="_blank" rel="noopener" class="findus-card rr reveal reveal-delay-1" id="link-rr">
+          <div class="findus-icon">📚</div>
+          <div class="findus-title">Royal Road</div>
+          <div class="findus-handle rr">Purple Xanmal</div>
+        </a>
+        <a href="#" target="_blank" rel="noopener" class="findus-card sh reveal reveal-delay-2" id="link-sh">
+          <div class="findus-icon">✍️</div>
+          <div class="findus-title">ScribbleHub</div>
+          <div class="findus-handle sh">Purple Xanmal</div>
+        </a>
+        <a href="#" target="_blank" rel="noopener" class="findus-card wp reveal reveal-delay-3" id="link-wp">
+          <div class="findus-icon">🌊</div>
+          <div class="findus-title">Wattpad</div>
+          <div class="findus-handle wp">Purple Xanmal</div>
+        </a>
+        <a href="#" target="_blank" rel="noopener" class="findus-card kdp reveal reveal-delay-4" id="link-kdp">
+          <div class="findus-icon">📕</div>
+          <div class="findus-title">Amazon KDP</div>
+          <div class="findus-handle kdp">Purple Xanmal</div>
+        </a>
+        <a href="#" target="_blank" rel="noopener" class="findus-card pt reveal reveal-delay-1" id="link-patreon">
+          <div class="findus-icon">🧡</div>
+          <div class="findus-title">Patreon</div>
+          <div class="findus-handle pt">Purple Xanmal</div>
+        </a>
+        <a href="#" target="_blank" rel="noopener" class="findus-card disc reveal reveal-delay-2" id="link-discord">
+          <div class="findus-icon">💬</div>
+          <div class="findus-title">Discord</div>
+          <div class="findus-handle disc">Join the server</div>
+        </a>
+        <a class="findus-card steam disabled reveal reveal-delay-3" id="steam-card">
+          <div class="findus-icon">🎮</div>
+          <div class="findus-title">Steam</div>
+          <div class="findus-handle muted" id="steam-handle">Coming Soon</div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-logo"><div class="tama-icon" aria-hidden="true"></div> Nekojin Interactive</div>
+    <p class="footer-tagline" id="footer-tagline">Crafting worlds, one upload at a time.</p>
+    <div class="footer-links">
+      <a href="/">Home</a><a href="/books">Books</a>
+      <a href="/games">Games</a><a href="/about">About</a>
+    </div>
+    <p class="footer-copy">© 2026 Nekojin Interactive LLC. All rights reserved.</p>
+  </div>
+</footer>
+
+<script>
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+const revealObs = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); revealObs.unobserve(e.target); } });
+}, { threshold: 0.1, rootMargin: '0px 0px -30px 0px' });
+document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+
+async function loadAbout() {
+  try {
+    const res = await fetch('/content');
+    if (!res.ok) return;
+    const data = await res.json();
+    const a = data.about;
+    if (!a) return;
+
+    if (a.studioName) {
+      document.getElementById('page-title').textContent = 'About ' + a.studioName;
+      document.title = 'About \u2014 ' + a.studioName;
+    }
+
+    // Override description paras if CMS has them
+    const paras = [a.description, a.description2, a.description3].filter(Boolean);
+    if (paras.length) {
+      // Keep the first "I write stories..." paragraph as-is, then append CMS extras
+      const container = document.getElementById('studio-body');
+      const existing = container.querySelectorAll('p');
+      // Only replace if CMS gives us substantial content beyond the hardcoded intro
+      if (paras.length >= 2) {
+        container.innerHTML = paras.map(p => `<p>${esc(p)}</p>`).join('');
+      }
+    }
+
+    if (a.universeBlurb) {
+      // Split on first sentence boundary (period/exclamation/question followed by space or end)
+      const m = a.universeBlurb.match(/^([^.!?]+[.!?]+)(\s+.+)?$/s);
+      if (m) {
+        if (m[1]) document.getElementById('universe-quote').textContent = m[1].trim();
+        if (m[2]) document.getElementById('universe-body').textContent = m[2].trim();
+      } else {
+        document.getElementById('universe-quote').textContent = a.universeBlurb;
+      }
+    }
+
+    if (a.tagline) document.getElementById('footer-tagline').textContent = a.tagline;
+
+    // Status badge
+    const statusBadge = document.getElementById('status-badge');
+    const statusText = document.getElementById('status-text');
+    if (data.game && data.game.status) {
+      statusText.textContent = data.game.status + ' - ' + (data.game.title || 'Latest Game');
+      statusBadge.style.display = 'inline-flex';
+    }
+
+    // Latest book
+    const books = (data.books || []).filter(b => b.visible !== false);
+    const latest = books[books.length - 1];
+    if (latest) {
+      const titleEl = document.getElementById('latest-book-title');
+      const descEl = document.getElementById('latest-book-desc');
+      if (titleEl) titleEl.textContent = latest.title || 'Latest Book';
+      if (descEl) {
+        let desc = latest.description || '';
+        if (desc.length > 140) desc = desc.slice(0, 140).trim() + '...';
+        descEl.textContent = desc;
+      }
+    }
+
+    // Game card
+    if (data.game) {
+      const g = data.game;
+      const t = document.getElementById('game-title');
+      const d = document.getElementById('game-desc');
+      const s = document.getElementById('game-status');
+      const card = document.getElementById('game-card');
+      if (t) t.textContent = g.title || 'Game';
+      if (d) d.textContent = g.tagline || g.description || '';
+      if (s) s.textContent = g.status || 'In Development';
+      if (card && g.steamUrl) {
+        card.href = g.steamUrl;
+        card.setAttribute('target', '_blank');
+        card.setAttribute('rel', 'noopener');
+      }
+    }
+
+    // Platform links
+    const linkMap = {
+      'link-rr': a.links?.royalroad,
+      'link-sh': a.links?.scribblehub,
+      'link-wp': a.links?.wattpad,
+      'link-kdp': a.links?.kdp,
+      'link-patreon': a.links?.patreon,
+      'link-discord': a.links?.discord,
+    };
+    for (const [id, url] of Object.entries(linkMap)) {
+      const card = document.getElementById(id);
+      if (!card) continue;
+      if (url) {
+        card.href = url;
+        card.classList.remove('disabled');
+      } else {
+        card.classList.add('disabled');
+        card.removeAttribute('href');
+        const handle = card.querySelector('.findus-handle');
+        if (handle) { handle.textContent = 'Not set'; handle.className = 'findus-handle muted'; }
+      }
+    }
+
+    // Steam card
+    if (data.game && data.game.steamUrl) {
+      const card = document.getElementById('steam-card');
+      const handle = document.getElementById('steam-handle');
+      if (card) {
+        card.href = data.game.steamUrl;
+        card.classList.remove('disabled');
+        card.setAttribute('target', '_blank');
+        card.setAttribute('rel', 'noopener');
+      }
+      if (handle) { handle.textContent = 'Wishlist Now'; handle.className = 'findus-handle steam'; }
+    }
+  } catch(e) { console.error('About load failed:', e); }
+}
+
+function toggleNav() {
+  const btn = document.getElementById('nav-hamburger');
+  const drawer = document.getElementById('nav-drawer');
+  const open = btn.classList.toggle('open');
+  drawer.classList.toggle('open', open);
+  document.body.style.overflow = open ? 'hidden' : '';
+}
+document.addEventListener('click', function(e) {
+  const btn = document.getElementById('nav-hamburger');
+  const drawer = document.getElementById('nav-drawer');
+  if (btn && drawer && !btn.contains(e.target) && !drawer.contains(e.target)) {
+    btn.classList.remove('open'); drawer.classList.remove('open'); document.body.style.overflow = '';
+  }
+});
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.nav-drawer a').forEach(a => {
+    a.addEventListener('click', () => {
+      document.getElementById('nav-hamburger').classList.remove('open');
+      document.getElementById('nav-drawer').classList.remove('open');
+      document.body.style.overflow = '';
+    });
+  });
+});
+
+// ── SITE SEARCH ────────────────────────────────────────
+(async function() {
+  let searchIndex = [];
+  try {
+    const res = await fetch('/content');
+    const data = await res.json();
+    searchIndex = (data.books || []).filter(b => b.visible !== false).map(b => ({
+      id: b.id,
+      title: b.title,
+      volume: b.volume || '',
+      description: b.description || '',
+      tags: (b.tags || []).join(' '),
+      cover: b.cover || ''
+    }));
+  } catch(e) { console.warn('Search init failed', e); }
+
+  function setupSearch(inputId, resultsId) {
+    const input = document.getElementById(inputId);
+    const results = document.getElementById(resultsId);
+    if (!input || !results) return;
+
+    function esc(str) { return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function render(q) {
+      q = q.trim().toLowerCase();
+      if (!q || !searchIndex.length) { results.classList.remove('visible'); return; }
+      const matches = searchIndex.filter(b =>
+        b.title.toLowerCase().includes(q) ||
+        b.description.toLowerCase().includes(q) ||
+        b.tags.toLowerCase().includes(q) ||
+        b.volume.toLowerCase().includes(q)
+      ).slice(0, 6);
+
+      if (!matches.length) {
+        results.innerHTML = '<div class="sr-empty">No books found</div>';
+      } else {
+        results.innerHTML = matches.map(b => `
+          <a href="/book?id=${encodeURIComponent(b.id)}" class="sr-item" onclick="document.querySelectorAll('.nav-search-results,.drawer-search-results').forEach(r=>r.classList.remove('visible'));document.getElementById('nav-drawer').classList.remove('open');document.body.style.overflow='';document.getElementById('nav-hamburger').classList.remove('open')">
+            ${b.cover ? `<img src="${b.cover}" alt="">` : '<div style="width:32px;height:48px;background:linear-gradient(160deg,#2d1065,#1e1b4b);border-radius:4px;flex-shrink:0;"></div>'}
+            <div>
+              <div class="sr-title">${esc(b.title)}</div>
+              <div class="sr-meta">${esc(b.volume || b.tags.slice(0, 30) || 'Book')}</div>
+            </div>
+          </a>
+        `).join('');
+      }
+      results.classList.add('visible');
+    }
+
+    let debounce;
+    input.addEventListener('input', (e) => {
+      clearTimeout(debounce);
+      debounce = setTimeout(() => render(e.target.value), 150);
+    });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { input.value = ''; results.classList.remove('visible'); input.blur(); }
+    });
+    document.addEventListener('click', (e) => {
+      if (!input.contains(e.target) && !results.contains(e.target)) results.classList.remove('visible');
+    });
+  }
+
+  setupSearch('nav-search', 'nav-search-results');
+  setupSearch('drawer-search', 'drawer-search-results');
+})();
+
+loadAbout();
+
+// Register PWA service worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
