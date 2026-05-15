@@ -1,0 +1,17 @@
+{
+  "name": "Nekojin Interactive",
+  "short_name": "Nekojin",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0614",
+  "theme_color": "#0a0614",
+  "description": "Solo indie studio crafting interconnected fiction and games.",
+  "icons": [
+    {
+      "src": "/covers/game-cover-1772952121717.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

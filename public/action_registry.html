@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autumn's Dungeoneering - Action Registry</title>
+    <meta name="description" content="Action registry and design documentation for Autumn's Dungeoneering.">
+    <meta property="og:title" content="Autumn's Dungeoneering - Action Registry">
+    <meta property="og:description" content="Action registry and design documentation for Autumn's Dungeoneering.">
+    <meta property="og:image" content="https://worldofxanrea.com/covers/game-cover-1772952121717.png">
+    <meta property="og:url" content="https://worldofxanrea.com/action_registry.html">
+    <meta property="og:type" content="article">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="theme-color" content="#0a0e1a">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/covers/game-cover-1772952121717.png">
+    <link rel="alternate" type="application/atom+xml" title="Nekojin Interactive Feed" href="https://worldofxanrea.com/rss.xml">
+    <style>
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #151926;
+            --bg-tertiary: #1e2333;
+            --text-primary: #e8e9ed;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            --accent-blue: #3b82f6;
+            --accent-green: #10b981;
+            --accent-amber: #f59e0b;
+            --accent-red: #ef4444;
+            --accent-purple: #8b5cf6;
+            --accent-teal: #14b8a6;
+            --border: #2d3548;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            font-size: 1.125rem;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 300px;
+            padding: 0.75rem 1rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .filter-btn {
+            padding: 0.5rem 1rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+        }
+
+        .filter-btn:hover {
+            border-color: var(--accent-blue);
+            color: var(--text-primary);
+        }
+
+        .filter-btn.active {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+            color: white;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.25rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .actions-grid {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .action-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .action-card:hover {
+            border-color: var(--accent-blue);
+            transform: translateY(-2px);
+        }
+
+        .action-card.expanded {
+            background: var(--bg-tertiary);
+        }
+
+        .action-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 0.75rem;
+        }
+
+        .action-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .action-score {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            font-family: 'Courier New', monospace;
+        }
+
+        .action-tags {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.75rem;
+        }
+
+        .tag {
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .tag.combat { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); }
+        .tag.skill { background: rgba(16, 185, 129, 0.2); color: var(--accent-green); }
+        .tag.movement { background: rgba(245, 158, 11, 0.2); color: var(--accent-amber); }
+        .tag.exploration { background: rgba(59, 130, 246, 0.2); color: var(--accent-blue); }
+        .tag.social { background: rgba(139, 92, 246, 0.2); color: var(--accent-purple); }
+        .tag.economic { background: rgba(20, 184, 166, 0.2); color: var(--accent-teal); }
+        .tag.support { background: rgba(236, 72, 153, 0.2); color: #ec4899; }
+
+        .action-description {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .personality-deps {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .dep-badge {
+            padding: 0.375rem 0.625rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .action-details {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+            display: none;
+        }
+
+        .action-card.expanded .action-details {
+            display: block;
+        }
+
+        .detail-section {
+            margin-bottom: 1rem;
+        }
+
+        .detail-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .detail-content {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+
+        .code-block {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 0.75rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8125rem;
+            overflow-x: auto;
+        }
+
+        .conflict-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-left: 0.5rem;
+        }
+
+        .conflict-indicator.high { background: var(--accent-red); }
+        .conflict-indicator.medium { background: var(--accent-amber); }
+        .conflict-indicator.low { background: var(--accent-green); }
+
+        .category-header {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 2rem 0 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--border);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Utility Action Registry</h1>
+        <p class="subtitle">Comprehensive analysis of all 22 actions in Autumn's Dungeoneering</p>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="totalActions">22</div>
+                <div class="stat-label">Total Actions</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="conflictCount">0</div>
+                <div class="stat-label">Potential Conflicts</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="personalityStats">8</div>
+                <div class="stat-label">Personality Stats Used</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="avgScore">~35</div>
+                <div class="stat-label">Avg Base Score</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <input type="text" class="search-box" id="searchBox" placeholder="Search actions, dependencies, preconditions...">
+            <div class="filter-group">
+                <button class="filter-btn active" data-filter="all">All</button>
+                <button class="filter-btn" data-filter="combat">Combat</button>
+                <button class="filter-btn" data-filter="skill">Skills</button>
+                <button class="filter-btn" data-filter="exploration">Exploration</button>
+                <button class="filter-btn" data-filter="social">Social</button>
+                <button class="filter-btn" data-filter="economic">Economic</button>
+            </div>
+        </div>
+
+        <div id="actionsContainer"></div>
+    </div>
+
+    <script>
+        const actions = [
+            {
+                name: "Hunt",
+                category: "exploration",
+                baseScore: "desireToHunt (accumulates)",
+                description: "Navigate to known mob camps and seek specific enemies based on level",
+                tags: ["exploration", "combat"],
+                preconditions: ["Known mob camp locations", "No currentActionStep > 0"],
+                personality: [],
+                scoreLogic: "Returns 100 if mid-action (currentActionStep > 0), otherwise accumulates desireToHunt by 0.1 each tick",
+                conflicts: ["Low base score (accumulating) competes poorly against fixed-score actions", "Multi-step tracking pollutes score"]
+            },
+            {
+                name: "Reposition",
+                category: "combat",
+                baseScore: "100 if outside range",
+                description: "Find optimal combat position based on current skill's range",
+                tags: ["combat", "movement"],
+                preconditions: ["Enemies detected", "Valid target", "Valid current skill", "Outside buffered range"],
+                personality: [],
+                scoreLogic: "Hard 100 if all preconditions met, 0 otherwise",
+                conflicts: ["Always wins when out of range, blocking other tactical decisions"]
+            },
+            {
+                name: "Pick Damage Skill",
+                category: "combat",
+                baseScore: "20",
+                description: "Select highest-value damage ability from hotbar",
+                tags: ["skill", "combat"],
+                preconditions: ["Enemies detected", "Not casting"],
+                personality: ["riskTolerance (panic threshold)", "patience (cooldown penalty)"],
+                scoreLogic: "Base 20, evaluates all damage skill + enemy target combinations, picks highest scored combo",
+                conflicts: ["Fixed score 20 loses to Reposition (100), Utility (200), Restore (30-90)"]
+            },
+            {
+                name: "Pick Movement Skill",
+                category: "combat",
+                baseScore: "Variable (0-150+)",
+                description: "Dash, blink, or teleport based on combat/travel context",
+                tags: ["skill", "movement"],
+                preconditions: ["Has movement skills", "Sufficient resources"],
+                personality: ["patience (impatience drives casual use)", "riskTolerance (panic threshold)", "aggressiveness (gap closing)"],
+                scoreLogic: "Complex: impatience * 25 + resource check + combat modifiers (panic 70, surrounded 60, gap closing aggro * 40) or travel bonuses",
+                conflicts: ["Score overlaps with Damage (20), Reposition (100) in combat", "Resource check can hard-veto with -100"]
+            },
+            {
+                name: "Pick Restore Skill",
+                category: "combat",
+                baseScore: "0-90",
+                description: "Heal self or allies based on health thresholds and empathy",
+                tags: ["skill", "support"],
+                preconditions: ["Has restoration skills"],
+                personality: ["empathy (ally threshold)", "riskTolerance (self-heal threshold)"],
+                scoreLogic: "Self-health <= riskTolerance * maxHealth adds 30. Each ally below empathy threshold adds 30/15/10 based on severity",
+                conflicts: ["Can reach 90+ and override damage skills when multiple allies are low"]
+            },
+            {
+                name: "Pick Utility Skill",
+                category: "combat",
+                baseScore: "200 if can summon",
+                description: "Cast summons, buffs, debuffs, control effects",
+                tags: ["skill", "support"],
+                preconditions: ["Has summon skills", "Below max pets"],
+                personality: ["empathy (summon value)"],
+                scoreLogic: "Hard 200 if activeMinions < maxPets, 0 otherwise",
+                conflicts: ["200 dominates almost everything except Reposition (100) and multi-step Hunt (100)", "All-or-nothing design"]
+            },
+            {
+                name: "Explore",
+                category: "exploration",
+                baseScore: "desireToExplore (accumulates)",
+                description: "Expand known map radius, discover new locations",
+                tags: ["exploration"],
+                preconditions: ["explorationRadius < 50000", "No active explore target"],
+                personality: ["energy", "mind (curiosity)", "riskTolerance", "confidence", "patience (impatience)", "tactics"],
+                scoreLogic: "Weighted sum of 6 personality stats, accumulated over time, clamped 0-50",
+                conflicts: ["Slow accumulation loses to immediate-need actions", "Complex personality weighting"]
+            },
+            {
+                name: "Wander",
+                category: "exploration",
+                baseScore: "desireToWander (accumulates)",
+                description: "Random local movement when no specific goal",
+                tags: ["exploration"],
+                preconditions: [],
+                personality: ["energy", "patience (impatience)", "tactics", "nature (feeling)"],
+                scoreLogic: "Weighted sum of 4 stats, accumulated, clamped 0-75",
+                conflicts: ["Higher ceiling than Explore (75 vs 50) but similar mechanics", "Overlaps with Explore purpose"]
+            },
+            {
+                name: "Follow",
+                category: "social",
+                baseScore: "5-25",
+                description: "Follow party leader, minion owner, or mind controller",
+                tags: ["social", "movement"],
+                preconditions: ["Valid leader exists"],
+                personality: [],
+                scoreLogic: "Base 5 if has leader, +20 if current order is FOLLOW",
+                conflicts: ["Low score easily overridden by any combat action"]
+            },
+            {
+                name: "Retreat",
+                category: "combat",
+                baseScore: "0-120",
+                description: "Flee to spawn when low health or overwhelmed",
+                tags: ["combat", "movement"],
+                preconditions: [],
+                personality: [],
+                scoreLogic: "Health-based tiers: 50% = 10, 30% = 20, 20% = 30, 10% = 60, 5% = 120. Enemy count adds 0.1-50",
+                conflicts: ["Only triggers at very low health, can be too late"]
+            },
+            {
+                name: "Gather Resource",
+                category: "economic",
+                baseScore: "10",
+                description: "Collect herbs if herbalism profession",
+                tags: ["economic", "exploration"],
+                preconditions: ["No enemies", "Profession is HERBALISM", "Unlocked herbs nearby"],
+                personality: [],
+                scoreLogic: "Fixed 10 if preconditions met",
+                conflicts: ["Profession-gated, low priority"]
+            },
+            {
+                name: "Interact Object",
+                category: "exploration",
+                baseScore: "0-10",
+                description: "Pick up gear or items from the ground",
+                tags: ["exploration", "economic"],
+                preconditions: ["No enemies", "Interactables in range", "Item not looted"],
+                personality: [],
+                scoreLogic: "Evaluates gear quality: better gear = 50 value, worse = -50. Maps value to score tiers (10/8/6/3/0)",
+                conflicts: ["Negative value check prevents bad pickups"]
+            },
+            {
+                name: "Use Consumable",
+                category: "combat",
+                baseScore: "0-500",
+                description: "Use health/mana/stamina potions when low",
+                tags: ["combat", "support"],
+                preconditions: ["Owns consumable", "Below risk threshold"],
+                personality: ["riskTolerance (usage threshold)"],
+                scoreLogic: "Hard 500 if resource <= riskTolerance * maxResource",
+                conflicts: ["500 dominates everything when threshold crossed", "Binary on/off design"]
+            },
+            {
+                name: "Create Party",
+                category: "social",
+                baseScore: "10",
+                description: "Form a new party if not already in one",
+                tags: ["social"],
+                preconditions: ["Not in party"],
+                personality: [],
+                scoreLogic: "Fixed 10",
+                conflicts: ["One-shot action, low priority"]
+            },
+            {
+                name: "Give Attack Order",
+                category: "combat",
+                baseScore: "100-600",
+                description: "Command minions to attack enemies",
+                tags: ["combat", "social"],
+                preconditions: ["Enemies detected", "Has active minions"],
+                personality: [],
+                scoreLogic: "+100 per minion not on ATTACK order, +500 per minion with NO order",
+                conflicts: ["Can reach 600+ with multiple minions, dominates almost everything"]
+            },
+            {
+                name: "Give Follow Order",
+                category: "social",
+                baseScore: "0-50*N",
+                description: "Command minions to follow when leaving combat",
+                tags: ["social", "movement"],
+                preconditions: ["No enemies", "Has active minions"],
+                personality: [],
+                scoreLogic: "+50 per minion not on FOLLOW order",
+                conflicts: ["Competes with Wander/Explore for out-of-combat priority"]
+            },
+            {
+                name: "Do Kill Quest",
+                category: "exploration",
+                baseScore: "5",
+                description: "Navigate to quest area and hunt quest targets",
+                tags: ["exploration", "combat"],
+                preconditions: ["Has current quest"],
+                personality: [],
+                scoreLogic: "Fixed 5 if quest exists",
+                conflicts: ["Very low score, easily overridden", "Quest completion not checked in Score()"]
+            },
+            {
+                name: "Get Quest",
+                category: "social",
+                baseScore: "2-8",
+                description: "Travel to guild hall and accept quests",
+                tags: ["social", "exploration"],
+                preconditions: ["No enemies", "Known guild hall", "Quest slots available"],
+                personality: [],
+                scoreLogic: "8 if no quests, 5 if 1-2 quests, 2 if 3-4 quests",
+                conflicts: ["Low priority, rarely triggers"]
+            },
+            {
+                name: "Buy",
+                category: "economic",
+                baseScore: "Shopping list size",
+                description: "Travel to market and purchase items from shopping list",
+                tags: ["economic", "exploration"],
+                preconditions: ["Shopping list not empty"],
+                personality: [],
+                scoreLogic: "Score = number of items to buy",
+                conflicts: ["Depends on external shopping list population"]
+            },
+            {
+                name: "Sell",
+                category: "economic",
+                baseScore: "Shopping list size",
+                description: "Travel to market and sell items from shopping list",
+                tags: ["economic", "exploration"],
+                preconditions: ["Sell list not empty"],
+                personality: [],
+                scoreLogic: "Score = number of items to sell",
+                conflicts: ["Depends on external shopping list population"]
+            },
+            {
+                name: "Heal at Church",
+                category: "economic",
+                baseScore: "N/A",
+                description: "Pay for healing services (STUB - not implemented)",
+                tags: ["economic", "support"],
+                preconditions: [],
+                personality: [],
+                scoreLogic: "Empty file, not implemented",
+                conflicts: ["Not functional"]
+            },
+            {
+                name: "Place Attack Flag",
+                category: "combat",
+                baseScore: "N/A",
+                description: "Visual marker on enemies (COMMENTED OUT)",
+                tags: ["combat"],
+                preconditions: [],
+                personality: [],
+                scoreLogic: "Entire file commented out, not active",
+                conflicts: ["Not functional"]
+            }
+        ];
+
+        function renderActions() {
+            const container = document.getElementById('actionsContainer');
+            const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+            const activeFilter = document.querySelector('.filter-btn.active').dataset.filter;
+
+            const categories = {
+                combat: [],
+                exploration: [],
+                social: [],
+                economic: [],
+                skill: []
+            };
+
+            actions.forEach(action => {
+                const matchesSearch = !searchTerm || 
+                    action.name.toLowerCase().includes(searchTerm) ||
+                    action.description.toLowerCase().includes(searchTerm) ||
+                    action.personality.some(p => p.toLowerCase().includes(searchTerm));
+
+                const matchesFilter = activeFilter === 'all' || action.tags.includes(activeFilter);
+
+                if (matchesSearch && matchesFilter) {
+                    const primaryCategory = action.category;
+                    if (!categories[primaryCategory]) categories[primaryCategory] = [];
+                    categories[primaryCategory].push(action);
+                }
+            });
+
+            let html = '';
+            const categoryNames = {
+                combat: 'Combat Actions',
+                exploration: 'Exploration Actions',
+                social: 'Social Actions',
+                economic: 'Economic Actions',
+                skill: 'Skill Selection'
+            };
+
+            Object.entries(categories).forEach(([category, categoryActions]) => {
+                if (categoryActions.length > 0) {
+                    html += `<h2 class="category-header">${categoryNames[category]}</h2>`;
+                    categoryActions.forEach(action => {
+                        html += renderActionCard(action);
+                    });
+                }
+            });
+
+            container.innerHTML = html;
+            updateStats();
+        }
+
+        function renderActionCard(action) {
+            const conflictLevel = action.conflicts.length > 2 ? 'high' : action.conflicts.length > 0 ? 'medium' : 'low';
+            
+            return `
+                <div class="action-card" onclick="toggleExpand(this)">
+                    <div class="action-header">
+                        <div class="action-title">
+                            ${action.name}
+                            <span class="conflict-indicator ${conflictLevel}"></span>
+                        </div>
+                        <div class="action-score">${action.baseScore}</div>
+                    </div>
+                    <div class="action-tags">
+                        ${action.tags.map(tag => `<span class="tag ${tag}">${tag}</span>`).join('')}
+                    </div>
+                    <div class="action-description">${action.description}</div>
+                    ${action.personality.length > 0 ? `
+                        <div class="personality-deps">
+                            ${action.personality.map(p => `<span class="dep-badge">${p}</span>`).join('')}
+                        </div>
+                    ` : ''}
+                    <div class="action-details">
+                        <div class="detail-section">
+                            <div class="detail-title">Preconditions</div>
+                            <div class="detail-content">
+                                ${action.preconditions.length > 0 ? action.preconditions.join('<br>') : 'None'}
+                            </div>
+                        </div>
+                        <div class="detail-section">
+                            <div class="detail-title">Score Logic</div>
+                            <div class="detail-content code-block">${action.scoreLogic}</div>
+                        </div>
+                        ${action.conflicts.length > 0 ? `
+                            <div class="detail-section">
+                                <div class="detail-title">Known Conflicts</div>
+                                <div class="detail-content">
+                                    ${action.conflicts.map(c => `• ${c}`).join('<br>')}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        function toggleExpand(card) {
+            card.classList.toggle('expanded');
+        }
+
+        function updateStats() {
+            const activeActions = actions.filter(a => a.baseScore !== 'N/A');
+            document.getElementById('totalActions').textContent = activeActions.length;
+            
+            const conflicts = actions.reduce((sum, a) => sum + a.conflicts.length, 0);
+            document.getElementById('conflictCount').textContent = conflicts;
+
+            const uniquePersonality = new Set();
+            actions.forEach(a => a.personality.forEach(p => uniquePersonality.add(p.split('(')[0].trim())));
+            document.getElementById('personalityStats').textContent = uniquePersonality.size;
+        }
+
+        document.getElementById('searchBox').addEventListener('input', renderActions);
+
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                renderActions();
+            });
+        });
+
+        renderActions();
+
+        // Register PWA service worker
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.register('/sw.js').catch(() => {});
+        }
+    </script>
+</body>
+</html>

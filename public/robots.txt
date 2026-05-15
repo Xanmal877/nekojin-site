@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /aichat.html
+Disallow: /login
+Disallow: /logout
+
+Sitemap: https://worldofxanrea.com/sitemap.xml
