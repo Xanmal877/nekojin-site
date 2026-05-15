@@ -41,6 +41,23 @@
       display: flex; align-items: center; justify-content: space-between;
     }
     .topbar-logo { font-family: var(--display); font-size: 1.2rem; color: var(--royal); display: flex; align-items: center; gap: 0.5rem; }
+    .topbar-logo .tama-icon {
+      width: 28px; height: 28px;
+      display: inline-block;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      background-image: url('/images/tama-idle.png');
+      background-size: 224px 28px;
+      background-repeat: repeat-x;
+      animation: admin-tama-idle 1.2s steps(8) infinite;
+    }
+    @keyframes admin-tama-idle {
+      from { background-position: 0 0; }
+      to   { background-position: -224px 0; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .topbar-logo .tama-icon { animation: none; }
+    }
     .topbar-right { display: flex; align-items: center; gap: 1rem; }
     .topbar-site-link { font-size: 0.78rem; color: var(--muted); text-decoration: none; transition: color 0.2s; }
     .topbar-site-link:hover { color: var(--text); }
@@ -369,7 +386,7 @@
 <body>
 
 <div class="topbar">
-  <div class="topbar-logo">🐾 Nekojin Admin</div>
+  <div class="topbar-logo"><div class="tama-icon" aria-hidden="true"></div> Nekojin Admin</div>
   <div class="topbar-right">
     <span style="font-size:0.72rem;color:var(--muted);font-family:var(--mono);">Ctrl+S to save</span>
     <a href="/" class="topbar-site-link">← View Site</a>
@@ -629,6 +646,79 @@ async function discardChanges() {
   renderAboutPanel();
   renderVisibilityPanel();
   showToast('Changes discarded.');
+}
+
+// ── BACKGROUND SETTINGS (localStorage only) ──────────────
+function loadBgSettings() {
+  try {
+    const s = JSON.parse(localStorage.getItem('admin-bg') || '{}');
+    if (s.url) {
+      document.body.style.backgroundImage = `url(${esc(s.url)})`;
+      document.body.style.backgroundSize = 'cover';
+      document.body.style.backgroundPosition = 'center';
+      document.body.style.backgroundAttachment = 'fixed';
+      const opacity = s.opacity != null ? s.opacity : 15;
+      document.body.style.backgroundBlendMode = 'overlay';
+      // Apply a dark overlay via pseudo-element would need CSS, but we can use a gradient
+      // For simplicity, just set the image and opacity on a wrapper isn't available.
+      // Instead, we'll inject a style tag for the body::before overlay
+      injectBgOverlay(opacity / 100);
+    }
+    if (s.url) document.getElementById('bg-url-input').value = s.url;
+    if (s.opacity != null) {
+      document.getElementById('bg-opacity').value = s.opacity;
+      document.getElementById('opacity-val').textContent = s.opacity;
+    }
+    updateBgPreview(s.url);
+  } catch(e) {}
+}
+
+function updateBgPreview(url) {
+  const wrap = document.getElementById('bg-preview-wrap');
+  if (!wrap) return;
+  if (url) {
+    wrap.innerHTML = `<img class="bg-preview" src="${ esc(url) }" alt="Background preview">`;
+  } else {
+    wrap.innerHTML = `<div class="bg-preview-empty">No background image set</div>`;
+  }
+}
+
+function applyBgPreview(url) {
+  updateBgPreview(url);
+}
+
+function applyBgOpacity(val) {
+  injectBgOverlay(val / 100);
+}
+
+function injectBgOverlay(opacity) {
+  let el = document.getElementById('admin-bg-overlay');
+  if (!el) {
+    el = document.createElement('style');
+    el.id = 'admin-bg-overlay';
+    document.head.appendChild(el);
+  }
+  el.textContent = `body::before{content:"";position:fixed;inset:0;background:rgba(10,6,20,${Math.max(0,Math.min(1,1-opacity))});z-index:-1;pointer-events:none;}`;
+}
+
+function saveBgSettings() {
+  const url = document.getElementById('bg-url-input').value.trim();
+  const opacity = parseInt(document.getElementById('bg-opacity').value, 10);
+  localStorage.setItem('admin-bg', JSON.stringify({ url, opacity }));
+  loadBgSettings();
+  showToast('Background applied');
+}
+
+function clearBgSettings() {
+  localStorage.removeItem('admin-bg');
+  document.body.style.backgroundImage = '';
+  document.body.style.backgroundSize = '';
+  document.body.style.backgroundPosition = '';
+  document.body.style.backgroundAttachment = '';
+  const el = document.getElementById('admin-bg-overlay');
+  if (el) el.textContent = '';
+  updateBgPreview('');
+  showToast('Background removed');
 }
 
 // ── TOAST ─────────────────────────────────────────────────
@@ -1138,6 +1228,12 @@ function renderAboutPanel() {
       <label>Patreon URL</label>
       <input type="url" value="${esc(a.links?.patreon||'')}" placeholder="https://www.patreon.com/..."
         oninput="if(!siteContent.about.links)siteContent.about.links={}; siteContent.about.links.patreon=this.value; markDirty()">
+      <label>Amazon KDP URL</label>
+      <input type="url" value="${esc(a.links?.kdp||'')}" placeholder="https://www.amazon.com/..."
+        oninput="if(!siteContent.about.links)siteContent.about.links={}; siteContent.about.links.kdp=this.value; markDirty()">
+      <label>Discord Invite URL</label>
+      <input type="url" value="${esc(a.links?.discord||'')}" placeholder="https://discord.gg/..."
+        oninput="if(!siteContent.about.links)siteContent.about.links={}; siteContent.about.links.discord=this.value; markDirty()">
     </div>
   `;
 }
