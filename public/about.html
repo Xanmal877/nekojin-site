@@ -264,7 +264,7 @@
     .project-card .project-desc {
       font-size: 0.82rem;
       color: rgba(230,220,255,0.82);
-      line-height: 1.6;
+      line-height: 1.65;
       display: -webkit-box;
       -webkit-line-clamp: 3;
       -webkit-box-orient: vertical;
@@ -274,6 +274,12 @@
     .project-card .project-desc.expanded {
       -webkit-line-clamp: unset;
       display: block;
+    }
+    .project-card .project-desc p {
+      margin: 0 0 0.5rem 0;
+    }
+    .project-card .project-desc p:last-child {
+      margin-bottom: 0;
     }
     .project-card .read-more {
       font-size: 0.7rem;
@@ -598,8 +604,8 @@
         <div class="project-card">
           <div class="project-label">Latest Fiction</div>
           <div class="project-title" id="latest-book-title">Her Majesty, Tamaneko</div>
-          <div class="project-desc" id="latest-book-desc">A reincarnated admin awakens as a catgirl monarch in a world that runs on rules she wrote.</div>
-          <div class="read-more" id="latest-book-toggle" onclick="toggleDesc(this)" style="display:none;">Read description ↓</div>
+          <div class="project-desc" id="latest-book-desc" data-full="">A reincarnated admin awakens as a catgirl monarch in a world that runs on rules she wrote.</div>
+          <div class="read-more" id="latest-book-toggle" onclick="toggleDesc()" style="display:none;">Read description ↓</div>
         </div>
         <a href="/games" class="project-card" id="game-card">
           <div class="project-label">In Development</div>
@@ -741,6 +747,31 @@ const revealObs = new IntersectionObserver((entries) => {
 }, { threshold: 0.1, rootMargin: '0px 0px -30px 0px' });
 document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
 
+function toggleDesc() {
+  const desc = document.getElementById('latest-book-desc');
+  const toggle = document.getElementById('latest-book-toggle');
+  if (!desc || !toggle) return;
+  const full = desc.getAttribute('data-full') || '';
+  const isExpanded = desc.classList.contains('expanded');
+  if (!isExpanded && full) {
+    // Expand: show full description with paragraph breaks
+    const paras = full.split(/\n+/).filter(p => p.trim());
+    if (paras.length > 1) {
+      desc.innerHTML = paras.map(p => `<p>${esc(p)}</p>`).join('');
+    } else {
+      desc.textContent = full;
+    }
+    desc.classList.add('expanded');
+    toggle.textContent = 'Collapse \u2191';
+  } else {
+    // Collapse: show truncated preview
+    const preview = full.length > 140 ? full.slice(0, 140).trim() + '...' : full;
+    desc.textContent = preview;
+    desc.classList.remove('expanded');
+    toggle.textContent = 'Read description \u2193';
+  }
+}
+
 async function loadAbout() {
   try {
     const res = await fetch('/content');
@@ -795,9 +826,16 @@ async function loadAbout() {
       const descEl = document.getElementById('latest-book-desc');
       if (titleEl) titleEl.textContent = latest.title || 'Latest Book';
       if (descEl) {
-        let desc = latest.description || '';
-        if (desc.length > 140) desc = desc.slice(0, 140).trim() + '...';
-        descEl.textContent = desc;
+        const full = latest.description || '';
+        const preview = full.length > 140 ? full.slice(0, 140).trim() + '...' : full;
+        descEl.textContent = preview;
+        descEl.setAttribute('data-full', full);
+        const toggle = document.getElementById('latest-book-toggle');
+        if (toggle) {
+          toggle.style.display = full.length > 140 ? 'inline-block' : 'none';
+          toggle.textContent = 'Read description \u2193';
+          descEl.classList.remove('expanded');
+        }
       }
     }
 
