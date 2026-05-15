@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Runtime data
+*.pid
+*.seed
+*.pid.lock
+
+# Logs
+*.log
+nohup.out
+
+# Environment
+.env
+.env.*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Backups
+*.bak
+*.broken
+*.bad*
+
+# Temp
+tmp/
+/tmp/
+
+# Debug screenshots
+sh-debug-screenshot.png
