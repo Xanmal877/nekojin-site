@@ -280,7 +280,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const data = await res.json();
     searchIndex = (data.books || []).filter(b => b.visible !== false).map(b => ({
       id: b.id, title: b.title, volume: b.volume || '',
-      description: b.description || '', tags: (b.tags || []).join(' '), cover: b.cover || ''
+      description: b.blurb || b.description || '', tags: (b.tags || []).join(' '), cover: b.cover || ''
     }));
   } catch(e) { console.warn('Search init failed', e); }
 
@@ -293,7 +293,7 @@ document.addEventListener('DOMContentLoaded', function() {
       q = q.trim().toLowerCase();
       if (!q || !searchIndex.length) { results.classList.remove('visible'); return; }
       const matches = searchIndex.filter(b =>
-        b.title.toLowerCase().includes(q) || b.description.toLowerCase().includes(q) ||
+        b.title.toLowerCase().includes(q) || (b.blurb || b.description || '').toLowerCase().includes(q) ||
         b.tags.toLowerCase().includes(q) || b.volume.toLowerCase().includes(q)
       ).slice(0, 6);
 

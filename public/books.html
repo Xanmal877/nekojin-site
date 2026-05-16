@@ -393,7 +393,7 @@ function renderBook(book) {
       <div class="book-body">
         ${book.volume ? `<div class="book-volume">${esc(book.volume)}</div>` : ''}
         <h3 class="book-title">${esc(book.title)}</h3>
-        <p class="book-desc">${esc(book.description)}</p>
+        <p class="book-desc">${esc(book.blurb || book.description)}</p>
         ${tags ? `<div class="book-tags">${tags}</div>` : ''}
         <div class="book-platforms">${renderPlatforms(book.platforms)}</div>
       </div>
@@ -499,7 +499,7 @@ document.addEventListener('DOMContentLoaded', function() {
       id: b.id,
       title: b.title,
       volume: b.volume || '',
-      description: b.description || '',
+      description: b.blurb || b.description || '',
       tags: (b.tags || []).join(' '),
       cover: b.cover || ''
     }));
@@ -516,7 +516,7 @@ document.addEventListener('DOMContentLoaded', function() {
       if (!q || !searchIndex.length) { results.classList.remove('visible'); return; }
       const matches = searchIndex.filter(b =>
         b.title.toLowerCase().includes(q) ||
-        b.description.toLowerCase().includes(q) ||
+        (b.blurb || b.description || '').toLowerCase().includes(q) ||
         b.tags.toLowerCase().includes(q) ||
         b.volume.toLowerCase().includes(q)
       ).slice(0, 6);

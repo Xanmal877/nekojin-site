@@ -827,7 +827,8 @@ async function loadAbout() {
       if (titleEl) titleEl.textContent = latest.title || 'Latest Book';
       if (descEl) {
         const full = latest.description || '';
-        const preview = full.length > 140 ? full.slice(0, 140).trim() + '...' : full;
+        const blurb = latest.blurb || '';
+        const preview = blurb || (full.length > 140 ? full.slice(0, 140).trim() + '...' : full);
         descEl.textContent = preview;
         descEl.setAttribute('data-full', full);
         const toggle = document.getElementById('latest-book-toggle');
@@ -928,7 +929,7 @@ document.addEventListener('DOMContentLoaded', function() {
       id: b.id,
       title: b.title,
       volume: b.volume || '',
-      description: b.description || '',
+      description: b.blurb || b.description || '',
       tags: (b.tags || []).join(' '),
       cover: b.cover || ''
     }));
