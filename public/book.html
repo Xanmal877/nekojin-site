@@ -358,7 +358,7 @@ async function loadBook() {
   }
 
   const allBooks = (data.books || []).filter(b => b.visible !== false);
-  const book = allBooks.find(b => b.id === bookId);
+  const book = allBooks.find(b => b.id === bookId || b.slug === bookId);
 
   if (!book) {
     container.innerHTML = `

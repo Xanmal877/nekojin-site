@@ -236,7 +236,7 @@
       // Load book info from site content
       const contentRes = await fetch('/content');
       const content = await contentRes.json();
-      bookInfo = content.books?.find(b => b.id === slug);
+      bookInfo = content.books?.find(b => b.id === slug || b.slug === slug);
       if (bookInfo) {
         document.getElementById('book-title').textContent = bookInfo.title || slug;
         document.title = (bookInfo.title || slug) + ' - Nekojin Interactive';
@@ -262,8 +262,8 @@
     if (!ch) return;
     currentNum = num;
 
-    document.getElementById('loading').style.display = 'block';
     const wrap = document.getElementById('reader-wrap');
+    wrap.innerHTML = '<div class="loading">Loading chapter…</div>';
 
     try {
       const res = await fetch(`/api/manuscripts/${encodeURIComponent(slug)}/chapters/${num}`);
