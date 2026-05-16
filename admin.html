@@ -823,7 +823,7 @@ function esc(str) {
 
 function newBook() {
   const id = `book-${Date.now()}`;
-  return { id, slug: '', visible: true, title: 'New Book', volume: '', cover: '', description: '', tags: [], platforms: [] };
+  return { id, slug: '', visible: true, title: 'New Book', volume: '', cover: '', blurb: '', description: '', tags: [], platforms: [] };
 }
 
 function getBook(si, bi) {
@@ -957,6 +957,9 @@ function renderBookEditor(si, bi, book, totalBooks) {
             title="Auto-generated. The slug is what you use for filenames.">
         </div>
       </div>
+
+      <label>Blurb <span style="font-size:0.7rem;color:var(--muted);font-weight:400;">— short hook for cards</span></label>
+      <textarea oninput="getBook(${si},${bi}).blurb=this.value; markDirty()" rows="2">${esc(book.blurb || '')}</textarea>
 
       <label>Description</label>
       <textarea oninput="getBook(${si},${bi}).description=this.value; markDirty()">${esc(book.description)}</textarea>

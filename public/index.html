@@ -898,7 +898,7 @@ async function loadHome() {
         <div class="book-body-new">
           ${book.volume ? `<div class="book-vol-new">${esc(book.volume)}</div>` : ''}
           <h3 class="book-title-new">${esc(book.title)}</h3>
-          <p class="book-desc-new">${esc(book.description)}</p>
+          <p class="book-desc-new">${esc(book.blurb || book.description)}</p>
           <div class="book-footer-new">
             ${(book.platforms || []).map(p => `
               <a href="${esc(p.url)}" target="_blank" rel="noopener" class="plat-pill ${esc(p.type)}" onclick="event.stopPropagation()">${
@@ -970,7 +970,7 @@ loadHome();
       id: b.id,
       title: b.title,
       volume: b.volume || '',
-      description: b.description || '',
+      description: b.blurb || b.description || '',
       tags: (b.tags || []).join(' '),
       cover: b.cover || ''
     }));
@@ -986,7 +986,7 @@ loadHome();
       if (!q || !searchIndex.length) { results.classList.remove('visible'); return; }
       const matches = searchIndex.filter(b =>
         b.title.toLowerCase().includes(q) ||
-        b.description.toLowerCase().includes(q) ||
+        (b.blurb || b.description || '').toLowerCase().includes(q) ||
         b.tags.toLowerCase().includes(q) ||
         b.volume.toLowerCase().includes(q)
       ).slice(0, 6);
