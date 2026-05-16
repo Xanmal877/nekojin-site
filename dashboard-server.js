@@ -78,7 +78,7 @@ function findUser(username) {
 function createUser(username, password) {
     const db = loadUsers();
     if (db.users[username]) return false;
-    db.users[username] = { passwordHash: bcrypt.hashSync(password, SALT_ROUNDS), createdAt: Date.now() };
+    db.users[username] = { passwordHash: bcrypt.hashSync(password, SALT_ROUNDS), role: 'user', createdAt: Date.now() };
     saveUsers(db);
     return true;
 }
@@ -87,14 +87,28 @@ function verifyUser(username, password) {
     if (!user) return false;
     return bcrypt.compareSync(password, user.passwordHash);
 }
-// Auto-create admin on first boot
+function getUserRole(req) {
+    const username = getUsername(req);
+    if (!username) return null;
+    const user = findUser(username);
+    return user ? (user.role || 'user') : null;
+}
+function isAdmin(req) {
+    return getUserRole(req) === 'admin';
+}
+// Auto-create admin on first boot + migrate existing users
 function ensureAdminUser() {
     const db = loadUsers();
+    let migrated = false;
+    for (const [name, u] of Object.entries(db.users)) {
+        if (!u.role) { u.role = (name === 'xanmal') ? 'admin' : 'user'; migrated = true; }
+    }
     if (!db.users['xanmal']) {
-        db.users['xanmal'] = { passwordHash: bcrypt.hashSync('nekojin2026', SALT_ROUNDS), createdAt: Date.now() };
-        saveUsers(db);
+        db.users['xanmal'] = { passwordHash: bcrypt.hashSync('nekojin2026', SALT_ROUNDS), role: 'admin', createdAt: Date.now() };
+        migrated = true;
         console.log('Created default admin user: xanmal');
     }
+    if (migrated) saveUsers(db);
 }
 ensureAdminUser();
 
@@ -666,7 +680,10 @@ const server = http.createServer(async (req, res) => {
 
     // Login
     if (req.method === 'GET' && url === '/login') {
-        if (isAuthenticated(req)) { res.writeHead(302,{Location:'/admin'}); return res.end(); }
+        if (isAuthenticated(req)) {
+            const target = isAdmin(req) ? '/admin' : '/aichat.html';
+            res.writeHead(302,{Location:target}); return res.end();
+        }
         res.writeHead(200,{'Content-Type':'text/html'});
         return res.end(loginPage(query.get('next') || '/admin'));
     }
@@ -675,7 +692,8 @@ const server = http.createServer(async (req, res) => {
         const params = parseFormBody(body);
         if (verifyUser(params.username, params.password)) {
             const sid  = createSession(params.username);
-            const next = (params.next && params.next.startsWith('/')) ? params.next : '/admin';
+            const isUserAdmin = findUser(params.username)?.role === 'admin';
+            const next = (params.next && params.next.startsWith('/')) ? params.next : (isUserAdmin ? '/admin' : '/aichat.html');
             res.writeHead(302, {
                 Location: next,
                 'Set-Cookie': `nki_session=${sid}; HttpOnly; SameSite=Strict; Max-Age=${SESSION_TTL/1000}; Path=/`,
@@ -890,9 +908,11 @@ const server = http.createServer(async (req, res) => {
         } catch(e) { res.writeHead(500); return res.end(e.message); }
     }
 
-    // Admin page
-    if (req.method === 'GET' && (url === '/admin' || url === '/dashboard'))
+    // Admin page (admin only)
+    if (req.method === 'GET' && (url === '/admin' || url === '/dashboard')) {
+        if (!isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
         return serveFile(res, ADMIN_FILE);
+    }
 
     // AI Chat proxy endpoint for external providers (Claude, OpenAI, xAI, Ollama)
     if (req.method === 'POST' && url === '/api/proxy/chat') {
@@ -919,8 +939,9 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && url === '/aichat.html')
         return serveFile(res, path.join(PUBLIC_DIR, 'aichat.html'));
 
-    // Save site content
+    // Save site content (admin only)
     if (req.method === 'POST' && url === '/save-content') {
+        if (!isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
         try {
             const body = await readRawBody(req);
             const data = JSON.parse(body.toString());
@@ -930,8 +951,9 @@ const server = http.createServer(async (req, res) => {
         } catch(e) { res.writeHead(400); return res.end(e.message); }
     }
 
-    // Cover image upload
+    // Cover image upload (admin only)
     if (req.method === 'POST' && url === '/upload-cover') {
+        if (!isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
         try {
             const body = await readRawBody(req);
             const ct   = req.headers['content-type'] || '';
@@ -949,8 +971,9 @@ const server = http.createServer(async (req, res) => {
         } catch(e) { res.writeHead(500); return res.end(e.message); }
     }
 
-    // SSE
+    // SSE (admin only)
     if (url === '/events') {
+        if (!isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
         res.writeHead(200, {
             'Content-Type':'text/event-stream','Cache-Control':'no-cache',
             'Connection':'keep-alive','Access-Control-Allow-Origin':'*',
@@ -961,14 +984,16 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
-    // Metrics data
+    // Metrics data (admin only)
     if (url === '/data') {
+        if (!isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
         try { res.writeHead(200,{'Content-Type':'application/json'}); return res.end(fs.readFileSync(METRICS_FILE,'utf8')); }
         catch { res.writeHead(500); return res.end('{}'); }
     }
 
-    // Scrape now
+    // Scrape now (admin only)
     if (req.method === 'POST' && url === '/scrape') {
+        if (!isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
         if (scrapeRunning) { res.writeHead(409); return res.end('Scrape already running'); }
         scrapeRunning = true;
         let stderr = '';
@@ -982,8 +1007,9 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
-    // Delete metrics date
+    // Delete metrics date (admin only)
     if (req.method === 'POST' && url === '/delete-metrics-date') {
+        if (!isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
         try {
             const body = await readRawBody(req);
             const { date } = JSON.parse(body.toString());
@@ -1156,6 +1182,11 @@ wss.on('connection', (ws, req) => {
     if (!username) {
         ws.send(JSON.stringify({ type: 'error', message: 'Not authenticated' }));
         ws.close(4001, 'Unauthorized');
+        return;
+    }
+    if (!isAdmin(req)) {
+        ws.send(JSON.stringify({ type: 'error', message: 'Admin access required for pi Agent' }));
+        ws.close(4003, 'Forbidden');
         return;
     }
 
