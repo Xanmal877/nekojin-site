@@ -987,6 +987,18 @@ function renderBookEditor(si, bi, book, totalBooks) {
       </div>
       <button class="btn btn-ghost btn-sm" onclick="addPlatform(${si},${bi})">+ Add Platform</button>
 
+      <div style="margin-top:1rem;">
+        <label style="font-size:0.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;">Primary CTA Platform</label>
+        <select style="width:100%;padding:0.5rem 0.7rem;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:0.85rem;margin-top:0.4rem;"
+          onchange="getBook(${si},${bi}).ctaPlatform=this.value; markDirty()">
+          <option value="kdp" ${(book.ctaPlatform||'kdp')==='kdp'?'selected':''}>Kindle (KDP)</option>
+          <option value="rr"  ${book.ctaPlatform==='rr'?'selected':''}>Royal Road</option>
+          <option value="sh"  ${book.ctaPlatform==='sh'?'selected':''}>ScribbleHub</option>
+          <option value="other" ${book.ctaPlatform==='other'?'selected':''}>Other</option>
+        </select>
+        <div style="font-size:0.75rem;color:var(--muted);margin-top:0.3rem;">Which platform the reader CTA links to by default.</div>
+      </div>
+
       <div style="margin-top:1.5rem;border-top:1px solid var(--border);padding-top:1rem;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
           <div style="font-size:0.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;">📖 Manuscript</div>

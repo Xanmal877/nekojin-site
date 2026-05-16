@@ -233,10 +233,10 @@
 
   async function init() {
     try {
-      // Load book info from site content
+      // Load book info from site content (check top-level books and series)
       const contentRes = await fetch('/content');
       const content = await contentRes.json();
-      bookInfo = content.books?.find(b => b.id === slug || b.slug === slug);
+      bookInfo = findBook(content, slug);
       if (bookInfo) {
         document.getElementById('book-title').textContent = bookInfo.title || slug;
         document.title = (bookInfo.title || slug) + ' - Nekojin Interactive';
@@ -257,6 +257,28 @@
     }
   }
 
+  function findBook(content, slug) {
+    let book = content.books?.find(b => b.id === slug || b.slug === slug);
+    if (book) return book;
+    for (const s of content.series || []) {
+      book = s.books?.find(b => b.id === slug || b.slug === slug);
+      if (book) return book;
+    }
+    return null;
+  }
+
+  function getCtaPlatform() {
+    const platforms = bookInfo?.platforms || [];
+    const preferred = bookInfo?.ctaPlatform || 'kdp';
+    return platforms.find(p => p.type === preferred) || platforms.find(p => p.type === 'kdp') || platforms[0] || null;
+  }
+
+  function getOtherPlatforms() {
+    const primary = getCtaPlatform();
+    const platforms = bookInfo?.platforms || [];
+    return platforms.filter(p => p !== primary);
+  }
+
   async function loadChapter(num) {
     const ch = chapters.find(c => c.num === num);
     if (!ch) return;
@@ -271,19 +293,22 @@
       const data = await res.json();
 
       let html = `<div class="chapter-heading">Chapter ${data.num}</div>
-        <h1 class="chapter-title-display">${escapeHtml(data.title)}</h1>
+        <h1 class="chapter-title-display">${escapeHtml(data.title || ('Chapter ' + data.num))}</h1>
         <div class="chapter-body">${data.content}</div>`;
 
-      // Navigation
-      const prev = chapters.find(c => c.num < num);
-      const next = chapters.find(c => c.num > num);
+      // Navigation — use array index for reliable prev/next
       const idx = chapters.findIndex(c => c.num === num);
-      const isLastPreview = idx >= 2 && chapters.length > 3; // after 3rd chapter
+      const prev = idx > 0 ? chapters[idx - 1] : null;
+      const next = idx >= 0 && idx < chapters.length - 1 ? chapters[idx + 1] : null;
+      const isLastPreview = idx >= 2 && chapters.length > 3;
+
+      const primary = getCtaPlatform();
+      const others = getOtherPlatforms();
 
       html += `<div class="chapter-nav">`;
       if (prev) {
         html += `<a href="?book=${encodeURIComponent(slug)}&chapter=${prev.num}" onclick="return navTo(${prev.num})">
-          <div><div class="nav-label">Previous</div><div class="nav-chapter">${escapeHtml(prev.title)}</div></div>
+          <div><div class="nav-label">Previous</div><div class="nav-chapter">${escapeHtml(prev.title || ('Chapter ' + prev.num))}</div></div>
         </a>`;
       } else {
         html += `<a href="/book?id=${encodeURIComponent(slug)}" style="opacity:0.6">
@@ -293,33 +318,31 @@
 
       if (next && !isLastPreview) {
         html += `<a href="?book=${encodeURIComponent(slug)}&chapter=${next.num}" onclick="return navTo(${next.num})" style="text-align:right">
-          <div><div class="nav-label">Next</div><div class="nav-chapter">${escapeHtml(next.title)}</div></div>
+          <div><div class="nav-label">Next</div><div class="nav-chapter">${escapeHtml(next.title || ('Chapter ' + next.num))}</div></div>
         </a>`;
-      } else if (isLastPreview) {
-        // CTA to continue on platform
-        const plat = bookInfo?.platforms?.[0];
-        const platName = plat?.name || 'Royal Road';
-        const platUrl = plat?.url || bookInfo?.links?.royalroad || '#';
-        html += `<div style="text-align:right"><a href="${escapeHtml(platUrl)}" target="_blank" rel="noopener" class="cta-btn">Continue on ${escapeHtml(platName)} →</a></div>`;
+      } else if (isLastPreview && primary) {
+        html += `<div style="text-align:right"><a href="${escapeHtml(primary.url)}" target="_blank" rel="noopener" class="cta-btn">Continue on ${escapeHtml(primary.name)} →</a></div>`;
       } else {
-        html += `<span></span>`; // spacer
+        html += `<span></span>`;
       }
       html += `</div>`;
 
       // CTA banner for preview end
-      if (isLastPreview) {
-        const plat = bookInfo?.platforms?.[0];
-        const platName = plat?.name || 'the publishing platform';
-        const platUrl = plat?.url || bookInfo?.links?.royalroad || '#';
+      if (isLastPreview && primary) {
         html += `<div class="cta-banner">
           <h4>End of preview</h4>
-          <p>This book continues on ${escapeHtml(platName)}. Thanks for reading!</p>
-          <a href="${escapeHtml(platUrl)}" target="_blank" rel="noopener" class="cta-btn">Continue Reading →</a>
-        </div>`;
+          <p>This book continues on ${escapeHtml(primary.name)}. Thanks for reading!</p>
+          <a href="${escapeHtml(primary.url)}" target="_blank" rel="noopener" class="cta-btn">Continue Reading →</a>`;
+        if (others.length) {
+          html += `<div style="margin-top:1rem;font-size:0.78rem;color:var(--muted);">Also available on ` +
+            others.map(p => `<a href="${escapeHtml(p.url)}" target="_blank" rel="noopener" style="color:var(--accent2);text-decoration:underline;">${escapeHtml(p.name)}</a>`).join(', ') +
+            `</div>`;
+        }
+        html += `</div>`;
       }
 
       wrap.innerHTML = html;
-      document.getElementById('header-chapter-title').textContent = data.title;
+      document.getElementById('header-chapter-title').textContent = data.title || ('Chapter ' + data.num);
       updateButtons();
       updateTocActive();
       window.scrollTo(0, 0);
@@ -337,7 +360,7 @@
     list.innerHTML = chapters.map(c => `
       <div class="toc-item ${c.num === currentNum ? 'active' : ''}" data-num="${c.num}" onclick="navTo(${c.num}); closeToc();">
         <span class="num">${c.num}</span>
-        <span class="name">${escapeHtml(c.title)}</span>
+        <span class="name">${escapeHtml(c.title || ('Chapter ' + c.num))}</span>
       </div>
     `).join('');
   }
@@ -349,23 +372,20 @@
   }
 
   function updateButtons() {
-    const prev = chapters.find(c => c.num < currentNum);
-    const next = chapters.find(c => c.num > currentNum);
     const idx = chapters.findIndex(c => c.num === currentNum);
-    const hasNextPreview = next && idx < 2;
-
-    document.getElementById('btn-prev').disabled = !prev;
-    document.getElementById('btn-next').disabled = !hasNextPreview;
+    const hasPrev = idx > 0;
+    const hasNext = idx >= 0 && idx < 2 && idx < chapters.length - 1;
+    document.getElementById('btn-prev').disabled = !hasPrev;
+    document.getElementById('btn-next').disabled = !hasNext;
   }
 
   window.goPrev = function() {
-    const prev = chapters.find(c => c.num < currentNum);
-    if (prev) loadChapter(prev.num);
+    const idx = chapters.findIndex(c => c.num === currentNum);
+    if (idx > 0) loadChapter(chapters[idx - 1].num);
   };
   window.goNext = function() {
-    const next = chapters.find(c => c.num > currentNum);
     const idx = chapters.findIndex(c => c.num === currentNum);
-    if (next && idx < 2) loadChapter(next.num);
+    if (idx >= 0 && idx < 2 && idx < chapters.length - 1) loadChapter(chapters[idx + 1].num);
   };
   window.navTo = function(num) {
     loadChapter(num);
@@ -389,7 +409,7 @@
   });
 
   function escapeHtml(s) {
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   }
 
   init();
