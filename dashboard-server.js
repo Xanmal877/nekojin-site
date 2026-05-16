@@ -20,6 +20,7 @@ const WebSocket   = require('ws');
 const os          = require('os');
 const https       = require('https');
 const httpReq     = require('http');
+const mammoth     = require('mammoth');
 
 // ── CONFIG ────────────────────────────────────────────────
 const SESSION_TTL    = 1000 * 60 * 60 * 24 * 7; // 7 days
@@ -37,6 +38,9 @@ const NEWSLETTER_FILE = path.join(__dirname, 'newsletter-subscribers.json');
 const WEBCHAT_ROOT   = path.join(os.homedir(), '.pi', 'agent', 'webchat-sessions');
 const USERS_FILE     = path.join(__dirname, 'users.json');
 const USER_KEYS_FILE = path.join(__dirname, 'user-keys.json');
+const MANUSCRIPTS_DIR = path.join(__dirname, 'manuscripts');
+
+if (!fs.existsSync(MANUSCRIPTS_DIR)) fs.mkdirSync(MANUSCRIPTS_DIR, { recursive: true });
 
 if (!fs.existsSync(WEBCHAT_ROOT)) fs.mkdirSync(WEBCHAT_ROOT, { recursive: true });
 
@@ -130,6 +134,72 @@ function setUserKey(username, provider, key) {
     if (!all[username]) all[username] = {};
     all[username][provider] = key;
     saveUserKeys(all);
+}
+
+// ── MANUSCRIPT PARSING (.docx → chapters) ───────────────
+const MANUSCRIPT_CACHE = new Map(); // slug → {mtime, chapters}
+
+async function parseManuscript(slug) {
+    const filePath = path.join(MANUSCRIPTS_DIR, slug + '.docx');
+    if (!fs.existsSync(filePath)) return null;
+    const mtime = fs.statSync(filePath).mtimeMs;
+    const cached = MANUSCRIPT_CACHE.get(slug);
+    if (cached && cached.mtime === mtime) return cached.chapters;
+
+    const result = await mammoth.convertToHtml({ path: filePath }, {
+        styleMap: [
+            "p[style-name='Heading 1'] => h1",
+            "p[style-name='Heading 2'] => h2",
+            "p[style-name='Heading 3'] => h3",
+            "p[style-name='Title'] => h1.title",
+        ]
+    });
+
+    const html = result.value;
+    // Split into chapters by h1/h2 headings containing "chapter" or numbers
+    const chapterRegex = /<(h1|h2)[^>]*>(.*?)<\/\1>/gi;
+    const chapters = [];
+    let lastIndex = 0;
+    let match;
+    let chapterNum = 0;
+
+    while ((match = chapterRegex.exec(html)) !== null) {
+        const headingText = match[2].replace(/<[^>]+>/g, '').trim();
+        const isChapterHeading = /chapter|prologue|epilogue|preface|introduction/i.test(headingText);
+        if (!isChapterHeading && chapters.length === 0) continue; // skip non-chapter front matter until first chapter
+        if (!isChapterHeading && chapters.length > 0) continue; // skip non-chapter headings between chapters? Actually include everything
+
+        if (chapters.length > 0) {
+            chapters[chapters.length - 1].content = html.slice(lastIndex, match.index);
+        }
+        chapterNum++;
+        chapters.push({
+            num: chapterNum,
+            title: headingText,
+            content: '' // filled by next iteration or end
+        });
+        lastIndex = match.index + match[0].length;
+    }
+
+    if (chapters.length > 0) {
+        chapters[chapters.length - 1].content = html.slice(lastIndex);
+    }
+
+    // If no chapters found, treat entire doc as chapter 1
+    if (chapters.length === 0) {
+        chapters.push({ num: 1, title: 'Chapter 1', content: html });
+    }
+
+    MANUSCRIPT_CACHE.set(slug, { mtime, chapters });
+    return chapters;
+}
+
+function listManuscripts() {
+    try {
+        return fs.readdirSync(MANUSCRIPTS_DIR)
+            .filter(f => f.endsWith('.docx'))
+            .map(f => f.replace(/\.docx$/i, ''));
+    } catch { return []; }
 }
 
 function parseCookies(h) {
@@ -323,6 +393,7 @@ const PUBLIC_ROUTES = {
     '/':                      path.join(PUBLIC_DIR, 'index.html'),
     '/books':                 path.join(PUBLIC_DIR, 'books.html'),
     '/book':                  path.join(PUBLIC_DIR, 'book.html'),
+    '/read':                  path.join(PUBLIC_DIR, 'read.html'),
     '/games':                 path.join(PUBLIC_DIR, 'games.html'),
     '/about':                 path.join(PUBLIC_DIR, 'about.html'),
     '/action_registry.html':  path.join(PUBLIC_DIR, 'action_registry.html'),
@@ -676,6 +747,48 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && url === '/content') {
         try { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(fs.readFileSync(CONTENT_FILE, 'utf8')); }
         catch { res.writeHead(500); return res.end('{}'); }
+    }
+
+    // ── MANUSCRIPT API (public read) ──────────────────────
+    const mList = /^\/api\/manuscripts$/;
+    const mChapters = /^\/api\/manuscripts\/([^\/]+)\/chapters$/;
+    const mChapter = /^\/api\/manuscripts\/([^\/]+)\/chapters\/([0-9]+)$/;
+
+    if (req.method === 'GET' && mList.test(url)) {
+        const slugs = listManuscripts();
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ manuscripts: slugs }));
+    }
+
+    const chaptersMatch = url.match(mChapters);
+    if (req.method === 'GET' && chaptersMatch) {
+        const slug = chaptersMatch[1];
+        const chapters = await parseManuscript(slug);
+        if (!chapters) { res.writeHead(404); return res.end('Not found'); }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({
+            slug,
+            total: chapters.length,
+            preview: chapters.length > 3 ? 3 : chapters.length,
+            chapters: chapters.map((c, i) => ({ num: c.num, title: c.title, index: i }))
+        }));
+    }
+
+    const chapterMatch = url.match(mChapter);
+    if (req.method === 'GET' && chapterMatch) {
+        const slug = chapterMatch[1];
+        const num = parseInt(chapterMatch[2], 10);
+        const chapters = await parseManuscript(slug);
+        if (!chapters) { res.writeHead(404); return res.end('Not found'); }
+        const ch = chapters.find(c => c.num === num);
+        if (!ch) { res.writeHead(404); return res.end('Chapter not found'); }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({
+            num: ch.num,
+            title: ch.title,
+            content: ch.content,
+            total: chapters.length
+        }));
     }
 
     // Login
