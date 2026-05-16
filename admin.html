@@ -415,9 +415,6 @@
     <div class="sidebar-item" data-panel="scraper" onclick="switchPanel('scraper')">
       <span class="sidebar-icon">📊</span> Scraper Dashboard
     </div>
-    <div class="sidebar-item" data-panel="manuscripts" onclick="switchPanel('manuscripts')">
-      <span class="sidebar-icon">📖</span> Manuscripts
-    </div>
     <div class="sidebar-item" data-panel="settings" onclick="switchPanel('settings')">
       <span class="sidebar-icon">⚙️</span> Settings
     </div>
@@ -514,31 +511,6 @@
           </div>
           <div id="day-detail-body"></div>
         </div>
-      </div>
-    </div>
-
-    <!-- MANUSCRIPTS PANEL -->
-    <div class="panel" id="panel-manuscripts">
-      <h1 class="panel-title">📖 Manuscripts</h1>
-      <p class="panel-sub">Upload your book files (.docx). The server auto-renames them to match the book slug. Use Heading 1 style for chapter titles.</p>
-      <div class="card">
-        <div class="card-title">📁 Upload Manuscript</div>
-        <p style="font-size:0.85rem;color:var(--muted);margin-bottom:1rem;">Select a book, then pick your file. The server handles naming.</p>
-
-        <label style="display:block;font-size:0.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.4rem;">1. Choose Book</label>
-        <select id="ms-book-select" style="width:100%;padding:0.6rem 0.8rem;background:var(--bg);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:inherit;font-size:0.9rem;margin-bottom:1rem;outline:none;"
-          onchange="document.getElementById('ms-file-btn').disabled = !this.value">
-          <option value="">Select a book…</option>
-        </select>
-
-        <label style="display:block;font-size:0.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.4rem;">2. Pick File</label>
-        <input type="file" id="ms-upload" accept=".docx" style="display:none" onchange="handleMsUpload(this)">
-        <button class="btn btn-primary" id="ms-file-btn" onclick="document.getElementById('ms-upload').click()" disabled>📄 Browse for .docx</button>
-        <div id="ms-upload-status" style="margin-top:1rem;font-size:0.85rem;"></div>
-      </div>
-      <div class="card">
-        <div class="card-title">📚 Book → Manuscript Mapping</div>
-        <div id="ms-mapping"><div class="loading-spinner"></div></div>
       </div>
     </div>
 
@@ -1014,6 +986,22 @@ function renderBookEditor(si, bi, book, totalBooks) {
         ${renderPlatformRows(book.platforms, si, bi)}
       </div>
       <button class="btn btn-ghost btn-sm" onclick="addPlatform(${si},${bi})">+ Add Platform</button>
+
+      <div style="margin-top:1.5rem;border-top:1px solid var(--border);padding-top:1rem;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
+          <div style="font-size:0.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;">📖 Manuscript</div>
+          <span id="ms-status-${si}-${bi}" style="font-size:0.75rem;color:var(--muted);"></span>
+        </div>
+        <div style="display:flex;gap:0.5rem;align-items:center;">
+          <input type="file" id="ms-input-${si}-${bi}" accept=".docx" style="display:none"
+            onchange="handleBookMsUpload(event,${si},${bi})">
+          <button class="btn btn-primary btn-sm" onclick="document.getElementById('ms-input-${si}-${bi}').click()">📄 Upload .docx</button>
+          <a href="/read?book=${encodeURIComponent(book.slug || book.id)}" target="_blank" class="btn btn-ghost btn-sm" id="ms-read-btn-${si}-${bi}" style="display:none;">Open Reader →</a>
+        </div>
+        <div style="font-size:0.75rem;color:var(--muted);margin-top:0.5rem;">
+          File will be saved as <strong style="color:var(--text2);">${esc(book.slug || book.id)}.docx</strong>. Use Heading 1 for chapter titles.
+        </div>
+      </div>
     </div>
   </div>`;
 }
@@ -1663,101 +1651,30 @@ function dragDrop(e, targetSi, targetBi) {
   _dragSi = null; _dragBi = null;
 }
 
-// ── MANUSCRIPTS PANEL ───────────────────────────────────
-async function loadManuscripts() {
-  try {
-    const [contentRes, msRes] = await Promise.all([
-      fetch('/content').then(r => r.json()),
-      fetch('/api/manuscripts').then(r => r.json())
-    ]);
-    const books = contentRes.books || [];
-    const mss = msRes.manuscripts || [];
+// ── INLINE MANUSCRIPT UPLOAD (per book) ─────────────────
+let _msCache = null;
 
-    // Build set of valid slugs (slug || id for each book)
-    const validSlugs = new Set();
-    for (const b of books) validSlugs.add(b.slug || b.id);
-    const msSet = new Set(mss);
-
-    let html = `<div style="display:flex;flex-direction:column;gap:0.75rem;">`;
-    for (const book of books) {
-      const slug = book.slug || book.id;
-      const hasMs = msSet.has(slug);
-      const statusColor = hasMs ? 'var(--green)' : 'var(--red)';
-      const statusText = hasMs ? '✅ Reader enabled' : '❌ Missing — rename your file to match';
-      html += `
-      <div style="display:flex;align-items:center;gap:1rem;padding:0.85rem 1rem;background:var(--surface2);border:1px solid var(--border);border-radius:10px;">
-        <div style="flex-shrink:0;">${book.cover ? `<img src="${esc(book.cover)}" style="width:48px;height:72px;object-fit:cover;border-radius:6px;">` : `<div style="width:48px;height:72px;background:var(--surface3);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;">📖</div>`}</div>
-        <div style="flex:1;min-width:0;">
-          <div style="font-weight:600;color:var(--text);font-size:0.95rem;">${esc(book.title)}</div>
-          <div style="font-family:var(--mono);font-size:0.78rem;color:var(--muted);margin-top:0.25rem;">Required filename: <strong style="color:var(--text2);">${esc(slug)}.docx</strong></div>
-          <div style="font-size:0.8rem;color:${statusColor};margin-top:0.3rem;">${statusText}</div>
-        </div>
-        <div style="flex-shrink:0;display:flex;gap:0.5rem;">
-          ${hasMs ? `<a href="/read?book=${encodeURIComponent(slug)}" target="_blank" class="btn btn-primary btn-sm">Open Reader</a>` : `<span style="font-size:0.75rem;color:var(--muted);">Upload or rename</span>`}
-        </div>
-      </div>`;
-    }
-    html += `</div>`;
-
-    // Show unmapped files (wrong names)
-    const unmapped = mss.filter(slug => !validSlugs.has(slug));
-    if (unmapped.length) {
-      html += `<div style="margin-top:1.5rem;"><div style="font-size:0.85rem;font-weight:600;color:var(--gold);margin-bottom:0.75rem;">⚠️ Unmapped files (wrong filenames)</div>`;
-      html += `<div style="display:flex;flex-direction:column;gap:0.5rem;">`;
-      for (const slug of unmapped) {
-        html += `
-        <div style="display:flex;align-items:center;gap:0.75rem;padding:0.6rem 0.8rem;background:rgba(232,176,32,0.05);border:1px solid rgba(232,176,32,0.2);border-radius:8px;">
-          <span style="font-size:1.2rem;">📄</span>
-          <div style="flex:1;font-family:var(--mono);font-size:0.8rem;color:var(--text2);">${esc(slug)}.docx</div>
-          <span style="font-size:0.75rem;color:var(--gold);">Does not match any book slug — rename required</span>
-        </div>`;
-      }
-      html += `</div></div>`;
-    }
-
-    if (!books.length) {
-      html = `<p style="color:var(--muted);">No books in site-content.json yet. Add books in the Books &amp; Series tab first.</p>`;
-    }
-
-    document.getElementById('ms-mapping').innerHTML = html;
-
-    // Populate upload dropdown
-    const select = document.getElementById('ms-book-select');
-    const currentVal = select.value;
-    select.innerHTML = `<option value="">Select a book…</option>` + books.map(b => {
-      const slug = b.slug || b.id;
-      const hasMs = msSet.has(slug);
-      return `<option value="${esc(slug)}"${hasMs ? ' disabled' : ''}>${esc(b.title)}${hasMs ? ' (already uploaded)' : ''}</option>`;
-    }).join('');
-    if (currentVal && [...select.options].some(o => o.value === currentVal)) select.value = currentVal;
-  } catch (err) {
-    document.getElementById('ms-mapping').innerHTML = `<p style="color:var(--red);">Failed to load: ${err.message}</p>`;
+async function checkManuscript(slug) {
+  if (!_msCache) {
+    try {
+      const res = await fetch('/api/manuscripts');
+      const data = await res.json();
+      _msCache = new Set(data.manuscripts || []);
+    } catch { _msCache = new Set(); }
   }
+  return _msCache.has(slug);
 }
 
-async function handleMsUpload(input) {
-  const file = input.files[0];
+async function handleBookMsUpload(event, si, bi) {
+  const file = event.target.files[0];
   if (!file) return;
-  const slug = document.getElementById('ms-book-select').value;
-  if (!slug) { showToast('Select a book first', 'error'); return; }
-  await uploadMsFile(file, slug);
-  input.value = '';
-}
+  const book = getBook(si, bi);
+  const slug = book.slug || book.id;
+  const statusEl = document.getElementById(`ms-status-${si}-${bi}`);
+  const readBtn = document.getElementById(`ms-read-btn-${si}-${bi}`);
 
-async function handleMsDrop(files) {
-  const file = files[0];
-  if (!file || !file.name.endsWith('.docx')) {
-    showToast('Please upload a .docx file', 'error');
-    return;
-  }
-  const slug = document.getElementById('ms-book-select').value;
-  if (!slug) { showToast('Select a book first', 'error'); return; }
-  await uploadMsFile(file, slug);
-}
-
-async function uploadMsFile(file, slug) {
-  const status = document.getElementById('ms-upload-status');
-  status.innerHTML = `<span style="color:var(--muted);">Uploading ${esc(file.name)}…</span>`;
+  statusEl.innerHTML = 'Uploading…';
+  statusEl.style.color = 'var(--muted)';
   try {
     const body = new FormData();
     body.append('file', file);
@@ -1765,20 +1682,46 @@ async function uploadMsFile(file, slug) {
     const res = await fetch('/upload-manuscript', { method: 'POST', body });
     if (!res.ok) throw new Error(await res.text());
     const data = await res.json();
-    showToast(`Uploaded for ${esc(data.slug)}`);
-    status.innerHTML = `<span style="color:var(--green);">✅ Uploaded and saved as <strong>${esc(data.name)}</strong></span>`;
-    loadManuscripts();
+    _msCache = null; // invalidate
+    showToast(`Uploaded manuscript for ${esc(book.title)}`);
+    statusEl.innerHTML = '✅ Reader enabled';
+    statusEl.style.color = 'var(--green)';
+    if (readBtn) readBtn.style.display = '';
   } catch (err) {
-    status.innerHTML = `<span style="color:var(--red);">❌ ${err.message}</span>`;
+    statusEl.innerHTML = '❌ Failed';
+    statusEl.style.color = 'var(--red)';
     showToast('Upload failed: ' + err.message, 'error');
   }
 }
 
-// Hook into panel switch to load manuscripts
-const _origSwitchPanel = switchPanel;
-switchPanel = function(name) {
-  _origSwitchPanel(name);
-  if (name === 'manuscripts') loadManuscripts();
+// Update manuscript status indicators when books panel renders
+async function refreshMsStatus() {
+  try {
+    const res = await fetch('/api/manuscripts');
+    const data = await res.json();
+    const msSet = new Set(data.manuscripts || []);
+    document.querySelectorAll('[id^="ms-status-"]').forEach(el => {
+      const id = el.id;
+      const match = id.match(/ms-status-(-?\d+)-(\d+)/);
+      if (!match) return;
+      const si = parseInt(match[1], 10);
+      const bi = parseInt(match[2], 10);
+      const book = getBook(si, bi);
+      if (!book) return;
+      const slug = book.slug || book.id;
+      const hasMs = msSet.has(slug);
+      el.textContent = hasMs ? '✅ Reader enabled' : '❌ No manuscript';
+      el.style.color = hasMs ? 'var(--green)' : 'var(--red)';
+      const readBtn = document.getElementById(`ms-read-btn-${si}-${bi}`);
+      if (readBtn) readBtn.style.display = hasMs ? '' : 'none';
+    });
+  } catch {}
+}
+
+const _origRenderBooksPanel = renderBooksPanel;
+renderBooksPanel = function() {
+  _origRenderBooksPanel();
+  refreshMsStatus();
 };
 
 init();
