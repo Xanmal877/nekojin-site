@@ -17,6 +17,8 @@ const crypto      = require('crypto');
 const { spawn }   = require('child_process');
 const WebSocket   = require('ws');
 const os          = require('os');
+const https       = require('https');
+const httpReq     = require('http');
 
 // ── CONFIG ────────────────────────────────────────────────
 const AUTH_USER      = 'xanmal';
@@ -727,6 +729,27 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && (url === '/admin' || url === '/dashboard'))
         return serveFile(res, ADMIN_FILE);
 
+    // AI Chat proxy endpoint for external providers (Claude, OpenAI, xAI, Ollama)
+    if (req.method === 'POST' && url === '/api/proxy/chat') {
+        if (!isAuthenticated(req)) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ error: 'Unauthorized' }));
+        }
+        try {
+            const bodyBuf = await readRawBody(req);
+            const body = JSON.parse(bodyBuf.toString('utf8'));
+            const { provider, apiKey, baseUrl, model, messages, system, stream, temperature, topP, maxTokens } = body;
+            if (!provider || !model || !messages) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ error: 'Missing provider, model, or messages' }));
+            }
+            return proxyProviderChat(res, provider, apiKey, baseUrl, model, messages, system, stream, temperature, topP, maxTokens);
+        } catch(e) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ error: e.message }));
+        }
+    }
+
     // AI Chat page (authenticated only)
     if (req.method === 'GET' && url === '/aichat.html')
         return serveFile(res, path.join(PUBLIC_DIR, 'aichat.html'));
@@ -808,6 +831,158 @@ const server = http.createServer(async (req, res) => {
         } catch(e) { res.writeHead(500); return res.end(e.message); }
     }
     });
+
+// ── EXTERNAL PROVIDER PROXY ─────────────────────────────
+function proxyProviderChat(res, provider, apiKey, baseUrl, model, messages, system, stream, temperature, topP, maxTokens) {
+    const isStream = stream !== false;
+    const headers = { 'Content-Type': 'application/json' };
+    let hostname, pathReq, method = 'POST';
+    let body;
+    const streamMode = isStream ? 'stream' : '';
+
+    if (provider === 'claude') {
+        headers['x-api-key'] = apiKey;
+        headers['anthropic-version'] = '2023-06-01';
+        hostname = 'api.anthropic.com';
+        pathReq = '/v1/messages';
+        const msgs = [];
+        if (system) msgs.push({ role: 'user', content: `System: ${system}` });
+        for (const m of messages) {
+            if (m.role === 'system') continue;
+            msgs.push({ role: m.role, content: m.content });
+        }
+        body = JSON.stringify({ model, messages: msgs, max_tokens: maxTokens || 4096, stream: isStream });
+    } else if (provider === 'openai') {
+        headers['Authorization'] = `Bearer ${apiKey}`;
+        hostname = 'api.openai.com';
+        pathReq = '/v1/chat/completions';
+        const msgs = system ? [{ role: 'system', content: system }] : [];
+        for (const m of messages) msgs.push({ role: m.role, content: m.content });
+        body = JSON.stringify({ model, messages: msgs, max_tokens: maxTokens || 4096, stream: isStream, temperature: temperature ?? 0.7, top_p: topP ?? 1 });
+    } else if (provider === 'xai') {
+        headers['Authorization'] = `Bearer ${apiKey}`;
+        hostname = 'api.x.ai';
+        pathReq = '/v1/chat/completions';
+        const msgs = system ? [{ role: 'system', content: system }] : [];
+        for (const m of messages) msgs.push({ role: m.role, content: m.content });
+        body = JSON.stringify({ model, messages: msgs, max_tokens: maxTokens || 4096, stream: isStream, temperature: temperature ?? 0.7, top_p: topP ?? 1 });
+    } else if (provider === 'ollama') {
+        const ollamaBase = (baseUrl || 'http://localhost:11434').replace(/\/$/, '');
+        const target = new URL(ollamaBase);
+        hostname = target.hostname;
+        const port = target.port || (target.protocol === 'https:' ? 443 : 80);
+        const proto = target.protocol === 'https:' ? https : httpReq;
+        pathReq = '/api/chat';
+        const msgs = [];
+        if (system) msgs.push({ role: 'system', content: system });
+        for (const m of messages) {
+            if (m.role === 'system') continue;
+            msgs.push({ role: m.role, content: m.content });
+        }
+        const reqBody = JSON.stringify({ model, messages: msgs, stream: isStream, options: { temperature: temperature ?? 0.7, top_p: topP ?? 1, num_predict: maxTokens || 4096 } });
+        return proxyViaRequest(res, proto, hostname, port, pathReq, headers, reqBody, provider, isStream);
+    } else {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ error: 'Unknown provider' }));
+    }
+
+    return proxyViaRequest(res, https, hostname, 443, pathReq, headers, body, provider, isStream);
+}
+
+function proxyViaRequest(res, protoModule, hostname, port, pathReq, headers, body, provider, isStream) {
+    const requestOpts = { hostname, port, path: pathReq, method: 'POST', headers };
+    const proxyReq = protoModule.request(requestOpts, (proxyRes) => {
+        if (!isStream) {
+            let raw = '';
+            proxyRes.on('data', c => raw += c);
+            proxyRes.on('end', () => {
+                if (provider === 'claude') {
+                    try {
+                        const d = JSON.parse(raw);
+                        const text = d.content?.map(c => c.type === 'text' ? c.text : '').join('') || '';
+                        res.writeHead(200, { 'Content-Type': 'application/x-ndjson' });
+                        res.end(`{"type":"text","text":${JSON.stringify(text)}}\n{"type":"done"}\n`);
+                    } catch {
+                        res.writeHead(500, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'Invalid response from provider' }));
+                    }
+                    return;
+                }
+                try {
+                    const d = JSON.parse(raw);
+                    const text = d.choices?.[0]?.message?.content || '';
+                    res.writeHead(200, { 'Content-Type': 'application/x-ndjson' });
+                    res.end(`{"type":"text","text":${JSON.stringify(text)}}\n{"type":"done"}\n`);
+                } catch {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: 'Invalid response from provider' }));
+                }
+            });
+            return;
+        }
+
+        // Streaming mode: parse SSE
+        res.writeHead(200, { 'Content-Type': 'application/x-ndjson', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
+        let buffer = '';
+        proxyRes.on('data', chunk => {
+            buffer += chunk;
+            let idx;
+            while ((idx = buffer.indexOf('\n')) !== -1) {
+                const line = buffer.slice(0, idx).trim();
+                buffer = buffer.slice(idx + 1);
+                if (!line || !line.startsWith('data: ')) continue;
+                const payload = line.slice(6);
+                if (payload === '[DONE]') {
+                    res.write(`{"type":"done"}\n`);
+                    continue;
+                }
+                try {
+                    const data = JSON.parse(payload);
+                    if (provider === 'claude') {
+                        if (data.type === 'content_block_delta' && data.delta?.type === 'text_delta') {
+                            res.write(`{"type":"text","text":${JSON.stringify(data.delta.text)}}\n`);
+                        } else if (data.type === 'message_delta' && data.usage) {
+                            res.write(`{"type":"usage","input_tokens":${data.usage.input_tokens || 0},"output_tokens":${data.usage.output_tokens || 0}}\n`);
+                        }
+                    } else if (provider === 'ollama') {
+                        if (data.message?.content) {
+                            res.write(`{"type":"text","text":${JSON.stringify(data.message.content)}}\n`);
+                        }
+                        if (data.done) {
+                            res.write(`{"type":"done"}\n`);
+                        }
+                    } else {
+                        // openai / xai
+                        const delta = data.choices?.[0]?.delta;
+                        if (delta?.content) {
+                            res.write(`{"type":"text","text":${JSON.stringify(delta.content)}}\n`);
+                        }
+                        if (data.usage) {
+                            res.write(`{"type":"usage","input_tokens":${data.usage.prompt_tokens || 0},"output_tokens":${data.usage.completion_tokens || 0}}\n`);
+                        }
+                    }
+                } catch (e) {
+                    // skip malformed JSON in SSE stream
+                }
+            }
+        });
+        proxyRes.on('end', () => {
+            res.write(`{"type":"done"}\n`);
+            res.end();
+        });
+        proxyRes.on('error', () => {
+            res.write(`{"type":"error","error":"Provider stream error"}\n`);
+            res.end();
+        });
+    });
+    proxyReq.on('error', (err) => {
+        res.writeHead(502, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message || 'Proxy request failed' }));
+    });
+    proxyReq.write(body);
+    proxyReq.end();
+}
+
 // ── WEBSOCKET /chat - PER-USER PERSISTENT SESSIONS ──────
 const wss = new WebSocket.Server({ server, path: '/chat' });
 

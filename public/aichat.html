@@ -690,6 +690,46 @@
     @media (max-width: 380px) {
       .sidebar { width: 90%; }
     }
+    .msg h1, .msg h2, .msg h3 { margin: 0.8rem 0 0.4rem; font-weight: 600; line-height: 1.3; }
+    .msg h1 { font-size: 1.15rem; }
+    .msg h2 { font-size: 1.05rem; }
+    .msg h3 { font-size: 0.95rem; }
+    .msg-attach-file { margin-top: 0.35rem; font-size: 0.8rem; color: var(--muted2); padding: 0.3rem 0.6rem; background: var(--surface); border-radius: 6px; display: inline-block; }
+
+    /* Provider cards */
+    .provider-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.6rem; margin-top: 0.3rem; }
+    .provider-card { display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-family: inherit; font-size: 0.82rem; cursor: pointer; transition: all 0.15s; text-align: left; }
+    .provider-card:hover { border-color: var(--border2); background: var(--surface); }
+    .provider-card.active { border-color: rgba(139,92,246,0.5); background: rgba(139,92,246,0.1); }
+    .provider-logo { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; color: #fff; flex-shrink: 0; }
+    .provider-info { display: flex; flex-direction: column; line-height: 1.3; }
+    .provider-info strong { color: var(--text); font-size: 0.85rem; }
+    .provider-info small { color: var(--muted2); font-size: 0.7rem; font-weight: 400; }
+
+    /* Stop button */
+    .aichat-stop { display: none; width: 40px; height: 40px; border-radius: 10px; background: #ef4444; border: none; color: #fff; font-size: 0.85rem; cursor: pointer; align-items: center; justify-content: center; transition: background 0.15s; flex-shrink: 0; }
+    .aichat-stop.visible { display: flex; }
+    .aichat-stop:hover { background: #dc2626; }
+
+    /* Code block header */
+    .code-header { display: flex; align-items: center; justify-content: space-between; padding: 0.35rem 0.6rem; background: rgba(124,58,237,0.12); border-bottom: 1px solid rgba(124,58,237,0.15); border-radius: 10px 10px 0 0; font-size: 0.72rem; }
+    .code-lang { color: var(--muted2); font-weight: 600; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.04em; }
+    .msg pre { padding: 0; overflow: hidden; }
+    .msg pre code { display: block; padding: 1rem; background: transparent; overflow-x: auto; }
+    .msg p { margin-bottom: 0.6rem; }
+    .msg p:last-child { margin-bottom: 0; }
+    .msg ul { margin: 0.4rem 0 0.4rem 1.2rem; }
+    .msg li { margin-bottom: 0.2rem; }
+    .msg blockquote { border-left: 3px solid var(--accent); padding-left: 0.7rem; color: var(--muted); margin: 0.5rem 0; font-style: italic; }
+    .msg a.msg-link { color: var(--accent2); text-decoration: underline; text-underline-offset: 2px; }
+
+    /* Settings inputs */
+    .provider-settings input[type="text"],
+    .provider-settings input[type="password"] { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 0.6rem 0.8rem; color: var(--text); font-family: inherit; font-size: 0.85rem; outline: none; transition: border-color 0.2s; }
+    .provider-settings input:focus { border-color: var(--accent2); }
+    .provider-settings input[type="range"] { accent-color: var(--accent); }
+    .provider-settings input[type="number"] { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 0.4rem 0.6rem; color: var(--text); font-family: inherit; font-size: 0.85rem; outline: none; }
+
   </style>
 </head>
 <body>
@@ -701,7 +741,7 @@
 <aside class="sidebar" id="sidebar" role="navigation" aria-label="Chat sessions">
   <div class="sidebar-header">
     <a href="https://worldofxanrea.com" class="sidebar-brand" target="_blank">
-      <span class="logo">🐾 pi</span>
+      <span class="logo">pi</span>
     </a>
     <button class="btn-new-chat" id="btn-new-chat">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -710,7 +750,7 @@
       New chat
     </button>
     <div class="model-picker" id="model-picker">
-      <button class="model-current" id="model-current" onclick="toggleModelPicker()">
+      <button class="model-current" id="model-current" onclick="_toggleModelPicker()">
         <span>Loading models…</span>
         <span class="chevron">▼</span>
       </button>
@@ -742,20 +782,20 @@
       <span id="status-text">Connecting…</span>
     </div>
     <div class="aichat-actions">
-      <button id="btn-settings" title="Settings">⚙</button>
-      <button id="btn-clear" title="Clear display">🗑</button>
+      <button id="btn-settings" title="Settings">Settings</button>
+      <button id="btn-clear" title="Clear display">Clear</button>
     </div>
   </header>
 
   <div class="aichat-messages" id="messages">
     <div class="aichat-welcome" id="welcome">
-      <h1>🤖 pi</h1>
+      <h1>pi</h1>
       <p>Your local AI coding assistant. Ask me anything. I can read files, run shell commands, edit code, and more.</p>
       <div class="quick-actions">
-        <button data-prompt="List the files in this directory">📂 List files</button>
-        <button data-prompt="What can you do?">🛠 What can you do?</button>
-        <button data-prompt="Help me debug an error">🐛 Debug help</button>
-        <button data-prompt="Write a Python script for">🐍 Write script</button>
+        <button data-prompt="List the files in this directory">List files</button>
+        <button data-prompt="What can you do?">What can you do?</button>
+        <button data-prompt="Help me debug an error">Debug help</button>
+        <button data-prompt="Write a Python script for">Write script</button>
       </div>
     </div>
   </div>
@@ -764,8 +804,11 @@
     <div class="attach-bar" id="attach-bar"></div>
     <div class="aichat-input-wrap">
       <input type="file" id="file-input" style="display:none" multiple accept="image/*,.txt,.md,.js,.ts,.json,.py,.html,.css,.csv,.log">
-      <button class="aichat-attach-btn" id="btn-attach" title="Attach file">📎</button>
+      <button class="aichat-attach-btn" id="btn-attach" title="Attach file">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+      </button>
       <textarea class="aichat-input" id="input" rows="1" placeholder="Ask pi anything…"></textarea>
+      <button class="aichat-stop" id="stop-btn" title="Stop generation">◼</button>
       <button class="aichat-send" id="send">➤</button>
     </div>
   </div>
@@ -774,7 +817,7 @@
 <div class="settings-overlay" id="settings-overlay"></div>
 <div class="settings-panel" id="settings-panel">
   <div class="settings-header">
-    <h3>⚙️ Settings</h3>
+    <h3>Settings</h3>
     <button class="close-btn" id="btn-close-settings">✕</button>
   </div>
   <div class="settings-body">
@@ -790,876 +833,8 @@
   </div>
 </div>
 
-<script>
-(function() {
-  'use strict';
-
-  const WS_URL = (location.protocol === 'https:'
-    ? `wss://${location.host}/chat`
-    : `ws://${location.host}/chat`);
-  const MAX_RECONNECT = 5;
-
-  let ws = null;
-  let reconnectAttempts = 0;
-  let reconnectTimer = null;
-  let isStreaming = false;
-  let currentAssistantEl = null;
-  let activeSessionId = null;
-  let sessionsData = [];
-  let availableModels = [];
-  let currentModel = null;
-  let pendingAttachments = []; // { type: 'image'|'file', name, data, mimeType }
-  let wsReady = false;
-
-  const messagesEl = document.getElementById('messages');
-  const inputEl = document.getElementById('input');
-  const sendBtn = document.getElementById('send');
-  const statusDot = document.getElementById('status-dot');
-  const statusText = document.getElementById('status-text');
-  const banner = document.getElementById('conn-banner');
-  const sessionListEl = document.getElementById('session-list');
-  const headerTitle = document.getElementById('header-title');
-  const sidebar = document.getElementById('sidebar');
-  const sidebarOverlay = document.getElementById('sidebar-overlay');
-  const sidebarToggle = document.getElementById('sidebar-toggle');
-  const modelPicker = document.getElementById('model-picker');
-  const modelCurrent = document.getElementById('model-current');
-  const modelPopover = document.getElementById('model-popover');
-  const fileInput = document.getElementById('file-input');
-  const btnAttach = document.getElementById('btn-attach');
-  const attachBar = document.getElementById('attach-bar');
-  const toast = document.getElementById('toast');
-
-  function showToast(msg) {
-    toast.textContent = msg;
-    toast.classList.add('visible');
-    setTimeout(() => toast.classList.remove('visible'), 2500);
-  }
-
-  // ── Sidebar interactions ──────────────────────────────
-  sidebarToggle.onclick = () => {
-    sidebar.classList.toggle('open');
-    sidebarOverlay.style.display = sidebar.classList.contains('open') ? 'block' : 'none';
-  };
-  sidebarOverlay.onclick = () => {
-    sidebar.classList.remove('open');
-    sidebarOverlay.style.display = 'none';
-  };
-
-  function setStatus(state, text) {
-    statusDot.className = 'dot ' + state;
-    statusText.textContent = text;
-    banner.classList.toggle('visible', state === 'offline');
-  }
-
-  function setHeaderTitle(name) {
-    headerTitle.textContent = name || 'New Chat';
-    document.title = (name || 'New Chat') + ' - pi';
-  }
-
-  function scrollToBottom() {
-    messagesEl.scrollTop = messagesEl.scrollHeight;
-  }
-
-  function hideWelcome() {
-    const w = document.getElementById('welcome');
-    if (w) w.remove();
-  }
-
-  function createMessage(role, html) {
-    const el = document.createElement('div');
-    el.className = 'msg ' + role;
-    if (html) el.innerHTML = html;
-    messagesEl.appendChild(el);
-    scrollToBottom();
-    return el;
-  }
-
-  function escapeHtml(s) {
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-  }
-
-  function formatText(text) {
-    let h = escapeHtml(text);
-    // Protect code blocks so inline formatting doesn't corrupt them
-    const codeBlocks = [];
-    h = h.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
-      const idx = codeBlocks.length;
-      codeBlocks.push(`<pre><button class="copy-btn" onclick="copyCode(this)" title="Copy code">📋</button><code>${code}</code></pre>`);
-      return `__PI_CB_${idx}__`;
-    });
-    h = h.replace(/`([^`]+)`/g, '<code>$1</code>');
-    h = h.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-    h = h.replace(/\*(.+?)\*/g, '<em>$1</em>');
-    h = h.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" style="color:var(--accent2);text-decoration:underline;">$1</a>');
-    h = h.replace(/\n/g, '<br>');
-    // Restore code blocks
-    h = h.replace(/__PI_CB_(\d+)__/g, (match, idx) => codeBlocks[idx]);
-    return h;
-  }
-
-  function formatTime(ts) {
-    if (!ts) return '';
-    const d = new Date(ts);
-    const now = new Date();
-    if (d.toDateString() === now.toDateString()) return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-    const yesterday = new Date(now - 86400000);
-    if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
-    return d.toLocaleDateString([], {month:'short', day:'numeric'});
-  }
-
-  window.copyCode = function(btn) {
-    const code = btn.nextElementSibling?.textContent || '';
-    navigator.clipboard.writeText(code).then(() => {
-      btn.textContent = '✓';
-      setTimeout(() => btn.textContent = '📋', 1500);
-    });
-  };
-
-  // ── Model picker ────────────────────────────────────
-  function populateModels(models) {
-    availableModels = models || [];
-    if (!availableModels.length) {
-      modelCurrent.querySelector('span:first-child').textContent = 'No models';
-      modelPopover.innerHTML = '';
-      return;
-    }
-    // Group by provider
-    const byProvider = {};
-    for (const m of availableModels) {
-      const p = m.provider || 'unknown';
-      if (!byProvider[p]) byProvider[p] = [];
-      byProvider[p].push(m);
-    }
-    // Find current model name
-    const current = availableModels.find(m => m.id === currentModel);
-    if (current) {
-      modelCurrent.querySelector('span:first-child').innerHTML =
-        escapeHtml(current.name || current.id) +
-        ' <span class="provider-tag">' + escapeHtml(current.provider) + '</span>';
-    } else {
-      const first = availableModels[0];
-      modelCurrent.querySelector('span:first-child').innerHTML =
-        escapeHtml(first.name || first.id) +
-        ' <span class="provider-tag">' + escapeHtml(first.provider) + '</span>';
-      currentModel = first.id;
-    }
-
-    // Build popover
-    let html = '';
-    for (const [provider, pmodels] of Object.entries(byProvider)) {
-      const providerOpen = pmodels.some(m => m.id === currentModel) ? 'open' : '';
-      const modelsOpen = providerOpen ? 'open' : '';
-      html += `<div class="provider-group">
-        <div class="provider-header ${providerOpen}" onclick="toggleProvider(this)">
-          <span class="provider-name">${escapeHtml(provider)}</span>
-          <span class="count">${pmodels.length}</span>
-          <span class="arrow">▸</span>
-        </div>
-        <div class="provider-models ${modelsOpen}">
-          ${pmodels.map(m => {
-            const isActive = m.id === currentModel;
-            const caps = [];
-            if (m.input?.includes('text')) caps.push('txt');
-            if (m.input?.includes('image')) caps.push('<span class="has-img">img</span>');
-            return `<div class="model-option ${isActive ? 'active' : ''}" data-id="${escapeHtml(m.id)}" onclick="selectModel('${escapeHtml(m.id)}')">
-              <span class="model-name">${escapeHtml(m.name || m.id)}</span>
-              <span class="cap">${caps.join(' · ')}</span>
-              <span class="check">✓</span>
-            </div>`;
-          }).join('')}
-        </div>
-      </div>`;
-    }
-    modelPopover.innerHTML = html;
-  }
-
-  window.toggleModelPicker = function() {
-    const isOpen = modelPopover.classList.contains('open');
-    if (isOpen) {
-      modelPopover.classList.remove('open');
-      modelCurrent.classList.remove('open');
-    } else {
-      modelPopover.classList.add('open');
-      modelCurrent.classList.add('open');
-    }
-  };
-
-  window.toggleProvider = function(el) {
-    el.classList.toggle('open');
-    const models = el.nextElementSibling;
-    if (models) models.classList.toggle('open');
-  };
-
-  window.selectModel = function(id) {
-    if (!id || !ws || ws.readyState !== 1) return;
-    const modelDef = availableModels.find(m => m.id === id);
-    if (!modelDef) return;
-    ws.send(JSON.stringify({
-      type: 'set_model',
-      provider: modelDef.provider,
-      modelId: modelDef.id
-    }));
-    currentModel = id;
-    populateModels(availableModels);
-    modelPopover.classList.remove('open');
-    modelCurrent.classList.remove('open');
-    showToast('Switched to ' + (modelDef.name || id));
-  };
-
-  // Close model picker when clicking outside
-  document.addEventListener('click', (e) => {
-    if (!modelPicker.contains(e.target)) {
-      modelPopover.classList.remove('open');
-      modelCurrent.classList.remove('open');
-    }
-  });
-
-  // ── File upload ─────────────────────────────────────
-  btnAttach.onclick = () => fileInput.click();
-
-  fileInput.onchange = () => {
-    const files = Array.from(fileInput.files);
-    if (!files.length) return;
-    for (const file of files) {
-      processFile(file);
-    }
-    fileInput.value = '';
-  };
-
-  function processFile(file) {
-    if (file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        pendingAttachments.push({
-          type: 'image',
-          name: file.name,
-          data: e.target.result,
-          mimeType: file.type
-        });
-        renderAttachments();
-      };
-      reader.readAsDataURL(file);
-    } else {
-      // Text/code file - upload to server
-      const body = new FormData();
-      body.append('file', file);
-      fetch('/upload-chat-file', { method: 'POST', body })
-        .then(r => r.json())
-        .then(d => {
-          pendingAttachments.push({
-            type: 'file',
-            name: file.name,
-            path: d.path,
-            size: d.size
-          });
-          renderAttachments();
-        })
-        .catch(err => {
-          showToast('Upload failed: ' + (err.message || 'unknown'));
-        });
-    }
-  }
-
-  function renderAttachments() {
-    attachBar.innerHTML = '';
-    if (!pendingAttachments.length) {
-      btnAttach.classList.remove('has-files');
-      return;
-    }
-    btnAttach.classList.add('has-files');
-    for (const att of pendingAttachments) {
-      const chip = document.createElement('div');
-      chip.className = 'attach-chip';
-      if (att.type === 'image') {
-        chip.innerHTML = `
-          <img class="chip-img" src="${att.data}">
-          <span>${escapeHtml(att.name)}</span>
-          <button class="remove">×</button>
-        `;
-      } else {
-        chip.innerHTML = `
-          <span>📄 ${escapeHtml(att.name)}</span>
-          <button class="remove">×</button>
-        `;
-      }
-      chip.querySelector('.remove').onclick = () => {
-        pendingAttachments = pendingAttachments.filter(a => a !== att);
-        renderAttachments();
-      };
-      attachBar.appendChild(chip);
-    }
-  }
-
-  // ── Session list UI ──────────────────────────────────
-  function renderSessions() {
-    if (!sessionsData.length) {
-      sessionListEl.innerHTML = '<div class="sidebar-empty">No chats yet</div>';
-      return;
-    }
-    let html = '';
-    let inToday = false, inYesterday = false, inEarlier = false;
-    const now = Date.now();
-    const todayStart = new Date(); todayStart.setHours(0,0,0,0);
-    const yesterdayStart = new Date(todayStart - 86400000);
-
-    for (const s of sessionsData) {
-      const updated = new Date(s.updatedAt || s.createdAt);
-      let label = null;
-      if (updated >= todayStart && !inToday) { label = 'Today'; inToday = true; }
-      else if (updated >= yesterdayStart && updated < todayStart && !inYesterday) { label = 'Yesterday'; inYesterday = true; }
-      else if (updated < yesterdayStart && !inEarlier) { label = 'Earlier'; inEarlier = true; }
-      if (label) html += `<div class="session-group"><div class="session-group-label">${label}</div>`;
-
-      const isActive = s.id === activeSessionId;
-      html += `<div class="session-item ${isActive ? 'active' : ''}" data-id="${escapeHtml(s.id)}" onclick="onSessionClick(event,'${escapeHtml(s.id)}')">
-        <span class="icon">${isActive ? '💬' : '💭'}</span>
-        <span class="title" id="s-title-${escapeHtml(s.id)}">${escapeHtml(s.name || 'Chat')}</span>
-        <span class="time">${formatTime(s.updatedAt || s.createdAt)}</span>
-        <div class="actions" onclick="event.stopPropagation()">
-          <button title="Rename" onclick="onSessionRename('${escapeHtml(s.id)}')">✎</button>
-          <button title="Delete" onclick="onSessionDelete('${escapeHtml(s.id)}')">🗑</button>
-        </div>
-      </div>`;
-    }
-    if (inToday || inYesterday || inEarlier) html += '</div>';
-    sessionListEl.innerHTML = html;
-  }
-
-  window.onSessionClick = function(ev, id) {
-    ev.preventDefault();
-    if (id === activeSessionId) {
-      sidebar.classList.remove('open');
-      sidebarOverlay.style.display = 'none';
-      return;
-    }
-    if (ws && ws.readyState === 1) {
-      ws.send(JSON.stringify({ type: 'switch_session', sessionId: id }));
-      messagesEl.innerHTML = '';
-      activeSessionId = id;
-      const s = sessionsData.find(s=>s.id===id);
-      if (s) setHeaderTitle(s.name);
-      renderSessions();
-      sidebar.classList.remove('open');
-      sidebarOverlay.style.display = 'none';
-      if (currentAssistantEl) { if (currentAssistantEl._raf) cancelAnimationFrame(currentAssistantEl._raf); currentAssistantEl = null; }
-      isStreaming = false;
-    }
-  };
-
-  window.onSessionRename = function(id) {
-    const titleEl = document.getElementById('s-title-' + id);
-    const oldName = titleEl.textContent;
-    const item = titleEl.closest('.session-item');
-    item.innerHTML = `
-      <span class="icon">💬</span>
-      <input type="text" class="edit" value="${escapeHtml(oldName)}" id="s-edit-${id}">
-      <span class="time"></span>
-    `;
-    const input = document.getElementById('s-edit-' + id);
-    input.focus();
-    input.select();
-    input.onkeydown = (e) => {
-      if (e.key === 'Enter') { finishRename(id, input.value); }
-      if (e.key === 'Escape') { renderSessions(); }
-    };
-    input.onblur = () => { finishRename(id, input.value); };
-  };
-
-  function finishRename(id, name) {
-    if (!name.trim() || name === sessionsData.find(s=>s.id===id)?.name) { renderSessions(); return; }
-    const s = sessionsData.find(s=>s.id === id);
-    if (s) s.name = name.trim();
-    renderSessions();
-    if (id === activeSessionId) setHeaderTitle(name.trim());
-    fetch('/chat-session/rename', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, name: name.trim() })
-    }).catch(()=>{});
-  }
-
-  window.onSessionDelete = function(id) {
-    if (!confirm('Delete this chat? This cannot be undone.')) return;
-    fetch('/chat-session/delete', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id })
-    }).then(() => {
-      sessionsData = sessionsData.filter(s => s.id !== id);
-      if (id === activeSessionId) {
-        const next = sessionsData[0];
-        if (next && ws && ws.readyState === 1) {
-          ws.send(JSON.stringify({ type: 'switch_session', sessionId: next.id }));
-          activeSessionId = next.id;
-          setHeaderTitle(next.name);
-        } else {
-          activeSessionId = null;
-          messagesEl.innerHTML = '';
-          setHeaderTitle('New Chat');
-          showWelcome();
-        }
-        if (currentAssistantEl) { if (currentAssistantEl._raf) cancelAnimationFrame(currentAssistantEl._raf); currentAssistantEl = null; }
-        isStreaming = false;
-      }
-      renderSessions();
-    }).catch(()=>{});
-  };
-
-  // ── WebSocket ─────────────────────────────────────────
-  function connect() {
-    wsReady = false;
-    sendBtn.disabled = true;
-    inputEl.placeholder = 'Connecting to pi…';
-    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
-    if (ws) { try { ws.close(); } catch {} }
-
-    if (reconnectAttempts >= MAX_RECONNECT) {
-      setStatus('offline', 'Unavailable');
-      return;
-    }
-    reconnectAttempts++;
-    setStatus('offline', reconnectAttempts === 1 ? 'Connecting…' : `Reconnecting (${reconnectAttempts})…`);
-
-    try { ws = new WebSocket(WS_URL); } catch(e) { setStatus('offline', 'Failed'); return; }
-
-    ws.onopen = () => {
-      reconnectAttempts = 0;
-      setStatus('online', 'Ready');
-      // Request models on connect
-      ws.send(JSON.stringify({ type: 'get_available_models', id: 'models-init' }));
-    };
-    ws.onmessage = (ev) => {
-      try { handleEvent(JSON.parse(ev.data)); } catch(e) { console.warn('Bad JSON:', ev.data); }
-    };
-    ws.onclose = () => {
-      wsReady = false;
-      sendBtn.disabled = true;
-      inputEl.placeholder = 'Reconnecting…';
-      setStatus('offline', 'Disconnected');
-      ws = null;
-      if (reconnectAttempts < MAX_RECONNECT) reconnectTimer = setTimeout(connect, 2500);
-      else setStatus('offline', 'Unavailable. Refresh to retry.');
-    };
-    ws.onerror = () => {
-      setStatus('offline', 'Connection error');
-    };
-  }
-  connect();
-
-  // ── Event handler ─────────────────────────────────────
-  function handleEvent(data) {
-    switch (data.type) {
-      case 'response': {
-        if (data.id === 'models-init' && data.command === 'get_available_models') {
-          if (data.success && data.data && data.data.models) {
-            populateModels(data.data.models);
-            if (data.data.models.length > 0 && !currentModel) {
-              currentModel = data.data.models[0].id;
-            }
-          }
-          return;
-        }
-        if (data.command === 'set_model' && data.success) {
-          showToast('Model switched');
-          return;
-        }
-        if (!data.success && data.error) {
-          hideWelcome();
-          createMessage('error', escapeHtml(data.error));
-        }
-        break;
-      }
-
-      case 'session_list':
-        wsReady = true;
-        sendBtn.disabled = false;
-        inputEl.placeholder = 'Ask pi anything…';
-        sessionsData = data.sessions || [];
-        renderSessions();
-        if (!activeSessionId && sessionsData.length) {
-          activeSessionId = sessionsData[0].id;
-          setHeaderTitle(sessionsData[0].name);
-        }
-        break;
-
-      case 'history':
-        wsReady = true;
-        sendBtn.disabled = false;
-        inputEl.placeholder = 'Ask pi anything…';
-        renderHistory(data.messages);
-        if (data.fresh) showWelcome();
-        break;
-
-      case 'message_update': {
-        const ev = data.assistantMessageEvent;
-        if (!ev) return;
-        if (ev.type === 'text_start') {
-          hideWelcome();
-          currentAssistantEl = createMessage('assistant streaming');
-          isStreaming = true;
-          setStatus('busy', 'Thinking…');
-        } else if (ev.type === 'text_delta') {
-          if (!currentAssistantEl) { hideWelcome(); currentAssistantEl = createMessage('assistant streaming'); }
-          if (!currentAssistantEl._buf) currentAssistantEl._buf = '';
-          currentAssistantEl._buf += ev.delta;
-          if (!currentAssistantEl._raf) {
-            currentAssistantEl._raf = requestAnimationFrame(() => {
-              if (currentAssistantEl) {
-                currentAssistantEl.innerHTML = formatText(currentAssistantEl._buf);
-                currentAssistantEl._raf = null;
-              }
-              scrollToBottom();
-            });
-          }
-        } else if (ev.type === 'text_end') {
-          if (currentAssistantEl) {
-            if (currentAssistantEl._raf) cancelAnimationFrame(currentAssistantEl._raf);
-            currentAssistantEl.innerHTML = formatText(currentAssistantEl._buf || '');
-            currentAssistantEl.classList.remove('streaming');
-            currentAssistantEl = null;
-          }
-          isStreaming = false; setStatus('online', 'Ready');
-          refreshSessionList();
-        } else if (ev.type === 'done' || ev.type === 'error') {
-          if (currentAssistantEl) {
-            if (currentAssistantEl._raf) cancelAnimationFrame(currentAssistantEl._raf);
-            currentAssistantEl.innerHTML = formatText(currentAssistantEl._buf || '');
-            currentAssistantEl.classList.remove('streaming');
-            currentAssistantEl = null;
-          }
-          isStreaming = false; setStatus('online', 'Ready');
-          refreshSessionList();
-        }
-        break;
-      }
-
-      case 'agent_start': setStatus('busy', 'Working…'); break;
-      case 'agent_end': isStreaming = false; setStatus('online', 'Ready'); break;
-
-      case 'tool_execution_start': {
-        hideWelcome();
-        const el = createMessage('tool');
-        el.innerHTML = `<span class="tool-name">⚙️ ${escapeHtml(data.toolName)}</span> running…`;
-        el._tid = data.toolCallId;
-        break;
-      }
-      case 'tool_execution_end': {
-        const el = Array.from(messagesEl.children).find(e => e._tid === data.toolCallId);
-        if (el) {
-          const ok = !data.isError;
-          el.innerHTML = `<span class="tool-name">${ok ? '✅' : '❌'} ${escapeHtml(data.toolName)}</span> ${ok ? 'done' : 'error'}`;
-        }
-        break;
-      }
-
-      case 'extension_ui_request': handleUI(data); break;
-      case 'extension_error':
-        hideWelcome();
-        createMessage('error', `Extension error: ${escapeHtml(data.error || 'unknown')}`);
-        break;
-    }
-  }
-
-  function renderHistory(messages) {
-    messagesEl.innerHTML = '';
-    if (!messages || messages.length === 0) { showWelcome(); return; }
-    for (const msg of messages) {
-      if (msg.role === 'user') {
-        createMessage('user', escapeHtml(msg.content));
-      } else if (msg.role === 'assistant') {
-        const el = createMessage('assistant');
-        el.innerHTML = formatText(msg.content);
-      } else if (msg.role === 'tool') {
-        const ok = !msg.isError;
-        const el = createMessage('tool');
-        el.innerHTML = `<span class="tool-name">${ok ? '✅' : '❌'} ${escapeHtml(msg.toolName)}</span> ${escapeHtml(msg.content ? msg.content.slice(0, 120) : 'done')}`;
-      }
-    }
-  }
-
-  function refreshSessionList() {
-    fetch('/chat-sessions')
-      .then(r => r.json())
-      .then(d => {
-        sessionsData = d.sessions || [];
-        const current = sessionsData.find(s => s.id === activeSessionId);
-        if (current) setHeaderTitle(current.name);
-        renderSessions();
-      }).catch(()=>{});
-  }
-
-  function handleUI(req) {
-    const { id, method } = req;
-    const overlay = document.createElement('div');
-    overlay.className = 'ui-dialog';
-    let inner = '';
-    if (method === 'confirm') {
-      inner = `<div class="ui-box"><h4>${escapeHtml(req.title || 'Confirm')}</h4><div class="ui-msg">${escapeHtml(req.message || '')}</div>
-        <div class="ui-actions"><button class="cancel">Cancel</button><button class="ok">Confirm</button></div></div>`;
-    } else if (method === 'select') {
-      const opts = (req.options || []).map(o => `<button data-v="${escapeHtml(o)}">${escapeHtml(o)}</button>`).join('');
-      inner = `<div class="ui-box"><h4>${escapeHtml(req.title || 'Select')}</h4><div class="ui-options">${opts}</div>
-        <div class="ui-actions"><button class="cancel">Cancel</button></div></div>`;
-    } else if (method === 'input') {
-      inner = `<div class="ui-box"><h4>${escapeHtml(req.title || 'Input')}</h4><input type="text" class="ui-field" placeholder="${escapeHtml(req.placeholder || '…')}">
-        <div class="ui-actions"><button class="cancel">Cancel</button><button class="ok">OK</button></div></div>`;
-    } else if (method === 'editor') {
-      inner = `<div class="ui-box"><h4>${escapeHtml(req.title || 'Edit')}</h4><textarea class="ui-field" rows="5" style="resize:vertical;">${escapeHtml(req.prefill || '')}</textarea>
-        <div class="ui-actions"><button class="cancel">Cancel</button><button class="ok">OK</button></div></div>`;
-    } else {
-      setTimeout(() => replyUI(id, { cancelled: true }), 50); return;
-    }
-    overlay.innerHTML = inner;
-    document.body.appendChild(overlay);
-
-    function replyUI(id, payload) { if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'extension_ui_response', id, ...payload })); }
-    function close(payload) { replyUI(id, payload); overlay.remove(); }
-
-    const okBtn = overlay.querySelector('.ok');
-    const cancelBtn = overlay.querySelector('.cancel');
-    if (method === 'confirm') {
-      if (okBtn) okBtn.onclick = () => close({ confirmed: true });
-      if (cancelBtn) cancelBtn.onclick = () => close({ confirmed: false });
-    } else if (method === 'select') {
-      overlay.querySelectorAll('.ui-options button').forEach(b => { b.onclick = () => close({ value: b.dataset.v }); });
-      if (cancelBtn) cancelBtn.onclick = () => close({ cancelled: true });
-    } else if (method === 'input' || method === 'editor') {
-      const field = overlay.querySelector('.ui-field');
-      if (okBtn) okBtn.onclick = () => close({ value: field.value });
-      if (cancelBtn) cancelBtn.onclick = () => close({ cancelled: true });
-      field.onkeydown = (e) => { if (e.key === 'Enter' && method === 'input') { e.preventDefault(); close({ value: field.value }); } };
-    }
-    if (req.timeout > 0) setTimeout(() => { if (overlay.parentNode) close({ cancelled: true }); }, req.timeout + 500);
-  }
-
-  // ── Input ─────────────────────────────────────────────
-  function sendPrompt() {
-    const text = inputEl.value.trim();
-    if (!text && !pendingAttachments.length) return;
-    if (!ws || ws.readyState !== 1) { createMessage('error', 'Not connected. Please wait or refresh.'); return; }
-    if (!wsReady) { createMessage('error', 'pi is still initializing. Please wait a moment.'); return; }
-
-    // Slash commands
-    if (text.startsWith('/')) {
-      const cmd = text.slice(1).split(' ')[0];
-      const rest = text.slice(1 + cmd.length).trim();
-      handleSlashCommand(cmd, rest);
-      inputEl.value = ''; inputEl.rows = 1;
-      return;
-    }
-
-    // Build enriched text from attachments
-    let fullText = text;
-    const imageAttachments = [];
-
-    for (const att of pendingAttachments) {
-      if (att.type === 'file') {
-        if (fullText) fullText += '\n\n';
-        fullText += `[Uploaded file: ${att.name} at ${att.path}]`;
-      } else if (att.type === 'image') {
-        imageAttachments.push({
-          type: 'image',
-          data: att.data.replace(/^data:image\/[^;]+;base64,/, ''),
-          mimeType: att.mimeType || 'image/png'
-        });
-      }
-    }
-
-    // If only images and no text, add a placeholder so the model processes them
-    if (imageAttachments.length && !fullText.trim()) {
-      fullText = 'Describe this image';
-    }
-
-    hideWelcome();
-
-    // Show user message with image thumbnails
-    let userHtml = escapeHtml(fullText);
-    for (const img of pendingAttachments.filter(a => a.type === 'image')) {
-      userHtml += `<div class="msg-attach"><img src="${img.data}"></div>`;
-    }
-    createMessage('user', userHtml);
-
-    const msg = isStreaming
-      ? { type: 'steer', message: fullText }
-      : { type: 'prompt', message: fullText };
-    if (imageAttachments.length) msg.images = imageAttachments;
-
-    ws.send(JSON.stringify(msg));
-
-    inputEl.value = ''; inputEl.rows = 1;
-    pendingAttachments = [];
-    renderAttachments();
-  }
-
-  sendBtn.onclick = sendPrompt;
-  inputEl.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendPrompt(); } };
-  inputEl.oninput = () => { inputEl.rows = Math.min(8, Math.max(1, inputEl.value.split('\n').length)); };
-
-  function handleSlashCommand(cmd, rest) {
-    if (!ws || ws.readyState !== 1) return;
-    switch (cmd) {
-      case 'abort': ws.send(JSON.stringify({ type: 'abort' })); break;
-      case 'compact': ws.send(JSON.stringify({ type: 'compact' })); break;
-      case 'new':
-        ws.send(JSON.stringify({ type: 'new_session' }));
-        messagesEl.innerHTML = ''; showWelcome(); activeSessionId = null; setHeaderTitle('New Chat');
-        setTimeout(refreshSessionList, 500);
-        if (currentAssistantEl) { if (currentAssistantEl._raf) cancelAnimationFrame(currentAssistantEl._raf); currentAssistantEl = null; }
-        isStreaming = false;
-        break;
-      case 'clear':
-        messagesEl.innerHTML = ''; showWelcome();
-        if (currentAssistantEl) { if (currentAssistantEl._raf) cancelAnimationFrame(currentAssistantEl._raf); currentAssistantEl = null; }
-        isStreaming = false;
-        break;
-      case 'model':
-        toggleModelPicker();
-        break;
-      default:
-        createMessage('error', `Unknown command: /${cmd}. Try /abort, /compact, /new, /clear, /model`);
-    }
-  }
-
-  // Drag & drop files
-  const dropTarget = document.querySelector('.main');
-  dropTarget.addEventListener('dragover', (e) => { e.preventDefault(); dropTarget.classList.add('drag-active'); });
-  dropTarget.addEventListener('dragleave', (e) => { if (!dropTarget.contains(e.relatedTarget)) dropTarget.classList.remove('drag-active'); });
-  dropTarget.addEventListener('drop', (e) => {
-    e.preventDefault();
-    dropTarget.classList.remove('drag-active');
-    const files = Array.from(e.dataTransfer.files);
-    for (const f of files) processFile(f);
-  });
-
-  // Quick actions
-  function bindQuickActions() {
-    document.querySelectorAll('.quick-actions button').forEach(btn => {
-      btn.onclick = () => { inputEl.value = btn.dataset.prompt; inputEl.focus(); inputEl.rows = Math.min(8, Math.max(1, inputEl.value.split('\\n').length)); };
-    });
-  }
-  bindQuickActions();
-
-  // Global keyboard shortcuts
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      if (modelPopover.classList.contains('open')) { modelPopover.classList.remove('open'); modelCurrent.classList.remove('open'); return; }
-      if (settingsPanel.classList.contains('open')) { closeSettings(); return; }
-      if (sidebar.classList.contains('open')) { sidebar.classList.remove('open'); sidebarOverlay.style.display = 'none'; return; }
-      if (isStreaming && ws) { ws.send(JSON.stringify({ type: 'abort' })); return; }
-    }
-    const tag = e.target.tagName;
-    if (tag === 'TEXTAREA' || tag === 'INPUT') return;
-    if (e.key === 'n' && e.ctrlKey) {
-      e.preventDefault();
-      document.getElementById('btn-new-chat').click();
-    }
-    if (e.key === 'l' && e.ctrlKey) {
-      e.preventDefault();
-      toggleModelPicker();
-    }
-  });
-
-  // New chat
-  document.getElementById('btn-new-chat').onclick = () => {
-    if (ws && ws.readyState === 1) {
-      ws.send(JSON.stringify({ type: 'new_session' }));
-      messagesEl.innerHTML = ''; showWelcome();
-      activeSessionId = null;
-      setHeaderTitle('New Chat');
-      setTimeout(refreshSessionList, 500);
-      if (currentAssistantEl) { if (currentAssistantEl._raf) cancelAnimationFrame(currentAssistantEl._raf); currentAssistantEl = null; }
-      isStreaming = false;
-    }
-  };
-
-  document.getElementById('btn-clear').onclick = () => {
-    messagesEl.innerHTML = ''; showWelcome();
-    if (currentAssistantEl) { if (currentAssistantEl._raf) cancelAnimationFrame(currentAssistantEl._raf); currentAssistantEl = null; }
-    isStreaming = false;
-  };
-
-  // ── Settings Panel ──────────────────────────────────
-  const settingsPanel = document.getElementById('settings-panel');
-  const settingsOverlay = document.getElementById('settings-overlay');
-  const systemPromptInput = document.getElementById('system-prompt-input');
-  let defaultPrompt = '';
-
-  function openSettings() {
-    settingsPanel.classList.add('open');
-    settingsOverlay.classList.add('open');
-    loadSystemPrompt();
-  }
-  function closeSettings() {
-    settingsPanel.classList.remove('open');
-    settingsOverlay.classList.remove('open');
-  }
-
-  document.getElementById('btn-settings').onclick = openSettings;
-  document.getElementById('btn-close-settings').onclick = closeSettings;
-  settingsOverlay.onclick = closeSettings;
-
-  async function loadSystemPrompt() {
-    try {
-      const res = await fetch('/system-prompt');
-      const data = await res.json();
-      systemPromptInput.value = data.prompt || '';
-      defaultPrompt = data.defaultPrompt || data.prompt || '';
-    } catch(e) {
-      showToast('Failed to load prompt');
-    }
-  }
-
-  document.getElementById('btn-save-prompt').onclick = async () => {
-    try {
-      const res = await fetch('/system-prompt', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: systemPromptInput.value })
-      });
-      if (res.ok) {
-        showToast('System prompt saved. AI will restart with new instructions.');
-      } else {
-        showToast('Failed to save prompt');
-      }
-    } catch(e) {
-      showToast('Failed to save prompt');
-    }
-  };
-
-  document.getElementById('btn-reset-prompt').onclick = async () => {
-    systemPromptInput.value = defaultPrompt;
-    try {
-      const res = await fetch('/system-prompt', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: '' })
-      });
-      if (res.ok) {
-        showToast('System prompt reset to default. AI will restart.');
-      } else {
-        showToast('Failed to reset prompt');
-      }
-    } catch(e) {
-      showToast('Failed to reset prompt');
-    }
-  };
-
-  function showWelcome() {
-    messagesEl.innerHTML = `
-      <div class="aichat-welcome" id="welcome">
-        <h1>🤖 pi</h1>
-        <p>Your local AI coding assistant. Ask me anything.</p>
-        <div class="quick-actions">
-          <button data-prompt="List the files in this directory">📂 List files</button>
-          <button data-prompt="What can you do?">🛠 What can you do?</button>
-          <button data-prompt="Help me debug an error">🐛 Debug help</button>
-          <button data-prompt="Write a Python script for">🐍 Write script</button>
-        </div>
-      </div>
-    `;
-    bindQuickActions();
-  }
-})();
-</script>
+<script src="chat-providers.js"></script>
+<script src="chat-client.js"></script>
   <div class="toast" id="toast"></div>
 </body>
 </html>
