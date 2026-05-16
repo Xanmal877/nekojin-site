@@ -520,7 +520,7 @@
     <!-- MANUSCRIPTS PANEL -->
     <div class="panel" id="panel-manuscripts">
       <h1 class="panel-title">📖 Manuscripts</h1>
-      <p class="panel-sub">Upload your book files (.docx or .epub). The server auto-rename them to match the book slug. Use Heading 1 style for chapter titles.</p>
+      <p class="panel-sub">Upload your book files (.docx). The server auto-renames them to match the book slug. Use Heading 1 style for chapter titles.</p>
       <div class="card">
         <div class="card-title">📁 Upload Manuscript</div>
         <p style="font-size:0.85rem;color:var(--muted);margin-bottom:1rem;">Select a book, then pick your file. The server handles naming.</p>
@@ -532,8 +532,8 @@
         </select>
 
         <label style="display:block;font-size:0.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.4rem;">2. Pick File</label>
-        <input type="file" id="ms-upload" accept=".docx,.epub" style="display:none" onchange="handleMsUpload(this)">
-        <button class="btn btn-primary" id="ms-file-btn" onclick="document.getElementById('ms-upload').click()" disabled>📄 Browse for .docx or .epub</button>
+        <input type="file" id="ms-upload" accept=".docx" style="display:none" onchange="handleMsUpload(this)">
+        <button class="btn btn-primary" id="ms-file-btn" onclick="document.getElementById('ms-upload').click()" disabled>📄 Browse for .docx</button>
         <div id="ms-upload-status" style="margin-top:1rem;font-size:0.85rem;"></div>
       </div>
       <div class="card">
@@ -1689,7 +1689,7 @@ async function loadManuscripts() {
         <div style="flex-shrink:0;">${book.cover ? `<img src="${esc(book.cover)}" style="width:48px;height:72px;object-fit:cover;border-radius:6px;">` : `<div style="width:48px;height:72px;background:var(--surface3);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;">📖</div>`}</div>
         <div style="flex:1;min-width:0;">
           <div style="font-weight:600;color:var(--text);font-size:0.95rem;">${esc(book.title)}</div>
-          <div style="font-family:var(--mono);font-size:0.78rem;color:var(--muted);margin-top:0.25rem;">Required filename: <strong style="color:var(--text2);">${esc(slug)}.docx</strong> or <strong style="color:var(--text2);">${esc(slug)}.epub</strong></div>
+          <div style="font-family:var(--mono);font-size:0.78rem;color:var(--muted);margin-top:0.25rem;">Required filename: <strong style="color:var(--text2);">${esc(slug)}.docx</strong></div>
           <div style="font-size:0.8rem;color:${statusColor};margin-top:0.3rem;">${statusText}</div>
         </div>
         <div style="flex-shrink:0;display:flex;gap:0.5rem;">
@@ -1708,7 +1708,7 @@ async function loadManuscripts() {
         html += `
         <div style="display:flex;align-items:center;gap:0.75rem;padding:0.6rem 0.8rem;background:rgba(232,176,32,0.05);border:1px solid rgba(232,176,32,0.2);border-radius:8px;">
           <span style="font-size:1.2rem;">📄</span>
-          <div style="flex:1;font-family:var(--mono);font-size:0.8rem;color:var(--text2);">${esc(slug)}.docx / .epub</div>
+          <div style="flex:1;font-family:var(--mono);font-size:0.8rem;color:var(--text2);">${esc(slug)}.docx</div>
           <span style="font-size:0.75rem;color:var(--gold);">Does not match any book slug — rename required</span>
         </div>`;
       }
@@ -1746,8 +1746,8 @@ async function handleMsUpload(input) {
 
 async function handleMsDrop(files) {
   const file = files[0];
-  if (!file || (!file.name.endsWith('.docx') && !file.name.endsWith('.epub'))) {
-    showToast('Please upload a .docx or .epub file', 'error');
+  if (!file || !file.name.endsWith('.docx')) {
+    showToast('Please upload a .docx file', 'error');
     return;
   }
   const slug = document.getElementById('ms-book-select').value;
