@@ -520,17 +520,17 @@
     <!-- MANUSCRIPTS PANEL -->
     <div class="panel" id="panel-manuscripts">
       <h1 class="panel-title">📖 Manuscripts</h1>
-      <p class="panel-sub">Upload .docx files to enable the chapter reader. Each file must match a book ID. Use Heading 1 style for chapter titles.</p>
+      <p class="panel-sub">Upload .docx or .epub files to enable the chapter reader. Each file must match a book ID. Use Heading 1 style for chapter titles.</p>
       <div class="card">
         <div class="card-title">📁 Upload Manuscript</div>
-        <p style="font-size:0.85rem;color:var(--muted);margin-bottom:1rem;">Drop a .docx file here or click to browse. The filename should match the Book ID (shown below).</p>
-        <input type="file" id="ms-upload" accept=".docx" style="display:none" onchange="handleMsUpload(this)">
+        <p style="font-size:0.85rem;color:var(--muted);margin-bottom:1rem;">Drop a .docx or .epub file here or click to browse. The filename should match the Book ID (shown below).</p>
+        <input type="file" id="ms-upload" accept=".docx,.epub" style="display:none" onchange="handleMsUpload(this)">
         <div id="ms-dropzone" onclick="document.getElementById('ms-upload').click()" style="border:2px dashed var(--border);border-radius:12px;padding:2rem;text-align:center;color:var(--muted);cursor:pointer;transition:all 0.2s;"
           ondragover="event.preventDefault();this.style.borderColor='var(--royal)';this.style.background='rgba(139,92,246,0.05)';"
           ondragleave="this.style.borderColor='';this.style.background='';"
           ondrop="event.preventDefault();this.style.borderColor='';this.style.background='';handleMsDrop(event.dataTransfer.files)">
           <div style="font-size:2rem;margin-bottom:0.5rem;">📄</div>
-          <div style="font-size:0.9rem;font-weight:500;">Drop .docx file or click to upload</div>
+          <div style="font-size:0.9rem;font-weight:500;">Drop .docx or .epub file or click to upload</div>
           <div style="font-size:0.75rem;margin-top:0.5rem;">Use Heading 1 for chapter titles</div>
         </div>
         <div id="ms-upload-status" style="margin-top:1rem;font-size:0.85rem;"></div>
@@ -1661,23 +1661,39 @@ async function loadManuscripts() {
     let html = `<div style="display:flex;flex-direction:column;gap:0.75rem;">`;
     for (const book of books) {
       const hasMs = msSet.has(book.id);
-      const statusColor = hasMs ? 'var(--green)' : 'var(--muted)';
-      const statusText = hasMs ? '✅ Reader enabled' : '❌ No manuscript';
+      const statusColor = hasMs ? 'var(--green)' : 'var(--red)';
+      const statusText = hasMs ? '✅ Reader enabled' : '❌ Missing — rename your file to match';
       const slug = book.id;
       html += `
       <div style="display:flex;align-items:center;gap:1rem;padding:0.85rem 1rem;background:var(--surface2);border:1px solid var(--border);border-radius:10px;">
         <div style="flex-shrink:0;">${book.cover ? `<img src="${esc(book.cover)}" style="width:48px;height:72px;object-fit:cover;border-radius:6px;">` : `<div style="width:48px;height:72px;background:var(--surface3);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;">📖</div>`}</div>
         <div style="flex:1;min-width:0;">
           <div style="font-weight:600;color:var(--text);font-size:0.95rem;">${esc(book.title)}</div>
-          <div style="font-family:var(--mono);font-size:0.78rem;color:var(--muted);margin-top:0.25rem;">Filename: <strong style="color:var(--text2);">${esc(slug)}.docx</strong></div>
+          <div style="font-family:var(--mono);font-size:0.78rem;color:var(--muted);margin-top:0.25rem;">Required filename: <strong style="color:var(--text2);">${esc(slug)}.docx</strong> or <strong style="color:var(--text2);">${esc(slug)}.epub</strong></div>
           <div style="font-size:0.8rem;color:${statusColor};margin-top:0.3rem;">${statusText}</div>
         </div>
         <div style="flex-shrink:0;display:flex;gap:0.5rem;">
-          ${hasMs ? `<a href="/read?book=${encodeURIComponent(slug)}" target="_blank" class="btn btn-primary btn-sm">Open Reader</a>` : ''}
+          ${hasMs ? `<a href="/read?book=${encodeURIComponent(slug)}" target="_blank" class="btn btn-primary btn-sm">Open Reader</a>` : `<span style="font-size:0.75rem;color:var(--muted);">Upload or rename</span>`}
         </div>
       </div>`;
     }
     html += `</div>`;
+
+    // Show unmapped files (wrong names)
+    const unmapped = mss.filter(slug => !books.some(b => b.id === slug));
+    if (unmapped.length) {
+      html += `<div style="margin-top:1.5rem;"><div style="font-size:0.85rem;font-weight:600;color:var(--gold);margin-bottom:0.75rem;">⚠️ Unmapped files (wrong filenames)</div>`;
+      html += `<div style="display:flex;flex-direction:column;gap:0.5rem;">`;
+      for (const slug of unmapped) {
+        html += `
+        <div style="display:flex;align-items:center;gap:0.75rem;padding:0.6rem 0.8rem;background:rgba(232,176,32,0.05);border:1px solid rgba(232,176,32,0.2);border-radius:8px;">
+          <span style="font-size:1.2rem;">📄</span>
+          <div style="flex:1;font-family:var(--mono);font-size:0.8rem;color:var(--text2);">${esc(slug)}.docx / .epub</div>
+          <span style="font-size:0.75rem;color:var(--gold);">Does not match any book ID — rename required</span>
+        </div>`;
+      }
+      html += `</div></div>`;
+    }
 
     if (!books.length) {
       html = `<p style="color:var(--muted);">No books in site-content.json yet. Add books in the Books &amp; Series tab first.</p>`;
@@ -1698,8 +1714,8 @@ async function handleMsUpload(input) {
 
 async function handleMsDrop(files) {
   const file = files[0];
-  if (!file || !file.name.endsWith('.docx')) {
-    showToast('Please upload a .docx file', 'error');
+  if (!file || (!file.name.endsWith('.docx') && !file.name.endsWith('.epub'))) {
+    showToast('Please upload a .docx or .epub file', 'error');
     return;
   }
   await uploadMsFile(file);

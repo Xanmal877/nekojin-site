@@ -21,6 +21,7 @@ const os          = require('os');
 const https       = require('https');
 const httpReq     = require('http');
 const mammoth     = require('mammoth');
+const AdmZip      = require('adm-zip');
 
 // ── CONFIG ────────────────────────────────────────────────
 const SESSION_TTL    = 1000 * 60 * 60 * 24 * 7; // 7 days
@@ -136,16 +137,30 @@ function setUserKey(username, provider, key) {
     saveUserKeys(all);
 }
 
-// ── MANUSCRIPT PARSING (.docx → chapters) ───────────────
+// ── MANUSCRIPT PARSING (.docx / .epub → chapters) ──────
 const MANUSCRIPT_CACHE = new Map(); // slug → {mtime, chapters}
 
 async function parseManuscript(slug) {
-    const filePath = path.join(MANUSCRIPTS_DIR, slug + '.docx');
-    if (!fs.existsSync(filePath)) return null;
+    const docxPath = path.join(MANUSCRIPTS_DIR, slug + '.docx');
+    const epubPath = path.join(MANUSCRIPTS_DIR, slug + '.epub');
+    let filePath, isEpub = false;
+    if (fs.existsSync(docxPath)) { filePath = docxPath; }
+    else if (fs.existsSync(epubPath)) { filePath = epubPath; isEpub = true; }
+    else return null;
+
     const mtime = fs.statSync(filePath).mtimeMs;
     const cached = MANUSCRIPT_CACHE.get(slug);
     if (cached && cached.mtime === mtime) return cached.chapters;
 
+    let chapters;
+    if (isEpub) chapters = await parseEpub(filePath);
+    else chapters = await parseDocx(filePath);
+
+    MANUSCRIPT_CACHE.set(slug, { mtime, chapters });
+    return chapters;
+}
+
+async function parseDocx(filePath) {
     const result = await mammoth.convertToHtml({ path: filePath }, {
         styleMap: [
             "p[style-name='Heading 1'] => h1",
@@ -154,10 +169,78 @@ async function parseManuscript(slug) {
             "p[style-name='Title'] => h1.title",
         ]
     });
+    return splitHtmlIntoChapters(result.value);
+}
 
-    const html = result.value;
-    // Split into chapters by h1/h2 headings containing "chapter" or numbers
-    const chapterRegex = /<(h1|h2)[^>]*>(.*?)<\/\1>/gi;
+async function parseEpub(filePath) {
+    const zip = new AdmZip(filePath);
+    const entries = zip.getEntries();
+
+    // Find container.xml to locate the OPF
+    const containerEntry = entries.find(e => e.entryName === 'META-INF/container.xml');
+    let opfPath = 'OEBPS/content.opf'; // default fallback
+    if (containerEntry) {
+        const containerXml = containerEntry.getData().toString('utf8');
+        const rootfileMatch = containerXml.match(/full-path=["']([^"']+)["']/);
+        if (rootfileMatch) opfPath = rootfileMatch[1];
+    }
+
+    // Find OPF entry (paths may use / or different case)
+    const opfEntry = entries.find(e => e.entryName.toLowerCase().replace(/\\/g, '/') === opfPath.toLowerCase().replace(/\\/g, '/'));
+    let htmlFiles = [];
+
+    if (opfEntry) {
+        const opfXml = opfEntry.getData().toString('utf8');
+        // Extract spine order (idrefs)
+        const spineMatch = opfXml.match(/<spine[^>]*>([\s\S]*?)<\/spine>/i);
+        if (spineMatch) {
+            const idrefs = [...spineMatch[1].matchAll(/<itemref[^>]+idref=["']([^"']+)["']/gi)].map(m => m[1]);
+            // Build manifest id → href map
+            const manifestMatch = opfXml.match(/<manifest[^>]*>([\s\S]*?)<\/manifest>/i);
+            if (manifestMatch) {
+                const manifest = {};
+                [...manifestMatch[1].matchAll(/<item[^>]+id=["']([^"']+)["'][^>]+href=["']([^"']+)["']/gi)].forEach(m => {
+                    manifest[m[1]] = m[2];
+                });
+                // Resolve relative hrefs based on OPF location
+                const opfDir = opfPath.includes('/') ? opfPath.split('/').slice(0, -1).join('/') : '';
+                htmlFiles = idrefs.map(id => {
+                    const href = manifest[id];
+                    if (!href) return null;
+                    return opfDir ? opfDir + '/' + href : href;
+                }).filter(Boolean);
+            }
+        }
+    }
+
+    // Fallback: if no spine found, list all HTML files alphabetically
+    if (!htmlFiles.length) {
+        htmlFiles = entries
+            .filter(e => /\.(html|xhtml|htm)$/i.test(e.entryName) && !e.entryName.startsWith('META-INF/'))
+            .map(e => e.entryName)
+            .sort();
+    }
+
+    // Read each HTML file and extract body content
+    let fullHtml = '';
+    for (const href of htmlFiles) {
+        const entry = entries.find(e => e.entryName.toLowerCase().replace(/\\/g, '/') === href.toLowerCase().replace(/\\/g, '/'));
+        if (!entry) continue;
+        let html = entry.getData().toString('utf8');
+        // Extract body content
+        const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+        if (bodyMatch) html = bodyMatch[1];
+        // Remove scripts/styles
+        html = html.replace(/<script[\s\S]*?<\/script>/gi, '');
+        html = html.replace(/<style[\s\S]*?<\/style>/gi, '');
+        fullHtml += '\n' + html;
+    }
+
+    return splitHtmlIntoChapters(fullHtml);
+}
+
+function splitHtmlIntoChapters(html) {
+    const chapterRegex = /<(h1|h2|h3)[^>]*>(.*?)<\/\1>/gi;
     const chapters = [];
     let lastIndex = 0;
     let match;
@@ -165,9 +248,9 @@ async function parseManuscript(slug) {
 
     while ((match = chapterRegex.exec(html)) !== null) {
         const headingText = match[2].replace(/<[^>]+>/g, '').trim();
-        const isChapterHeading = /chapter|prologue|epilogue|preface|introduction/i.test(headingText);
-        if (!isChapterHeading && chapters.length === 0) continue; // skip non-chapter front matter until first chapter
-        if (!isChapterHeading && chapters.length > 0) continue; // skip non-chapter headings between chapters? Actually include everything
+        const isChapterHeading = /chapter|prologue|epilogue|preface|introduction|part\s+\d+/i.test(headingText);
+        if (!isChapterHeading && chapters.length === 0) continue;
+        if (!isChapterHeading && chapters.length > 0) continue;
 
         if (chapters.length > 0) {
             chapters[chapters.length - 1].content = html.slice(lastIndex, match.index);
@@ -176,7 +259,7 @@ async function parseManuscript(slug) {
         chapters.push({
             num: chapterNum,
             title: headingText,
-            content: '' // filled by next iteration or end
+            content: ''
         });
         lastIndex = match.index + match[0].length;
     }
@@ -185,20 +268,17 @@ async function parseManuscript(slug) {
         chapters[chapters.length - 1].content = html.slice(lastIndex);
     }
 
-    // If no chapters found, treat entire doc as chapter 1
     if (chapters.length === 0) {
         chapters.push({ num: 1, title: 'Chapter 1', content: html });
     }
-
-    MANUSCRIPT_CACHE.set(slug, { mtime, chapters });
     return chapters;
 }
 
 function listManuscripts() {
     try {
         return fs.readdirSync(MANUSCRIPTS_DIR)
-            .filter(f => f.endsWith('.docx'))
-            .map(f => f.replace(/\.docx$/i, ''));
+            .filter(f => f.endsWith('.docx') || f.endsWith('.epub'))
+            .map(f => f.replace(/\.(docx|epub)$/i, ''));
     } catch { return []; }
 }
 
@@ -1032,16 +1112,18 @@ const server = http.createServer(async (req, res) => {
             const parts = parseMultipart(body, bm[1]);
             const file  = parts['file'];
             if (!file || !file.data) { res.writeHead(400); return res.end('No file'); }
-            // Extract slug from filename (remove .docx)
-            const origName = (file.filename || 'manuscript').replace(/\.docx$/i, '');
+            // Detect extension
+            const extMatch = (file.filename || '').match(/\.(docx|epub)$/i);
+            const ext = extMatch ? extMatch[1].toLowerCase() : 'docx';
+            const origName = (file.filename || 'manuscript').replace(/\.(docx|epub)$/i, '');
             const safeName = origName.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 100);
             const slug = safeName;
-            const outPath = path.join(MANUSCRIPTS_DIR, slug + '.docx');
+            const outPath = path.join(MANUSCRIPTS_DIR, slug + '.' + ext);
             fs.writeFileSync(outPath, file.data);
             // Clear cache for this slug
             MANUSCRIPT_CACHE.delete(slug);
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ slug, name: safeName + '.docx', size: file.data.length }));
+            return res.end(JSON.stringify({ slug, name: safeName + '.' + ext, size: file.data.length }));
         } catch(e) { res.writeHead(500); return res.end(e.message); }
     }
 
