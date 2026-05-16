@@ -1021,6 +1021,30 @@ const server = http.createServer(async (req, res) => {
         } catch(e) { res.writeHead(500); return res.end(e.message); }
     }
 
+    // Upload manuscript .docx (admin only)
+    if (req.method === 'POST' && url === '/upload-manuscript') {
+        if (!isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        try {
+            const body = await readRawBody(req);
+            const ct   = req.headers['content-type'] || '';
+            const bm   = ct.match(/boundary=([^\s;]+)/);
+            if (!bm) { res.writeHead(400); return res.end('No boundary'); }
+            const parts = parseMultipart(body, bm[1]);
+            const file  = parts['file'];
+            if (!file || !file.data) { res.writeHead(400); return res.end('No file'); }
+            // Extract slug from filename (remove .docx)
+            const origName = (file.filename || 'manuscript').replace(/\.docx$/i, '');
+            const safeName = origName.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 100);
+            const slug = safeName;
+            const outPath = path.join(MANUSCRIPTS_DIR, slug + '.docx');
+            fs.writeFileSync(outPath, file.data);
+            // Clear cache for this slug
+            MANUSCRIPT_CACHE.delete(slug);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ slug, name: safeName + '.docx', size: file.data.length }));
+        } catch(e) { res.writeHead(500); return res.end(e.message); }
+    }
+
     // Admin page (admin only)
     if (req.method === 'GET' && (url === '/admin' || url === '/dashboard')) {
         if (!isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
