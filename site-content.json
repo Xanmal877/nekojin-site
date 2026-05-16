@@ -26,32 +26,32 @@
     "steamUrl": "https://store.steampowered.com/app/3403760/Autumns_Dungeoneering/",
     "features": [
       {
-        "icon": "🧠",
+        "icon": "\ud83e\udde0",
         "title": "Emergent AI",
         "desc": "NPCs run on a Utility AI + GOAP hybrid. They remember, plan, and surprise you."
       },
       {
-        "icon": "⚔️",
+        "icon": "\u2694\ufe0f",
         "title": "Tactical Dungeon Crawl",
         "desc": "Grid-based exploration with real-time decision making and strategic depth."
       },
       {
-        "icon": "👥",
+        "icon": "\ud83d\udc65",
         "title": "Up to 32 Players",
         "desc": "Soul-Brain-Body multiplayer architecture keeps the server authoritative and responsive."
       },
       {
-        "icon": "🌍",
+        "icon": "\ud83c\udf0d",
         "title": "Living World",
         "desc": "Chunk-based world streaming, dynamic quests, and a simulation that runs without you."
       },
       {
-        "icon": "🍂",
+        "icon": "\ud83c\udf42",
         "title": "Cozy Aesthetic",
         "desc": "Warm pixel art, seasonal themes, and a tone that balances comfort with challenge."
       },
       {
-        "icon": "🎒",
+        "icon": "\ud83c\udf92",
         "title": "Deep Systems",
         "desc": "Inventory, skills, quests, and crafting. All interlocked, all emergent."
       }
@@ -86,7 +86,8 @@
           "url": "https://www.amazon.com/dp/B0GX2TMKHG"
         }
       ],
-      "slug": "tamaneko"
+      "slug": "tamaneko",
+      "ctaPlatform": "kdp"
     },
     {
       "id": "book-1776403199439",
@@ -124,7 +125,8 @@
           "url": "https://www.amazon.com/dp/B0GBV1TGJ5"
         }
       ],
-      "slug": "hero-is-perfect"
+      "slug": "hero-is-perfect",
+      "ctaPlatform": "kdp"
     },
     {
       "id": "book-1776403239514",
@@ -161,7 +163,8 @@
           "url": "https://www.amazon.com/dp/B0GX2WYVZQ"
         }
       ],
-      "slug": "lucas"
+      "slug": "lucas",
+      "ctaPlatform": "kdp"
     },
     {
       "id": "book-1778873555299",
@@ -196,7 +199,8 @@
           "url": "https://www.scribblehub.com/series/2305685/the-godling-and-her-husband/"
         }
       ],
-      "slug": "godling"
+      "slug": "godling",
+      "ctaPlatform": "kdp"
     }
   ]
 }
