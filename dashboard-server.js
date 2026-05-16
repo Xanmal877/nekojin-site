@@ -13,6 +13,7 @@
 const http        = require('http');
 const fs          = require('fs');
 const path        = require('path');
+const bcrypt      = require('bcryptjs');
 const crypto      = require('crypto');
 const { spawn }   = require('child_process');
 const WebSocket   = require('ws');
@@ -21,10 +22,9 @@ const https       = require('https');
 const httpReq     = require('http');
 
 // ── CONFIG ────────────────────────────────────────────────
-const AUTH_USER      = 'xanmal';
-const AUTH_PASS      = 'nekojin2026';
 const SESSION_TTL    = 1000 * 60 * 60 * 24 * 7; // 7 days
 const PI_GRACE_MS    = 1000 * 60 * 5; // 5 minutes
+const SALT_ROUNDS    = 10;
 
 const PORT           = 7771;
 const METRICS_FILE   = path.join(__dirname, 'story-metrics.json');
@@ -35,6 +35,8 @@ const PUBLIC_DIR     = path.join(__dirname, 'public');
 const COVERS_DIR     = path.join(PUBLIC_DIR, 'covers');
 const NEWSLETTER_FILE = path.join(__dirname, 'newsletter-subscribers.json');
 const WEBCHAT_ROOT   = path.join(os.homedir(), '.pi', 'agent', 'webchat-sessions');
+const USERS_FILE     = path.join(__dirname, 'users.json');
+const USER_KEYS_FILE = path.join(__dirname, 'user-keys.json');
 
 if (!fs.existsSync(WEBCHAT_ROOT)) fs.mkdirSync(WEBCHAT_ROOT, { recursive: true });
 
@@ -59,6 +61,63 @@ function getSessionUser(id) {
     return s ? s.username : null;
 }
 function deleteSession(id) { sessions.delete(id); }
+
+// ── USER DATABASE ───────────────────────────────────────
+function loadUsers() {
+    try { return JSON.parse(fs.readFileSync(USERS_FILE, 'utf8')); }
+    catch { return { users: {} }; }
+}
+function saveUsers(users) {
+    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+    try { fs.chmodSync(USERS_FILE, 0o600); } catch {}
+}
+function findUser(username) {
+    const db = loadUsers();
+    return db.users[username] || null;
+}
+function createUser(username, password) {
+    const db = loadUsers();
+    if (db.users[username]) return false;
+    db.users[username] = { passwordHash: bcrypt.hashSync(password, SALT_ROUNDS), createdAt: Date.now() };
+    saveUsers(db);
+    return true;
+}
+function verifyUser(username, password) {
+    const user = findUser(username);
+    if (!user) return false;
+    return bcrypt.compareSync(password, user.passwordHash);
+}
+// Auto-create admin on first boot
+function ensureAdminUser() {
+    const db = loadUsers();
+    if (!db.users['xanmal']) {
+        db.users['xanmal'] = { passwordHash: bcrypt.hashSync('nekojin2026', SALT_ROUNDS), createdAt: Date.now() };
+        saveUsers(db);
+        console.log('Created default admin user: xanmal');
+    }
+}
+ensureAdminUser();
+
+// ── USER KEYS ───────────────────────────────────────────
+function loadUserKeys() {
+    try { return JSON.parse(fs.readFileSync(USER_KEYS_FILE, 'utf8')); }
+    catch { return {}; }
+}
+function saveUserKeys(data) {
+    fs.writeFileSync(USER_KEYS_FILE, JSON.stringify(data, null, 2));
+    try { fs.chmodSync(USER_KEYS_FILE, 0o600); } catch {}
+}
+function getUserKeys(username) {
+    const all = loadUserKeys();
+    return all[username] || {};
+}
+function setUserKey(username, provider, key) {
+    const all = loadUserKeys();
+    if (!all[username]) all[username] = {};
+    all[username][provider] = key;
+    saveUserKeys(all);
+}
+
 function parseCookies(h) {
     const c = {};
     if (!h) return c;
@@ -153,13 +212,17 @@ function loginPage(nextUrl = '/admin', error = '') {
     button:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(91,26,154,0.5)}
     .back{display:block;text-align:center;margin-top:1.5rem;font-size:0.82rem;color:#5A4A80;text-decoration:none}
     .back:hover{color:#8B44E8}
+    .link-row{display:flex;justify-content:center;gap:1rem;margin-top:1.25rem;font-size:0.82rem}
+    .link-row a{color:#5A4A80;text-decoration:none}
+    .link-row a:hover{color:#8B44E8}
+    .success{background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.3);color:#86efac;font-size:0.82rem;padding:0.6rem 0.9rem;border-radius:8px;margin-bottom:1.25rem}
   </style>
 </head>
 <body>
   <div class="card">
-    <div class="logo">🐾 Nekojin Interactive</div>
-    <div class="sub">✦ Admin Access ✦</div>
-    ${error ? `<div class="error">⚠️ ${error}</div>` : ''}
+    <div class="logo">Nekojin Interactive</div>
+    <div class="sub">✦ Sign In ✦</div>
+    ${error ? `<div class="error">${error}</div>` : ''}
     <form method="POST" action="/login">
       <input type="hidden" name="next" value="${safeNext.replace(/"/g,'&quot;')}">
       <label>Username</label>
@@ -168,7 +231,55 @@ function loginPage(nextUrl = '/admin', error = '') {
       <input type="password" name="password" autocomplete="current-password" required>
       <button type="submit">Sign In</button>
     </form>
-    <a href="/" class="back">← Back to site</a>
+    <div class="link-row"><a href="/register">Create account</a><a href="/">Back to site</a></div>
+  </div>
+</body>
+</html>`;
+}
+
+function registerPage(error = '', success = '') {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Account - Nekojin Interactive</title>
+  <link href="https://fonts.googleapis.com/css2?family=Darumadrop+One&family=Zen+Kaku+Gothic+New:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{min-height:100vh;background:#0d0820;display:flex;align-items:center;justify-content:center;font-family:'Zen Kaku Gothic New',sans-serif;padding:2rem;position:relative;overflow:hidden}
+    body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 60% at 20% 0%,rgba(91,26,154,0.2),transparent 60%),radial-gradient(ellipse 60% 80% at 80% 100%,rgba(22,44,110,0.15),transparent 60%);pointer-events:none}
+    .card{background:#140f2e;border:1px solid rgba(124,40,212,0.25);border-radius:24px;padding:2.5rem;width:100%;max-width:400px;box-shadow:0 8px 40px rgba(0,0,0,0.5);position:relative;z-index:1}
+    .logo{font-family:'Darumadrop One',cursive;font-size:1.4rem;color:#8B44E8;text-align:center;margin-bottom:0.25rem}
+    .sub{text-align:center;font-size:0.78rem;color:#5A4A80;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:2rem}
+    label{display:block;font-size:0.78rem;font-weight:700;color:#7C28D4;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:0.35rem}
+    input{width:100%;padding:0.7rem 1rem;border:1.5px solid rgba(124,40,212,0.2);border-radius:10px;font-family:inherit;font-size:0.9rem;color:#d8cef0;background:#1c1640;outline:none;transition:border-color 0.2s;margin-bottom:1.25rem}
+    input:focus{border-color:#8B44E8}
+    .error{background:rgba(224,80,80,0.1);border:1px solid rgba(224,80,80,0.3);color:#e08080;font-size:0.82rem;padding:0.6rem 0.9rem;border-radius:8px;margin-bottom:1.25rem}
+    .success{background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.3);color:#86efac;font-size:0.82rem;padding:0.6rem 0.9rem;border-radius:8px;margin-bottom:1.25rem}
+    button{width:100%;padding:0.85rem;background:linear-gradient(135deg,#5B1A9A,#162C6E);color:white;border:none;border-radius:999px;font-family:inherit;font-size:1rem;font-weight:600;cursor:pointer;transition:all 0.2s}
+    button:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(91,26,154,0.5)}
+    .back{display:block;text-align:center;margin-top:1.5rem;font-size:0.82rem;color:#5A4A80;text-decoration:none}
+    .back:hover{color:#8B44E8}
+    .hint{font-size:0.75rem;color:#5A4A80;margin-bottom:1.25rem}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">Nekojin Interactive</div>
+    <div class="sub">✦ Create Account ✦</div>
+    ${error ? `<div class="error">${error}</div>` : ''}
+    ${success ? `<div class="success">${success}</div>` : ''}
+    <form method="POST" action="/register" ${success ? 'style="display:none;"' : ''}>
+      <label>Username</label>
+      <p class="hint">3-32 characters, letters, numbers, underscores only.</p>
+      <input type="text" name="username" autocomplete="username" required pattern="[a-z0-9_]{3,32}" title="3-32 lowercase letters, numbers, underscores">
+      <label>Password</label>
+      <input type="password" name="password" autocomplete="new-password" required minlength="6">
+      <label>Confirm Password</label>
+      <input type="password" name="confirm" autocomplete="new-password" required minlength="6">
+      <button type="submit">Create Account</button>
+    </form>
+    <a href="/login" class="back">← Back to sign in</a>
   </div>
 </body>
 </html>`;
@@ -562,7 +673,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && url === '/login') {
         const body   = await readRawBody(req);
         const params = parseFormBody(body);
-        if (params.username === AUTH_USER && params.password === AUTH_PASS) {
+        if (verifyUser(params.username, params.password)) {
             const sid  = createSession(params.username);
             const next = (params.next && params.next.startsWith('/')) ? params.next : '/admin';
             res.writeHead(302, {
@@ -573,6 +684,60 @@ const server = http.createServer(async (req, res) => {
         }
         res.writeHead(200,{'Content-Type':'text/html'});
         return res.end(loginPage(params.next || '/admin', 'Incorrect username or password.'));
+    }
+
+    // Register page
+    if (req.method === 'GET' && url === '/register') {
+        res.writeHead(200,{'Content-Type':'text/html'});
+        return res.end(registerPage());
+    }
+
+    // Register handler
+    if (req.method === 'POST' && url === '/register') {
+        const body   = await readRawBody(req);
+        const params = parseFormBody(body);
+        const username = (params.username || '').trim().toLowerCase();
+        const password = params.password || '';
+        const confirm  = params.confirm || '';
+        if (!/^[a-z0-9_]{3,32}$/.test(username)) {
+            res.writeHead(200,{'Content-Type':'text/html'});
+            return res.end(registerPage('Username must be 3-32 characters: letters, numbers, underscores.'));
+        }
+        if (password.length < 6) {
+            res.writeHead(200,{'Content-Type':'text/html'});
+            return res.end(registerPage('Password must be at least 6 characters.'));
+        }
+        if (password !== confirm) {
+            res.writeHead(200,{'Content-Type':'text/html'});
+            return res.end(registerPage('Passwords do not match.'));
+        }
+        if (!createUser(username, password)) {
+            res.writeHead(200,{'Content-Type':'text/html'});
+            return res.end(registerPage('Username already taken.'));
+        }
+        res.writeHead(200,{'Content-Type':'text/html'});
+        return res.end(registerPage('', 'Account created. You can now log in.'));
+    }
+
+    // API Keys (read / write)
+    if (url === '/api/keys') {
+        if (!isAuthenticated(req)) { res.writeHead(401, {'Content-Type':'application/json'}); return res.end(JSON.stringify({error:'Unauthorized'})); }
+        const user = getUsername(req);
+        if (req.method === 'GET') {
+            res.writeHead(200, {'Content-Type':'application/json'});
+            return res.end(JSON.stringify(getUserKeys(user)));
+        }
+        if (req.method === 'POST') {
+            try {
+                const body = await readRawBody(req);
+                const data = JSON.parse(body.toString('utf8'));
+                for (const [provider, key] of Object.entries(data)) {
+                    setUserKey(user, provider, key || '');
+                }
+                res.writeHead(200, {'Content-Type':'application/json'});
+                return res.end('{"ok":true}');
+            } catch(e) { res.writeHead(400); return res.end(e.message); }
+        }
     }
 
     // Logout
