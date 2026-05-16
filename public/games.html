@@ -177,6 +177,29 @@
       color: #e9d5ff;
     }
 
+    /* ── GAME DESCRIPTION ── */
+    .game-showcase-description {
+      grid-column: 1 / -1;
+      padding: 2rem 3rem 2.5rem;
+      border-top: 1px solid var(--border);
+    }
+    .game-showcase-description h4 {
+      font-family: var(--font-display);
+      font-size: 1.05rem;
+      color: var(--ink);
+      margin: 1.5rem 0 0.5rem;
+      line-height: 1.2;
+    }
+    .game-showcase-description h4:first-child { margin-top: 0; }
+    .game-showcase-description p {
+      font-size: 0.85rem;
+      color: rgba(212,200,240,0.78);
+      line-height: 1.85;
+      margin-bottom: 1rem;
+      font-weight: 300;
+    }
+    .game-showcase-description p:last-child { margin-bottom: 0; }
+
     .game-showcase-art {
       position: relative; overflow: hidden;
       background: linear-gradient(160deg, #150a38, #0d1535);
@@ -459,6 +482,21 @@ const revealObs = new IntersectionObserver((entries) => {
 }, { threshold: 0.08, rootMargin: '0px 0px -20px 0px' });
 document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
 
+function formatGameDesc(desc, title) {
+  if (!desc) return '';
+  const lines = desc.split('\n');
+  let start = 0;
+  if (lines[0].includes(title)) start = 1;
+  const body = lines.slice(start).join('\n');
+  return body.split(/\n\n+/).filter(p => p.trim()).map(p => {
+    const text = esc(p.trim()).replace(/\n/g, ' ');
+    if (text.length < 60 && !text.includes('.') && !text.includes('?') && !text.includes('!')) {
+      return '<h4>' + text + '</h4>';
+    }
+    return '<p>' + text + '</p>';
+  }).join('');
+}
+
 async function loadGame() {
   try {
     const res = await fetch('/content');
@@ -467,9 +505,9 @@ async function loadGame() {
     const g = data.game;
     if (!g) return;
 
-    // Hero subtitle
-    if (g.description) {
-      document.getElementById('games-hero-sub').textContent = g.description;
+    // Hero subtitle — use tagline, not the full description
+    if (g.tagline) {
+      document.getElementById('games-hero-sub').textContent = g.tagline;
     }
 
     // Steam button
@@ -509,11 +547,12 @@ async function loadGame() {
         <div class="game-cta-row">${steamBtn}</div>
         <div style="margin-top:0.75rem;font-size:0.78rem;color:var(--muted);">
           <a href="/action_registry.html" style="color:var(--royal-light);text-decoration:none;opacity:0.7;transition:opacity 0.2s;">
-            📋 View Action Registry →
+            View Action Registry →
           </a>
         </div>
       </div>
       <div class="game-showcase-art">${artHtml}</div>
+      <div class="game-showcase-description">${formatGameDesc(g.description, g.title)}</div>
     `;
 
     // Re-observe the newly rendered card
