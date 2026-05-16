@@ -31,9 +31,13 @@ tmp/
 # Debug screenshots
 sh-debug-screenshot.png
 
+# Manuscripts (user's book files)
+manuscripts/
+
 # Browser profiles
 chrome-profile/
 
 # User data
 users.json
 user-keys.json
+*.zip

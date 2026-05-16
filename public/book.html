@@ -104,6 +104,8 @@
     .cta-wp:hover  { background: rgba(251,146,60,0.18); border-color: rgba(251,146,60,0.5); }
     .cta-other { background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--text2); }
     .cta-other:hover { background: rgba(255,255,255,0.08); }
+    .cta-read { background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.4); color: #c4b5fd; font-weight: 600; }
+    .cta-read:hover { background: rgba(139,92,246,0.25); border-color: rgba(139,92,246,0.6); }
 
     .back-link {
       display: inline-flex; align-items: center; gap: 0.4rem;
@@ -385,6 +387,8 @@ async function loadBook() {
     return `<a href="${esc(p.url)}" target="_blank" rel="noopener" class="${cls}">${label}</a>`;
   }).join('');
 
+  const readBtn = `<a href="/read?book=${encodeURIComponent(book.id)}" class="cta-read">📖 Read Preview</a>`;
+
   container.innerHTML = `
     <div class="book-hero">
       <div class="book-hero-cover">
@@ -399,7 +403,7 @@ async function loadBook() {
         <h1 class="book-hero-title">${esc(book.title)}</h1>
         ${tags ? `<div class="book-hero-tags">${tags}</div>` : ''}
         <p class="book-hero-desc">${esc(book.description)}</p>
-        ${ctas ? `<div class="book-hero-cta">${ctas}</div>` : ''}
+        <div class="book-hero-cta">${readBtn}${ctas}</div>
       </div>
     </div>
   `;
