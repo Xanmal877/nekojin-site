@@ -757,12 +757,21 @@ async function sendApiMessage(text) {
   abortCtrl = new AbortController();
 
   try {
-    const stream = proxyChatStream(
-      CFG.currentProvider, modelId,
-      session.messages.filter(m => m.role !== 'system' && m.role !== 'error').map(m => ({ role: m.role, content: m.content })),
-      CFG.systemPrompt, { temperature: CFG.temperature, topP: 1, maxTokens: CFG.maxTokens },
-      abortCtrl.signal
-    );
+    let stream;
+    if (CFG.currentProvider === 'ollama') {
+      stream = ollamaChatStream(modelId,
+        session.messages.filter(m => m.role !== 'system' && m.role !== 'error').map(m => ({ role: m.role, content: m.content })),
+        CFG.systemPrompt, { temperature: CFG.temperature, topP: 1, maxTokens: CFG.maxTokens },
+        abortCtrl.signal
+      );
+    } else {
+      stream = proxyChatStream(
+        CFG.currentProvider, modelId,
+        session.messages.filter(m => m.role !== 'system' && m.role !== 'error').map(m => ({ role: m.role, content: m.content })),
+        CFG.systemPrompt, { temperature: CFG.temperature, topP: 1, maxTokens: CFG.maxTokens },
+        abortCtrl.signal
+      );
+    }
 
     for await (const chunk of stream) {
       if (!isStreaming) break;
