@@ -1115,15 +1115,17 @@ const server = http.createServer(async (req, res) => {
             // Detect extension
             const extMatch = (file.filename || '').match(/\.(docx|epub)$/i);
             const ext = extMatch ? extMatch[1].toLowerCase() : 'docx';
-            const origName = (file.filename || 'manuscript').replace(/\.(docx|epub)$/i, '');
-            const safeName = origName.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 100);
-            const slug = safeName;
+            // Use provided slug from form, or fall back to filename
+            const formSlug = (parts['slug'] || '').trim();
+            const slug = formSlug
+                ? formSlug.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 100)
+                : (file.filename || 'manuscript').replace(/\.(docx|epub)$/i, '').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 100);
             const outPath = path.join(MANUSCRIPTS_DIR, slug + '.' + ext);
             fs.writeFileSync(outPath, file.data);
             // Clear cache for this slug
             MANUSCRIPT_CACHE.delete(slug);
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ slug, name: safeName + '.' + ext, size: file.data.length }));
+            return res.end(JSON.stringify({ slug, name: slug + '.' + ext, size: file.data.length }));
         } catch(e) { res.writeHead(500); return res.end(e.message); }
     }
 
