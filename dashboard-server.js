@@ -213,7 +213,7 @@ function loginPage(nextUrl = '/admin', error = '') {
     .back{display:block;text-align:center;margin-top:1.5rem;font-size:0.82rem;color:#5A4A80;text-decoration:none}
     .back:hover{color:#8B44E8}
     .link-row{display:flex;justify-content:center;gap:1rem;margin-top:1.25rem;font-size:0.82rem}
-    .link-row a{color:#5A4A80;text-decoration:none}
+    .link-row a{color:#d4c8f0;text-decoration:none}
     .link-row a:hover{color:#8B44E8}
     .success{background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.3);color:#86efac;font-size:0.82rem;padding:0.6rem 0.9rem;border-radius:8px;margin-bottom:1.25rem}
   </style>
