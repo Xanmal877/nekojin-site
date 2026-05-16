@@ -96,7 +96,7 @@ const PROVIDERS = {
     supportsSystem: true,
     supportsTemperature: true,
     needsBaseUrl: true,
-    baseUrlDefault: 'http://localhost:11434'
+    baseUrlDefault: 'http://192.168.1.23:11434'
   }
 };
 
@@ -198,6 +198,75 @@ async function* proxyChatStream(provider, model, messages, systemPrompt, options
         } catch (e) {
           if (e.message && e.message.includes('Provider error')) throw e;
           // Skip malformed lines
+        }
+      }
+    }
+  } finally {
+    reader.cancel().catch(() => {});
+  }
+}
+
+// ── Direct Ollama chat (browser → desktop Ollama) ─────
+async function* ollamaChatStream(model, messages, systemPrompt, options = {}, signal) {
+  const baseUrl = getStoredBaseUrl().replace(/\/$/, '');
+  const url = baseUrl + '/api/chat';
+  const msgs = [];
+  if (systemPrompt) msgs.push({ role: 'system', content: systemPrompt });
+  for (const m of messages) {
+    if (m.role === 'system') continue;
+    msgs.push({ role: m.role, content: m.content });
+  }
+  const body = JSON.stringify({
+    model,
+    messages: msgs,
+    stream: true,
+    options: {
+      temperature: options.temperature ?? 0.7,
+      top_p: options.topP ?? 1,
+      num_predict: options.maxTokens ?? 4096
+    }
+  });
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body,
+    signal
+  });
+  if (!res.ok) {
+    let err = 'Ollama error';
+    try { const d = await res.json(); err = d.error || err; } catch {}
+    throw new Error(err + ` (${res.status})`);
+  }
+  if (!res.body) throw new Error('No response body');
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let idx;
+      while ((idx = buffer.indexOf('\n')) !== -1) {
+        const line = buffer.slice(0, idx).trim();
+        buffer = buffer.slice(idx + 1);
+        if (!line) continue;
+        try {
+          const data = JSON.parse(line);
+          if (data.error) throw new Error(data.error);
+          if (data.message?.content) {
+            yield { type: 'text', text: data.message.content };
+          }
+          if (data.done) {
+            if (data.eval_count != null) {
+              yield { type: 'usage', input_tokens: data.prompt_eval_count || 0, output_tokens: data.eval_count || 0 };
+            }
+            yield { type: 'done' };
+          }
+        } catch (e) {
+          if (e.message && !e.message.includes('Unexpected token')) throw e;
         }
       }
     }
