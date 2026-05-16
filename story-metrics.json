@@ -3,6 +3,13 @@
     "rr-137945": {
       "history": [
         {
+          "date": "2026-05-16",
+          "timestamp": "2026-05-16T01:18:21.745Z",
+          "followers": 11,
+          "chapters": 76,
+          "views": 9257
+        },
+        {
           "date": "2026-05-15",
           "timestamp": "2026-05-15T17:07:47.229Z",
           "followers": 11,
@@ -477,15 +484,22 @@
       "id": "137945",
       "followers": 11,
       "chapters": 76,
-      "views": 9248,
+      "views": 9257,
       "growth": {
         "followers": 0,
         "chapters": 0,
-        "views": 132
+        "views": 9
       }
     },
     "rr-143276": {
       "history": [
+        {
+          "date": "2026-05-16",
+          "timestamp": "2026-05-16T01:18:23.644Z",
+          "followers": 138,
+          "chapters": 42,
+          "views": 10080
+        },
         {
           "date": "2026-05-15",
           "timestamp": "2026-05-15T17:07:49.713Z",
@@ -968,15 +982,22 @@
       "id": "143276",
       "followers": 138,
       "chapters": 42,
-      "views": 10075,
+      "views": 10080,
       "growth": {
         "followers": 0,
         "chapters": 0,
-        "views": 17
+        "views": 5
       }
     },
     "sh-2061119": {
       "history": [
+        {
+          "date": "2026-05-16",
+          "timestamp": "2026-05-16T01:18:37.249Z",
+          "followers": 76,
+          "chapters": 84,
+          "views": 12600
+        },
         {
           "date": "2026-05-15",
           "timestamp": "2026-05-15T17:08:03.044Z",
@@ -1461,9 +1482,9 @@
       "chapters": 84,
       "views": 12600,
       "growth": {
-        "followers": 2,
+        "followers": 0,
         "chapters": 0,
-        "views": 300
+        "views": 0
       }
     },
     "sh-2203357": {
@@ -1953,6 +1974,13 @@
     "rr-160681": {
       "history": [
         {
+          "date": "2026-05-16",
+          "timestamp": "2026-05-16T01:18:25.030Z",
+          "followers": 9,
+          "chapters": 25,
+          "views": 2064
+        },
+        {
           "date": "2026-05-15",
           "timestamp": "2026-05-15T17:07:51.310Z",
           "followers": 9,
@@ -2140,15 +2168,22 @@
       "id": "160681",
       "followers": 9,
       "chapters": 25,
-      "views": 2061,
+      "views": 2064,
       "growth": {
         "followers": 0,
         "chapters": 0,
-        "views": 6
+        "views": 3
       }
     },
     "sh-2270576": {
       "history": [
+        {
+          "date": "2026-05-16",
+          "timestamp": "2026-05-16T01:18:53.683Z",
+          "followers": 19,
+          "chapters": 25,
+          "views": 1500
+        },
         {
           "date": "2026-05-15",
           "timestamp": "2026-05-15T17:08:19.258Z",
@@ -2335,15 +2370,37 @@
       "platform": "scribblehub",
       "title": "LUCAS THE GRAND STRATEGIST",
       "id": "2270576",
-      "followers": 20,
+      "followers": 19,
       "chapters": 25,
       "views": 1500,
       "growth": {
+        "followers": -1,
+        "chapters": 0,
+        "views": 0
+      }
+    },
+    "sh-2305685": {
+      "history": [
+        {
+          "date": "2026-05-16",
+          "timestamp": "2026-05-16T01:19:09.490Z",
+          "followers": 22,
+          "chapters": 3,
+          "views": 782
+        }
+      ],
+      "platform": "scribblehub",
+      "title": "The Godling and Her Husband",
+      "id": "2305685",
+      "followers": 22,
+      "chapters": 3,
+      "views": 782,
+      "growth": {
         "followers": 0,
         "chapters": 0,
-        "views": 100
+        "views": 0
       }
     }
   },
-  "lastUpdated": "2026-05-15T17:08:34.721Z"
+  "lastUpdated": "2026-05-16T01:19:09.490Z"
 }
