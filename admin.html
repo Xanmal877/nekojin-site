@@ -520,19 +520,20 @@
     <!-- MANUSCRIPTS PANEL -->
     <div class="panel" id="panel-manuscripts">
       <h1 class="panel-title">📖 Manuscripts</h1>
-      <p class="panel-sub">Upload .docx or .epub files to enable the chapter reader. Each file must match a book ID. Use Heading 1 style for chapter titles.</p>
+      <p class="panel-sub">Upload your book files (.docx or .epub). The server auto-rename them to match the book slug. Use Heading 1 style for chapter titles.</p>
       <div class="card">
         <div class="card-title">📁 Upload Manuscript</div>
-        <p style="font-size:0.85rem;color:var(--muted);margin-bottom:1rem;">Drop a .docx or .epub file here or click to browse. The filename should match the Book ID (shown below).</p>
+        <p style="font-size:0.85rem;color:var(--muted);margin-bottom:1rem;">Select a book, then pick your file. The server handles naming.</p>
+
+        <label style="display:block;font-size:0.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.4rem;">1. Choose Book</label>
+        <select id="ms-book-select" style="width:100%;padding:0.6rem 0.8rem;background:var(--bg);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:inherit;font-size:0.9rem;margin-bottom:1rem;outline:none;"
+          onchange="document.getElementById('ms-file-btn').disabled = !this.value">
+          <option value="">Select a book…</option>
+        </select>
+
+        <label style="display:block;font-size:0.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.4rem;">2. Pick File</label>
         <input type="file" id="ms-upload" accept=".docx,.epub" style="display:none" onchange="handleMsUpload(this)">
-        <div id="ms-dropzone" onclick="document.getElementById('ms-upload').click()" style="border:2px dashed var(--border);border-radius:12px;padding:2rem;text-align:center;color:var(--muted);cursor:pointer;transition:all 0.2s;"
-          ondragover="event.preventDefault();this.style.borderColor='var(--royal)';this.style.background='rgba(139,92,246,0.05)';"
-          ondragleave="this.style.borderColor='';this.style.background='';"
-          ondrop="event.preventDefault();this.style.borderColor='';this.style.background='';handleMsDrop(event.dataTransfer.files)">
-          <div style="font-size:2rem;margin-bottom:0.5rem;">📄</div>
-          <div style="font-size:0.9rem;font-weight:500;">Drop .docx or .epub file or click to upload</div>
-          <div style="font-size:0.75rem;margin-top:0.5rem;">Use Heading 1 for chapter titles</div>
-        </div>
+        <button class="btn btn-primary" id="ms-file-btn" onclick="document.getElementById('ms-upload').click()" disabled>📄 Browse for .docx or .epub</button>
         <div id="ms-upload-status" style="margin-top:1rem;font-size:0.85rem;"></div>
       </div>
       <div class="card">
@@ -1719,6 +1720,16 @@ async function loadManuscripts() {
     }
 
     document.getElementById('ms-mapping').innerHTML = html;
+
+    // Populate upload dropdown
+    const select = document.getElementById('ms-book-select');
+    const currentVal = select.value;
+    select.innerHTML = `<option value="">Select a book…</option>` + books.map(b => {
+      const slug = b.slug || b.id;
+      const hasMs = msSet.has(slug);
+      return `<option value="${esc(slug)}"${hasMs ? ' disabled' : ''}>${esc(b.title)}${hasMs ? ' (already uploaded)' : ''}</option>`;
+    }).join('');
+    if (currentVal && [...select.options].some(o => o.value === currentVal)) select.value = currentVal;
   } catch (err) {
     document.getElementById('ms-mapping').innerHTML = `<p style="color:var(--red);">Failed to load: ${err.message}</p>`;
   }
@@ -1727,7 +1738,9 @@ async function loadManuscripts() {
 async function handleMsUpload(input) {
   const file = input.files[0];
   if (!file) return;
-  await uploadMsFile(file);
+  const slug = document.getElementById('ms-book-select').value;
+  if (!slug) { showToast('Select a book first', 'error'); return; }
+  await uploadMsFile(file, slug);
   input.value = '';
 }
 
@@ -1737,20 +1750,23 @@ async function handleMsDrop(files) {
     showToast('Please upload a .docx or .epub file', 'error');
     return;
   }
-  await uploadMsFile(file);
+  const slug = document.getElementById('ms-book-select').value;
+  if (!slug) { showToast('Select a book first', 'error'); return; }
+  await uploadMsFile(file, slug);
 }
 
-async function uploadMsFile(file) {
+async function uploadMsFile(file, slug) {
   const status = document.getElementById('ms-upload-status');
   status.innerHTML = `<span style="color:var(--muted);">Uploading ${esc(file.name)}…</span>`;
   try {
     const body = new FormData();
     body.append('file', file);
+    body.append('slug', slug);
     const res = await fetch('/upload-manuscript', { method: 'POST', body });
     if (!res.ok) throw new Error(await res.text());
     const data = await res.json();
-    showToast(`Uploaded ${esc(data.name)}`);
-    status.innerHTML = `<span style="color:var(--green);">✅ Uploaded ${esc(data.name)} — mapped to book <strong>${esc(data.slug)}</strong></span>`;
+    showToast(`Uploaded for ${esc(data.slug)}`);
+    status.innerHTML = `<span style="color:var(--green);">✅ Uploaded and saved as <strong>${esc(data.name)}</strong></span>`;
     loadManuscripts();
   } catch (err) {
     status.innerHTML = `<span style="color:var(--red);">❌ ${err.message}</span>`;
