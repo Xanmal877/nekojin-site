@@ -33,3 +33,7 @@ sh-debug-screenshot.png
 
 # Browser profiles
 chrome-profile/
+
+# User data
+users.json
+user-keys.json

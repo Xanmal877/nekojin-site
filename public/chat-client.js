@@ -205,6 +205,8 @@ function populateModels(models) {
     const tag = display.provider ? `<span class="provider-tag">${escapeHtml(display.provider)}</span>` : '';
     cur.querySelector('span:first-child').innerHTML = `${escapeHtml(display.name || display.id)} ${tag}`;
     if (!currentModel) currentModel = display.id;
+  } else if (CFG.currentProvider === 'ollama') {
+    cur.querySelector('span:first-child').innerHTML = `Ollama <span class="provider-tag">no models</span>`;
   }
 
   // Build popover grouped by provider
@@ -551,10 +553,18 @@ function loadSettingsUI() {
   }
 }
 
-window._selectProvider = function(pid) {
+window._selectProvider = async function(pid) {
   CFG.currentProvider = pid;
   currentModel = CFG.currentModel;
-  populateModels([]);
+
+  if (pid === 'ollama') {
+    if (els['model-current']) els['model-current'].querySelector('span:first-child').textContent = 'Fetching models…';
+    const models = await fetchOllamaModels(getStoredBaseUrl());
+    PROVIDERS.ollama.models = models;
+    populateModels([]);
+  } else {
+    populateModels([]);
+  }
   loadSettingsUI();
 };
 
@@ -574,6 +584,20 @@ function saveSettings() {
   if (tempIn) CFG.temperature = parseFloat(tempIn.value);
   const maxIn = document.getElementById('settings-maxtokens');
   if (maxIn) CFG.maxTokens = parseInt(maxIn.value, 10) || 4096;
+
+  // Sync all provider keys to server
+  const keysToSave = {};
+  for (const pid of Object.keys(PROVIDERS)) {
+    if (PROVIDERS[pid].requiresKey) {
+      keysToSave[pid] = getStoredKey(pid);
+    }
+  }
+  fetch('/api/keys', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(keysToSave)
+  }).catch(() => {});
+
   showToast('Settings saved');
   closeSettings();
 }
@@ -888,6 +912,9 @@ document.addEventListener('DOMContentLoaded', () => {
       else sendUserMessage();
     };
   }
+  if (els['stop-btn']) {
+    els['stop-btn'].onclick = stopGeneration;
+  }
   if (els.input) {
     els.input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (isStreaming) stopGeneration(); else sendUserMessage(); }
@@ -904,6 +931,16 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.dataTransfer.files.length) for (const f of e.dataTransfer.files) processFile(f);
     });
   }
+
+  // Fetch saved API keys from server on load
+  fetch('/api/keys')
+    .then(r => { if (!r.ok) throw new Error('Not authenticated'); return r.json(); })
+    .then(keys => {
+      for (const [provider, key] of Object.entries(keys)) {
+        if (key) setStoredKey(provider, key);
+      }
+    })
+    .catch(() => {});
 
   // Init pi WS
   connectPiWS();
