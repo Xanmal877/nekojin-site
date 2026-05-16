@@ -178,7 +178,7 @@ async function parseEpub(filePath) {
 
     // Find container.xml to locate the OPF
     const containerEntry = entries.find(e => e.entryName === 'META-INF/container.xml');
-    let opfPath = 'OEBPS/content.opf'; // default fallback
+    let opfPath = 'OEBPS/content.opf';
     if (containerEntry) {
         const containerXml = containerEntry.getData().toString('utf8');
         const rootfileMatch = containerXml.match(/full-path=["']([^"']+)["']/);
@@ -191,18 +191,15 @@ async function parseEpub(filePath) {
 
     if (opfEntry) {
         const opfXml = opfEntry.getData().toString('utf8');
-        // Extract spine order (idrefs)
         const spineMatch = opfXml.match(/<spine[^>]*>([\s\S]*?)<\/spine>/i);
         if (spineMatch) {
             const idrefs = [...spineMatch[1].matchAll(/<itemref[^>]+idref=["']([^"']+)["']/gi)].map(m => m[1]);
-            // Build manifest id → href map
             const manifestMatch = opfXml.match(/<manifest[^>]*>([\s\S]*?)<\/manifest>/i);
             if (manifestMatch) {
                 const manifest = {};
                 [...manifestMatch[1].matchAll(/<item[^>]+id=["']([^"']+)["'][^>]+href=["']([^"']+)["']/gi)].forEach(m => {
                     manifest[m[1]] = m[2];
                 });
-                // Resolve relative hrefs based on OPF location
                 const opfDir = opfPath.includes('/') ? opfPath.split('/').slice(0, -1).join('/') : '';
                 htmlFiles = idrefs.map(id => {
                     const href = manifest[id];
@@ -213,7 +210,6 @@ async function parseEpub(filePath) {
         }
     }
 
-    // Fallback: if no spine found, list all HTML files alphabetically
     if (!htmlFiles.length) {
         htmlFiles = entries
             .filter(e => /\.(html|xhtml|htm)$/i.test(e.entryName) && !e.entryName.startsWith('META-INF/'))
@@ -221,25 +217,70 @@ async function parseEpub(filePath) {
             .sort();
     }
 
-    // Read each HTML file and extract body content
-    let fullHtml = '';
+    // Skip common front-matter / back-matter files by name
+    const skipPatterns = /(toc|copyright|dedication|acknowledgment|about\.the\.author|titlepage|cover|contents|index\.html|glossary)/i;
+
+    const chapters = [];
+    let chapterNum = 0;
     for (const href of htmlFiles) {
         const entry = entries.find(e => e.entryName.toLowerCase().replace(/\\/g, '/') === href.toLowerCase().replace(/\\/g, '/'));
         if (!entry) continue;
+        if (skipPatterns.test(href)) continue;
+
         let html = entry.getData().toString('utf8');
-        // Extract body content
+        // Extract title from <title> tag or first heading
+        let title = '';
+        const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
+        if (titleMatch) title = titleMatch[1].replace(/\s+/g, ' ').trim();
+
+        // Extract body
         const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
         if (bodyMatch) html = bodyMatch[1];
-        // Remove scripts/styles
+
+        // Clean
         html = html.replace(/<script[\s\S]*?<\/script>/gi, '');
         html = html.replace(/<style[\s\S]*?<\/style>/gi, '');
-        fullHtml += '\n' + html;
+
+        // Look for first heading in the body for a better title
+        const headingMatch = html.match(/<(h1|h2|h3)[^>]*>([\s\S]*?)<\/\1>/i);
+        if (headingMatch) {
+            const headingText = headingMatch[2].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+            if (headingText) title = headingText;
+        }
+
+        // Skip empty or nearly-empty chapters
+        const textOnly = html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+        if (textOnly.length < 50) continue;
+
+        chapterNum++;
+        chapters.push({
+            num: chapterNum,
+            title: title || `Chapter ${chapterNum}`,
+            content: html
+        });
     }
 
-    return splitHtmlIntoChapters(fullHtml);
+    if (chapters.length === 0) {
+        // Ultimate fallback: treat all content as one chapter
+        let allHtml = '';
+        for (const href of htmlFiles) {
+            const entry = entries.find(e => e.entryName.toLowerCase().replace(/\\/g, '/') === href.toLowerCase().replace(/\\/g, '/'));
+            if (!entry) continue;
+            let html = entry.getData().toString('utf8');
+            const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+            if (bodyMatch) html = bodyMatch[1];
+            html = html.replace(/<script[\s\S]*?<\/script>/gi, '');
+            html = html.replace(/<style[\s\S]*?<\/style>/gi, '');
+            allHtml += '\n' + html;
+        }
+        chapters.push({ num: 1, title: 'Chapter 1', content: allHtml });
+    }
+
+    return chapters;
 }
 
 function splitHtmlIntoChapters(html) {
+    // More lenient: any h1/h2/h3 can be a chapter boundary if we have enough text between them
     const chapterRegex = /<(h1|h2|h3)[^>]*>(.*?)<\/\1>/gi;
     const chapters = [];
     let lastIndex = 0;
@@ -248,9 +289,16 @@ function splitHtmlIntoChapters(html) {
 
     while ((match = chapterRegex.exec(html)) !== null) {
         const headingText = match[2].replace(/<[^>]+>/g, '').trim();
+        // Accept any heading as a chapter break if we have substantial text before it
+        const textBefore = html.slice(lastIndex, match.index).replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+        const isFirst = chapters.length === 0;
         const isChapterHeading = /chapter|prologue|epilogue|preface|introduction|part\s+\d+/i.test(headingText);
-        if (!isChapterHeading && chapters.length === 0) continue;
-        if (!isChapterHeading && chapters.length > 0) continue;
+
+        if (!isChapterHeading && isFirst && textBefore.length < 200) {
+            // Very little text before first non-chapter heading — skip it as front matter
+            lastIndex = match.index + match[0].length;
+            continue;
+        }
 
         if (chapters.length > 0) {
             chapters[chapters.length - 1].content = html.slice(lastIndex, match.index);
