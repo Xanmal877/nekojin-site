@@ -415,6 +415,9 @@
     <div class="sidebar-item" data-panel="scraper" onclick="switchPanel('scraper')">
       <span class="sidebar-icon">📊</span> Scraper Dashboard
     </div>
+    <div class="sidebar-item" data-panel="manuscripts" onclick="switchPanel('manuscripts')">
+      <span class="sidebar-icon">📖</span> Manuscripts
+    </div>
     <div class="sidebar-item" data-panel="settings" onclick="switchPanel('settings')">
       <span class="sidebar-icon">⚙️</span> Settings
     </div>
@@ -511,6 +514,30 @@
           </div>
           <div id="day-detail-body"></div>
         </div>
+      </div>
+    </div>
+
+    <!-- MANUSCRIPTS PANEL -->
+    <div class="panel" id="panel-manuscripts">
+      <h1 class="panel-title">📖 Manuscripts</h1>
+      <p class="panel-sub">Upload .docx files to enable the chapter reader. Each file must match a book ID. Use Heading 1 style for chapter titles.</p>
+      <div class="card">
+        <div class="card-title">📁 Upload Manuscript</div>
+        <p style="font-size:0.85rem;color:var(--muted);margin-bottom:1rem;">Drop a .docx file here or click to browse. The filename should match the Book ID (shown below).</p>
+        <input type="file" id="ms-upload" accept=".docx" style="display:none" onchange="handleMsUpload(this)">
+        <div id="ms-dropzone" onclick="document.getElementById('ms-upload').click()" style="border:2px dashed var(--border);border-radius:12px;padding:2rem;text-align:center;color:var(--muted);cursor:pointer;transition:all 0.2s;"
+          ondragover="event.preventDefault();this.style.borderColor='var(--royal)';this.style.background='rgba(139,92,246,0.05)';"
+          ondragleave="this.style.borderColor='';this.style.background='';"
+          ondrop="event.preventDefault();this.style.borderColor='';this.style.background='';handleMsDrop(event.dataTransfer.files)">
+          <div style="font-size:2rem;margin-bottom:0.5rem;">📄</div>
+          <div style="font-size:0.9rem;font-weight:500;">Drop .docx file or click to upload</div>
+          <div style="font-size:0.75rem;margin-top:0.5rem;">Use Heading 1 for chapter titles</div>
+        </div>
+        <div id="ms-upload-status" style="margin-top:1rem;font-size:0.85rem;"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">📚 Book → Manuscript Mapping</div>
+        <div id="ms-mapping"><div class="loading-spinner"></div></div>
       </div>
     </div>
 
@@ -1619,6 +1646,89 @@ function dragDrop(e, targetSi, targetBi) {
   }
   _dragSi = null; _dragBi = null;
 }
+
+// ── MANUSCRIPTS PANEL ───────────────────────────────────
+async function loadManuscripts() {
+  try {
+    const [contentRes, msRes] = await Promise.all([
+      fetch('/content').then(r => r.json()),
+      fetch('/api/manuscripts').then(r => r.json())
+    ]);
+    const books = contentRes.books || [];
+    const mss = msRes.manuscripts || [];
+    const msSet = new Set(mss);
+
+    let html = `<div style="display:flex;flex-direction:column;gap:0.75rem;">`;
+    for (const book of books) {
+      const hasMs = msSet.has(book.id);
+      const statusColor = hasMs ? 'var(--green)' : 'var(--muted)';
+      const statusText = hasMs ? '✅ Reader enabled' : '❌ No manuscript';
+      const slug = book.id;
+      html += `
+      <div style="display:flex;align-items:center;gap:1rem;padding:0.85rem 1rem;background:var(--surface2);border:1px solid var(--border);border-radius:10px;">
+        <div style="flex-shrink:0;">${book.cover ? `<img src="${esc(book.cover)}" style="width:48px;height:72px;object-fit:cover;border-radius:6px;">` : `<div style="width:48px;height:72px;background:var(--surface3);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;">📖</div>`}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:600;color:var(--text);font-size:0.95rem;">${esc(book.title)}</div>
+          <div style="font-family:var(--mono);font-size:0.78rem;color:var(--muted);margin-top:0.25rem;">Filename: <strong style="color:var(--text2);">${esc(slug)}.docx</strong></div>
+          <div style="font-size:0.8rem;color:${statusColor};margin-top:0.3rem;">${statusText}</div>
+        </div>
+        <div style="flex-shrink:0;display:flex;gap:0.5rem;">
+          ${hasMs ? `<a href="/read?book=${encodeURIComponent(slug)}" target="_blank" class="btn btn-primary btn-sm">Open Reader</a>` : ''}
+        </div>
+      </div>`;
+    }
+    html += `</div>`;
+
+    if (!books.length) {
+      html = `<p style="color:var(--muted);">No books in site-content.json yet. Add books in the Books &amp; Series tab first.</p>`;
+    }
+
+    document.getElementById('ms-mapping').innerHTML = html;
+  } catch (err) {
+    document.getElementById('ms-mapping').innerHTML = `<p style="color:var(--red);">Failed to load: ${err.message}</p>`;
+  }
+}
+
+async function handleMsUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  await uploadMsFile(file);
+  input.value = '';
+}
+
+async function handleMsDrop(files) {
+  const file = files[0];
+  if (!file || !file.name.endsWith('.docx')) {
+    showToast('Please upload a .docx file', 'error');
+    return;
+  }
+  await uploadMsFile(file);
+}
+
+async function uploadMsFile(file) {
+  const status = document.getElementById('ms-upload-status');
+  status.innerHTML = `<span style="color:var(--muted);">Uploading ${esc(file.name)}…</span>`;
+  try {
+    const body = new FormData();
+    body.append('file', file);
+    const res = await fetch('/upload-manuscript', { method: 'POST', body });
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    showToast(`Uploaded ${esc(data.name)}`);
+    status.innerHTML = `<span style="color:var(--green);">✅ Uploaded ${esc(data.name)} — mapped to book <strong>${esc(data.slug)}</strong></span>`;
+    loadManuscripts();
+  } catch (err) {
+    status.innerHTML = `<span style="color:var(--red);">❌ ${err.message}</span>`;
+    showToast('Upload failed: ' + err.message, 'error');
+  }
+}
+
+// Hook into panel switch to load manuscripts
+const _origSwitchPanel = switchPanel;
+switchPanel = function(name) {
+  _origSwitchPanel(name);
+  if (name === 'manuscripts') loadManuscripts();
+};
 
 init();
 loadBgSettings();
