@@ -25,7 +25,7 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
 
   // Never cache API calls
-  if (e.request.url.includes('/content') || e.request.url.includes('/data') || e.request.url.includes('/chat') || e.request.url.includes('/newsletter')) return;
+  if (e.request.url.includes('/content') || e.request.url.includes('/chat') || e.request.url.includes('/newsletter')) return;
 
   const isHTML = e.request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname === '/';
   const isStatic = e.request.method === 'GET' && (url.pathname.endsWith('.css') || url.pathname.endsWith('.js') || url.pathname.endsWith('.png') || url.pathname.endsWith('.jpg') || url.pathname.endsWith('.jpeg') || url.pathname.endsWith('.svg') || url.pathname.endsWith('.webp') || url.pathname.endsWith('.ico'));

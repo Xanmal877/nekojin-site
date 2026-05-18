@@ -7,7 +7,6 @@
  * - /content        GET   → site-content.json (public, for dynamic pages)
  * - /save-content   POST  → write site-content.json (auth required)
  * - /upload-cover   POST  → save image to public/covers/ (auth required)
- * - /data /scrape /events → scraper API (auth required)
  */
 
 const http        = require('http');
@@ -28,8 +27,6 @@ const PI_GRACE_MS    = 1000 * 60 * 5; // 5 minutes
 const SALT_ROUNDS    = 10;
 
 const PORT           = 7771;
-const METRICS_FILE   = path.join(__dirname, 'story-metrics.json');
-const SCRAPER_FILE   = path.join(__dirname, 'BookStatScraper.js');
 const CONTENT_FILE   = path.join(__dirname, 'site-content.json');
 const ADMIN_FILE     = path.join(__dirname, 'admin.html');
 const PUBLIC_DIR     = path.join(__dirname, 'public');
@@ -44,7 +41,6 @@ if (!fs.existsSync(MANUSCRIPTS_DIR)) fs.mkdirSync(MANUSCRIPTS_DIR, { recursive: 
 
 if (!fs.existsSync(WEBCHAT_ROOT)) fs.mkdirSync(WEBCHAT_ROOT, { recursive: true });
 
-let scrapeRunning = false;
 if (!fs.existsSync(COVERS_DIR)) fs.mkdirSync(COVERS_DIR, { recursive: true });
 
 // ── HTTP SESSIONS ─────────────────────────────────────────
@@ -383,26 +379,6 @@ function registerPage(error = '', success = '') {
 </body>
 </html>`;
 }
-
-// ── SSE ───────────────────────────────────────────────────
-const sseClients = new Set();
-let notifyTimer = null;
-function notifyClients() {
-    clearTimeout(notifyTimer);
-    notifyTimer = setTimeout(() => {
-        for (const r of sseClients) r.write('data: update\n\n');
-    }, 300);
-}
-try { fs.watch(METRICS_FILE, notifyClients); } catch {}
-let lastMtime = 0;
-try { lastMtime = fs.statSync(METRICS_FILE).mtimeMs; } catch {}
-setInterval(() => {
-    try {
-        const mt = fs.statSync(METRICS_FILE).mtimeMs;
-        if (mt !== lastMtime) { lastMtime = mt; notifyClients(); }
-    } catch {}
-}, 10_000);
-
 // ── PUBLIC ROUTES ─────────────────────────────────────────
 const PUBLIC_ROUTES = {
     '/':                      path.join(PUBLIC_DIR, 'index.html'),
@@ -1122,60 +1098,8 @@ const server = http.createServer(async (req, res) => {
             return res.end(JSON.stringify({ path: `/covers/${fname}` }));
         } catch(e) { res.writeHead(500); return res.end(e.message); }
     }
-
-    // SSE (admin only)
-    if (url === '/events') {
-        if (!isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
-        res.writeHead(200, {
-            'Content-Type':'text/event-stream','Cache-Control':'no-cache',
-            'Connection':'keep-alive','Access-Control-Allow-Origin':'*',
-        });
-        res.write(':ok\n\n');
-        sseClients.add(res);
-        req.on('close', () => sseClients.delete(res));
-        return;
-    }
-
-    // Metrics data (admin only)
-    if (url === '/data') {
-        if (!isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
-        try { res.writeHead(200,{'Content-Type':'application/json'}); return res.end(fs.readFileSync(METRICS_FILE,'utf8')); }
-        catch { res.writeHead(500); return res.end('{}'); }
-    }
-
-    // Scrape now (admin only)
-    if (req.method === 'POST' && url === '/scrape') {
-        if (!isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
-        if (scrapeRunning) { res.writeHead(409); return res.end('Scrape already running'); }
-        scrapeRunning = true;
-        let stderr = '';
-        const child = spawn(process.execPath, [SCRAPER_FILE], { cwd: __dirname, env: process.env, stdio: ['ignore','inherit','pipe'] });
-        child.stderr.on('data', d => { stderr += d; process.stderr.write(d); });
-        child.on('close', code => {
-            scrapeRunning = false;
-            if (!res.headersSent) { res.writeHead(code===0?200:500,{'Content-Type':'text/plain'}); res.end(code===0 ? 'ok' : `exit ${code}\n${stderr.slice(0,2000)}`); }
-        });
-        child.on('error', err => { scrapeRunning = false; if (!res.headersSent) { res.writeHead(500); res.end('spawn failed: '+err.message); } });
-        return;
-    }
-
-    // Delete metrics date (admin only)
-    if (req.method === 'POST' && url === '/delete-metrics-date') {
-        if (!isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
-        try {
-            const body = await readRawBody(req);
-            const { date } = JSON.parse(body.toString());
-            if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) { res.writeHead(400); return res.end('Invalid date'); }
-            const data = JSON.parse(fs.readFileSync(METRICS_FILE, 'utf8'));
-            for (const story of Object.values(data.stories)) story.history = (story.history || []).filter(e => e.date !== date);
-            data.lastUpdated = new Date().toISOString();
-            fs.writeFileSync(METRICS_FILE, JSON.stringify(data, null, 2));
-            res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end('{"ok":true}');
-        } catch(e) { res.writeHead(500); return res.end(e.message); }
-    }
-    });
-
-// ── EXTERNAL PROVIDER PROXY ─────────────────────────────
+    // External provider proxy
+    if (url === '/api/proxy/chat') {
 async function proxyProviderChat(res, provider, apiKey, baseUrl, model, messages, system, stream, temperature, topP, maxTokens) {
     const isStream = stream !== false;
     const headers = { 'Content-Type': 'application/json' };

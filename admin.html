@@ -277,70 +277,6 @@
     }
     .standalone-header span { flex: 1; }
 
-    /* ── SCRAPER / CALENDAR ── */
-    .last-updated { font-size: 0.78rem; color: var(--muted); font-family: var(--mono); }
-    #dashboard-embed { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
-
-    .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
-    .cal-nav-title { font-family: var(--display); font-size: 1.1rem; color: var(--text); }
-    .cal-nav-btn {
-      background: transparent; border: 1px solid var(--border); color: var(--muted);
-      border-radius: 8px; width: 32px; height: 32px; cursor: pointer; font-size: 1rem;
-      display: flex; align-items: center; justify-content: center; transition: all 0.15s;
-    }
-    .cal-nav-btn:hover { color: var(--text); border-color: var(--border2); }
-    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
-    .cal-dow { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); text-align: center; padding-bottom: 0.4rem; }
-    .cal-cell {
-      border-radius: 6px; border: 1px solid transparent;
-      display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
-      padding: 5px 2px 4px; cursor: default; transition: all 0.15s; min-height: 0; position: relative;
-    }
-    .cal-cell.has-data  { background: var(--surface2); border-color: var(--border); cursor: pointer; }
-    .cal-cell.has-data:hover { border-color: var(--border2); background: var(--surface3); }
-    .cal-cell.today     { border-color: var(--royal) !important; }
-    .cal-cell.selected  { background: rgba(139,68,232,0.15) !important; border-color: var(--royal) !important; }
-    .cal-cell.empty     { opacity: 0; pointer-events: none; }
-    .cal-day-num { font-size: 0.9rem; font-family: var(--mono); color: var(--muted); line-height: 1; margin-bottom: 3px; font-weight: 700; }
-    .cal-cell.has-data .cal-day-num { color: var(--text); }
-    .cal-dots { display: flex; gap: 2px; flex-wrap: wrap; justify-content: center; }
-    .cal-dot { width: 5px; height: 5px; border-radius: 50%; }
-    .cal-dot-rr { background: #d4860a; }
-    .cal-dot-sh { background: var(--royal); }
-    .cal-delta { font-size: 0.6rem; font-family: var(--mono); color: var(--green); margin-top: 2px; line-height: 1; }
-    .cal-delta.neg { color: var(--red); }
-    .cal-delta.neu { color: var(--muted); }
-
-    .day-detail { margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border); display: none; }
-    .day-detail.visible { display: block; }
-    .day-detail-title { font-family: var(--display); font-size: 1rem; color: var(--text); margin-bottom: 1rem; }
-    .day-story-block { margin-bottom: 1.25rem; }
-    .day-story-name { font-family: var(--display); font-size: 0.9rem; color: var(--text); margin-bottom: 0.5rem; }
-    .day-platform-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.4rem 0; border-bottom: 1px solid var(--border); font-size: 0.82rem; }
-    .day-platform-row:last-child { border-bottom: none; }
-    .day-stat { font-family: var(--mono); color: var(--text); min-width: 60px; }
-    .day-stat-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
-
-    .metrics-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem; }
-    .metric-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; }
-    .metric-card td, .metric-card th { padding: 0.3rem 0.75rem 0.3rem 0; vertical-align: middle; }
-    .metric-story { font-family: var(--display); font-size: 1rem; color: var(--text); margin-bottom: 0.25rem; }
-    .metric-platform { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 1rem; }
-    .platform-rr { color: #d4860a; }
-    .platform-sh { color: #8B44E8; }
-    .metric-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
-    .metric-stat-label { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.2rem; }
-    .metric-stat-val { font-family: var(--mono); font-size: 1.1rem; color: var(--text); }
-    .metric-growth { font-size: 0.75rem; margin-top: 0.1rem; }
-    .growth-pos { color: var(--green); }
-    .growth-neg { color: var(--red); }
-    .growth-neu { color: var(--muted); }
-
-    .spinning { animation: spin 1s linear infinite; display: inline-block; }
-    @keyframes spin  { to { transform: rotate(360deg); } }
-    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
-
-
     /* ── EMPTY STATE ── */
     .empty-state { text-align: center; padding: 2rem 1rem; color: var(--muted); font-size: 0.88rem; }
     .empty-state-icon { font-size: 2rem; margin-bottom: 0.5rem; }
@@ -412,9 +348,6 @@
       <span class="sidebar-icon">👁️</span> Visibility
     </div>
     <div class="sidebar-section">Operations</div>
-    <div class="sidebar-item" data-panel="scraper" onclick="switchPanel('scraper')">
-      <span class="sidebar-icon">📊</span> Scraper Dashboard
-    </div>
     <div class="sidebar-item" data-panel="settings" onclick="switchPanel('settings')">
       <span class="sidebar-icon">⚙️</span> Settings
     </div>
@@ -484,43 +417,6 @@
     </div>
 
     <!-- SCRAPER PANEL -->
-    <div class="panel" id="panel-scraper">
-      <h1 class="panel-title">📊 Metrics Calendar</h1>
-      <p class="panel-sub">Daily snapshots across Royal Road and ScribbleHub. Updates run at 6:00 PM Arizona time.</p>
-      <div class="card">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:0.5rem;">
-          <div style="display:flex;gap:1rem;align-items:center;">
-            <span style="display:flex;align-items:center;gap:0.35rem;font-size:0.72rem;color:var(--muted);"><span class="cal-dot cal-dot-rr" style="display:inline-block;"></span> Royal Road</span>
-            <span style="display:flex;align-items:center;gap:0.35rem;font-size:0.72rem;color:var(--muted);"><span class="cal-dot cal-dot-sh" style="display:inline-block;"></span> ScribbleHub</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:0.75rem;">
-            <span class="last-updated" id="last-updated">Loading...</span>
-            <button class="btn btn-ghost btn-sm" onclick="exportMetrics()">↓ Export</button>
-          </div>
-        </div>
-        <div class="cal-nav">
-          <button class="cal-nav-btn" onclick="calPrev()">&#8249;</button>
-          <span class="cal-nav-title" id="cal-month-label"></span>
-          <button class="cal-nav-btn" onclick="calNext()">&#8250;</button>
-        </div>
-        <div class="cal-grid" id="cal-grid"></div>
-        <div class="day-detail" id="day-detail">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;">
-            <div class="day-detail-title" id="day-detail-title"></div>
-            <button class="btn btn-ghost btn-sm" id="day-delete-btn" onclick="deleteSelectedDay()" style="color:var(--danger,#e05252);flex-shrink:0;">🗑 Delete Day</button>
-          </div>
-          <div id="day-detail-body"></div>
-        </div>
-      </div>
-    </div>
-
-  </main>
-</div>
-
-<!-- SAVE BANNER -->
-<div class="save-banner" id="save-banner">
-  <span class="save-banner-text">Unsaved changes</span>
-  <button class="btn btn-primary btn-sm" onclick="saveContent()">Save All</button>
   <button class="btn btn-ghost btn-sm" onclick="discardChanges()">Discard</button>
 </div>
 
@@ -552,22 +448,6 @@
   </div>
 </div>
 
-<!-- EXPORT MODAL -->
-<div id="export-modal" style="display:none;position:fixed;inset:0;z-index:700;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;">
-  <div style="background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:1.5rem;width:min(640px,90vw);max-height:80vh;display:flex;flex-direction:column;gap:1rem;">
-    <div style="display:flex;align-items:center;justify-content:space-between;">
-      <span style="font-family:var(--display);font-size:1rem;color:var(--text);">Export Metrics</span>
-      <button class="btn btn-ghost btn-sm" onclick="closeExport()">✕</button>
-    </div>
-    <textarea id="export-textarea" readonly style="flex:1;min-height:320px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:0.75rem;color:var(--text);font-family:var(--mono);font-size:0.75rem;resize:none;outline:none;line-height:1.6;"></textarea>
-    <div style="display:flex;gap:0.75rem;justify-content:flex-end;">
-      <button class="btn btn-ghost btn-sm" onclick="closeExport()">Close</button>
-      <button class="btn btn-primary btn-sm" onclick="copyExport()">Copy All</button>
-    </div>
-  </div>
-</div>
-
-<script>
 // ── STATE ─────────────────────────────────────────────────
 let siteContent = null;
 let dirty = false;
@@ -580,8 +460,6 @@ async function init() {
     renderGamePanel();
     renderAboutPanel();
     renderVisibilityPanel();
-    loadMetrics();
-    setupSSE();
   } catch(e) {
     showToast('Init failed: ' + e.message, 'error');
     console.error(e);
@@ -1362,248 +1240,6 @@ async function saveContent() {
   } catch(e) {
     showToast('Save failed: ' + e.message, 'error');
   }
-}
-
-// ── SCRAPER / CALENDAR ────────────────────────────────────
-let metricsCache  = null;
-let calYear       = new Date().getFullYear();
-let calMonth      = new Date().getMonth();
-let selectedDate  = null;
-
-const PLATFORM_LABEL = { royalroad: 'Royal Road', scribblehub: 'ScribbleHub' };
-const PLATFORM_DOT   = { royalroad: 'cal-dot-rr', scribblehub: 'cal-dot-sh' };
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-
-async function loadMetrics() {
-  try {
-    const res  = await fetch('/data');
-    const data = await res.json();
-    metricsCache = data;
-    if (data.lastUpdated) {
-      const d = new Date(data.lastUpdated);
-      document.getElementById('last-updated').textContent =
-        'Updated ' + d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-    }
-    renderCalendar();
-    if (selectedDate) renderDayDetail(selectedDate);
-  } catch(e) {
-    document.getElementById('last-updated').textContent = 'Could not load metrics';
-    console.error('Could not load metrics', e);
-  }
-}
-
-function buildDateMap(data) {
-  const map = {};
-  for (const [key, story] of Object.entries(data.stories || {})) {
-    if (!story.title || !story.platform) continue;
-    for (const entry of (story.history || [])) {
-      const d = entry.date;
-      if (!map[d]) map[d] = {};
-      map[d][key] = { ...entry, title: story.title, platform: story.platform };
-    }
-  }
-  return map;
-}
-
-function renderCalendar() {
-  if (!metricsCache) return;
-  const dateMap    = buildDateMap(metricsCache);
-  const today      = new Date().toISOString().split('T')[0];
-  const firstDay   = new Date(calYear, calMonth, 1).getDay();
-  const daysInMonth= new Date(calYear, calMonth + 1, 0).getDate();
-
-  document.getElementById('cal-month-label').textContent = MONTHS[calMonth] + ' ' + calYear;
-
-  const grid = document.getElementById('cal-grid');
-  let html = '';
-  ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d => { html += `<div class="cal-dow">${d}</div>`; });
-  for (let i = 0; i < firstDay; i++) html += `<div class="cal-cell empty"></div>`;
-
-  for (let day = 1; day <= daysInMonth; day++) {
-    const dateStr  = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-    const dayData  = dateMap[dateStr];
-    const hasData  = !!dayData && Object.keys(dayData).length > 0;
-    const isToday  = dateStr === today;
-    const isSelected = dateStr === selectedDate;
-    let cls = 'cal-cell';
-    if (hasData)    cls += ' has-data';
-    if (isToday)    cls += ' today';
-    if (isSelected) cls += ' selected';
-
-    let inner = `<span class="cal-day-num">${day}</span>`;
-    if (hasData) {
-      const platforms = [...new Set(Object.values(dayData).map(e => e.platform))];
-      inner += `<div class="cal-dots">${platforms.map(p => `<span class="cal-dot ${PLATFORM_DOT[p]||''}"></span>`).join('')}</div>`;
-      let totalDelta = 0, hasDelta = false;
-      for (const entry of Object.values(dayData)) {
-        if (entry.followers == null) continue;
-        const storyKey = Object.keys(metricsCache.stories).find(k => {
-          const s = metricsCache.stories[k];
-          return s.title === entry.title && s.platform === entry.platform;
-        });
-        if (!storyKey) continue;
-        const hist = metricsCache.stories[storyKey].history || [];
-        const idx  = hist.findIndex(e => e.date === dateStr);
-        const prev = hist[idx + 1];
-        if (prev && prev.followers != null) { totalDelta += entry.followers - prev.followers; hasDelta = true; }
-      }
-      if (hasDelta) {
-        const dc = totalDelta > 0 ? '' : totalDelta < 0 ? ' neg' : ' neu';
-        inner += `<span class="cal-delta${dc}">${totalDelta >= 0 ? '+' : ''}${totalDelta}f</span>`;
-      }
-    }
-    html += `<div class="${cls}" ${hasData ? `onclick="selectDay('${dateStr}')"` : ''}>${inner}</div>`;
-  }
-  grid.innerHTML = html;
-}
-
-function selectDay(dateStr) {
-  selectedDate = dateStr;
-  renderCalendar();
-  renderDayDetail(dateStr);
-}
-
-function renderDayDetail(dateStr) {
-  const detail  = document.getElementById('day-detail');
-  const titleEl = document.getElementById('day-detail-title');
-  const bodyEl  = document.getElementById('day-detail-body');
-  if (!metricsCache) return;
-  const dayData = buildDateMap(metricsCache)[dateStr];
-  if (!dayData || !Object.keys(dayData).length) { detail.classList.remove('visible'); return; }
-
-  const d = new Date(dateStr + 'T12:00:00');
-  titleEl.textContent = d.toLocaleDateString(undefined, { weekday:'long', month:'long', day:'numeric', year:'numeric' });
-
-  const byTitle = {};
-  for (const [key, entry] of Object.entries(dayData)) {
-    if (!byTitle[entry.title]) byTitle[entry.title] = [];
-    byTitle[entry.title].push({ key, entry });
-  }
-
-  function fmt(n) { return n != null ? Number(n).toLocaleString() : '--'; }
-  function delta(entry, field) {
-    const storyKey = Object.keys(metricsCache.stories).find(k => {
-      const s = metricsCache.stories[k];
-      return s.title === entry.title && s.platform === entry.platform;
-    });
-    if (!storyKey) return '';
-    const hist = metricsCache.stories[storyKey].history || [];
-    const idx  = hist.findIndex(e => e.date === dateStr);
-    const prev = hist[idx + 1];
-    if (!prev || entry[field] == null || prev[field] == null) return '';
-    const n = entry[field] - prev[field];
-    const c = n > 0 ? 'growth-pos' : n < 0 ? 'growth-neg' : 'growth-neu';
-    return `<span class="metric-growth ${c}" style="font-size:0.68rem;margin-left:0.25rem;">${n >= 0 ? '+' : ''}${n}</span>`;
-  }
-
-  let html = '';
-  for (const [title, rows] of Object.entries(byTitle)) {
-    html += `<div class="day-story-block"><div class="day-story-name">${esc(title)}</div>`;
-    for (const { entry } of rows) {
-      const pl  = PLATFORM_LABEL[entry.platform] || entry.platform;
-      const dot = PLATFORM_DOT[entry.platform]   || '';
-      html += `
-        <div class="day-platform-row">
-          <span style="display:flex;align-items:center;gap:0.4rem;min-width:110px;">
-            <span class="cal-dot ${dot}" style="display:inline-block;flex-shrink:0;"></span>
-            <span style="font-size:0.72rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);">${esc(pl)}</span>
-          </span>
-          <span style="flex:1;display:flex;gap:1.25rem;flex-wrap:wrap;">
-            <span><span class="day-stat-label">Followers</span><br><span class="day-stat">${fmt(entry.followers)}${delta(entry,'followers')}</span></span>
-            <span><span class="day-stat-label">Views</span><br><span class="day-stat">${fmt(entry.views)}${delta(entry,'views')}</span></span>
-            <span><span class="day-stat-label">Chapters</span><br><span class="day-stat">${fmt(entry.chapters)}${delta(entry,'chapters')}</span></span>
-          </span>
-        </div>`;
-    }
-    html += `</div>`;
-  }
-  bodyEl.innerHTML = html;
-  detail.classList.add('visible');
-}
-
-function calPrev() {
-  calMonth--;
-  if (calMonth < 0) { calMonth = 11; calYear--; }
-  selectedDate = null;
-  renderCalendar();
-  document.getElementById('day-detail').classList.remove('visible');
-}
-
-function calNext() {
-  calMonth++;
-  if (calMonth > 11) { calMonth = 0; calYear++; }
-  selectedDate = null;
-  renderCalendar();
-  document.getElementById('day-detail').classList.remove('visible');
-}
-
-function setupSSE() {
-  const es = new EventSource('/events');
-  es.onmessage = () => loadMetrics();
-  es.onerror   = () => {}; // silently ignore SSE errors
-}
-
-// ── EXPORT ────────────────────────────────────────────────
-function exportMetrics() {
-  if (!metricsCache) { showToast('No data loaded yet', 'error'); return; }
-  const dateMap = buildDateMap(metricsCache);
-  const dates   = Object.keys(dateMap).sort().reverse();
-  if (!dates.length) { showToast('No data to export', 'error'); return; }
-
-  const PLAT  = { royalroad: 'Royal Road', scribblehub: 'ScribbleHub' };
-  const lines = [];
-  lines.push('Date       | Story                    | Platform     | Followers | Views   | Chapters');
-  lines.push('---------- | ------------------------ | ------------ | --------- | ------- | --------');
-
-  for (const date of dates) {
-    const entries = Object.values(dateMap[date]);
-    entries.sort((a, b) => a.title.localeCompare(b.title) || a.platform.localeCompare(b.platform));
-    for (const e of entries) {
-      const pl  = (PLAT[e.platform] || e.platform).padEnd(12);
-      const ti  = e.title.slice(0, 24).padEnd(24);
-      const fol = String(e.followers ?? '--').padStart(9);
-      const vi  = String(e.views     ?? '--').padStart(7);
-      const ch  = String(e.chapters  ?? '--').padStart(8);
-      lines.push(`${date} | ${ti} | ${pl} | ${fol} | ${vi} | ${ch}`);
-    }
-  }
-
-  document.getElementById('export-textarea').value = lines.join('\n');
-  document.getElementById('export-modal').style.display = 'flex';
-}
-
-function closeExport() { document.getElementById('export-modal').style.display = 'none'; }
-
-// ── DELETE DAY ─────────────────────────────────────────────
-async function deleteSelectedDay() {
-  if (!selectedDate) return;
-  const d = new Date(selectedDate + 'T12:00:00');
-  const label = d.toLocaleDateString(undefined, { weekday:'long', month:'long', day:'numeric', year:'numeric' });
-  const ok = await confirmModal(`Delete data for ${label}?`, 'This will permanently remove all scraped entries for this date from story-metrics.json.');
-  if (!ok) return;
-
-  try {
-    const res = await fetch('/delete-metrics-date', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ date: selectedDate }),
-    });
-    if (!res.ok) throw new Error(await res.text());
-    showToast(`Deleted data for ${selectedDate}.`);
-    selectedDate = null;
-    document.getElementById('day-detail').classList.remove('visible');
-    await loadMetrics();
-  } catch (e) {
-    showToast('Delete failed: ' + e.message, 'error');
-  }
-}
-
-function copyExport() {
-  const ta = document.getElementById('export-textarea');
-  ta.select();
-  navigator.clipboard.writeText(ta.value)
-    .then(() => showToast('Copied to clipboard!'))
-    .catch(() => { document.execCommand('copy'); showToast('Copied!'); });
 }
 
 // ── SEARCH / FILTER ──────────────────────────────────────
