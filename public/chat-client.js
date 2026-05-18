@@ -209,15 +209,52 @@ function populateModels(models) {
     cur.querySelector('span:first-child').innerHTML = `Ollama <span class="provider-tag">no models</span>`;
   }
 
-  // Build popover grouped by provider
+  // Favorites from localStorage: key is "provider:modelId"
+  let favorites = [];
+  try { favorites = JSON.parse(localStorage.getItem('nekojin:favModels') || '[]'); } catch { favorites = []; }
+  function isFav(m) { return favorites.includes(`${m.provider || 'unknown'}:${m.id}`); }
+
+  // Separate favorites
+  const favModels = displayModels.filter(isFav);
+  const otherModels = displayModels.filter(m => !isFav(m));
+
+  // Build popover grouped by provider (for non-favorites)
   const byProv = {};
-  for (const m of displayModels) {
+  for (const m of otherModels) {
     const p = m.provider || 'unknown';
     if (!byProv[p]) byProv[p] = [];
     byProv[p].push(m);
   }
 
+  function renderModelRow(m) {
+    const active = m.id === (currentModel || CFG.currentModel) ? 'active' : '';
+    const fav = isFav(m) ? 'fav' : '';
+    const caps = [];
+    if (m.vision) caps.push('<span class="has-img">vision</span>');
+    const key = `${escapeHtml(m.provider || 'unknown')}:${escapeHtml(m.id)}`;
+    return `<div class="model-option ${active}" data-id="${escapeHtml(m.id)}" onclick="window._selectModel('${escapeHtml(m.id)}')">
+      <span class="model-name">${escapeHtml(m.name || m.id)}</span>
+      <span class="cap">${caps.join(' · ')}</span>
+      <button class="star-btn ${fav}" onclick="event.stopPropagation(); window._toggleFavorite('${key}')" title="Toggle favorite">★</button>
+      <span class="check">✓</span>
+    </div>`;
+  }
+
   let html = '';
+  // Favorites section at top
+  if (favModels.length) {
+    html += `<div class="provider-group favorites-group">
+      <div class="provider-header open" onclick="window._toggleProvider(this)">
+        <span class="provider-name">★ Favorites</span>
+        <span class="count">${favModels.length}</span>
+        <span class="arrow">▸</span>
+      </div>
+      <div class="provider-models open">
+        ${favModels.map(renderModelRow).join('')}
+      </div>
+    </div>`;
+  }
+
   for (const [provId, pmodels] of Object.entries(byProv)) {
     const provName = PROVIDERS[provId]?.name || provId;
     const provOpen = pmodels.some(m => m.id === (currentModel || CFG.currentModel)) ? 'open' : '';
@@ -228,16 +265,7 @@ function populateModels(models) {
         <span class="arrow">▸</span>
       </div>
       <div class="provider-models ${provOpen}">
-        ${pmodels.map(m => {
-          const active = m.id === (currentModel || CFG.currentModel) ? 'active' : '';
-          const caps = [];
-          if (m.vision) caps.push('<span class="has-img">vision</span>');
-          return `<div class="model-option ${active}" data-id="${escapeHtml(m.id)}" onclick="window._selectModel('${escapeHtml(m.id)}')">
-            <span class="model-name">${escapeHtml(m.name || m.id)}</span>
-            <span class="cap">${caps.join(' · ')}</span>
-            <span class="check">✓</span>
-          </div>`;
-        }).join('')}
+        ${pmodels.map(renderModelRow).join('')}
       </div>
     </div>`;
   }
@@ -255,6 +283,16 @@ window._toggleProvider = function(el) {
   el.classList.toggle('open');
   const models = el.nextElementSibling;
   if (models) models.classList.toggle('open');
+};
+window._toggleFavorite = function(key) {
+  let favorites = [];
+  try { favorites = JSON.parse(localStorage.getItem('nekojin:favModels') || '[]'); } catch { favorites = []; }
+  const idx = favorites.indexOf(key);
+  if (idx >= 0) favorites.splice(idx, 1);
+  else favorites.push(key);
+  try { localStorage.setItem('nekojin:favModels', JSON.stringify(favorites)); } catch {}
+  populateModels(availableModels);
+  showToast(idx >= 0 ? 'Removed from favorites' : 'Added to favorites');
 };
 window._selectModel = function(id) {
   if (!id) return;
