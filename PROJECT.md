@@ -7,38 +7,29 @@
 | | |
 |---|---|
 | **Live site** | `/home/xanmal/Documents/nekojin-site/` (on `main` branch, pull-only, systemd service) |
-| **Remote** | `ssh://xanmal@127.0.0.1:22/PurpleXanmal/nekojin-interactive-website.git` |
-| **SSH key** | `~/.ssh/id_ed25519_nekojin` |
+| **Dev workspace** | `/home/xanmal/Documents/Projects/repositories/nekojin-interactive-website/` (on `dev` branch) |
+| **Remote** | `https://git.worldofxanrea.com/PurpleXanmal/nekojin-interactive-website.git` |
+| **Auth** | HTTPS with Gitea token + `git config credential.helper store` |
 | **Server** | `nekojin.service` runs `dashboard-server.js` on port `7771` |
 | **Domain** | `https://worldofxanrea.com` |
 
-**Workflow:** Clone to a temp folder when needed, work on `dev`, push, merge to `main`, pull to live, delete workspace.
+**Workflow:** Work in the dev workspace on `dev`, push, merge to `main`, pull to live.
 
 ```bash
-# Clone
-GIT_SSH_COMMAND='ssh -i ~/.ssh/id_ed25519_nekojin -o StrictHostKeyChecking=no' \
-  git clone ssh://xanmal@127.0.0.1:22/PurpleXanmal/nekojin-interactive-website.git
-
-# Work on dev branch
-cd nekojin-interactive-website
-git checkout -b dev
+# Dev workspace
+ cd ~/Documents/Projects/repositories/nekojin-interactive-website
+ git checkout dev
 # ... edit ...
-git commit -am "changes"
-git push origin dev
+ git commit -am "changes"
+ git push origin dev
 
-# Merge to main when ready
-git checkout main
-git merge dev
-git push origin main
-
-# Update live site
-cd ~/Documents/nekojin-site/
-git pull origin main
+# Merge to main on Gitea (web UI or CLI)
+# Then update live site
+ cd ~/Documents/nekojin-site/
+ git pull origin main
 # Restart if needed: sudo systemctl restart nekojin
-
-# Delete workspace when done
-cd ~ && rm -rf nekojin-interactive-website/
 ```
+
 | **Studio** | Nekojin Interactive LLC (founded May 25, 2025, Arizona, ID: 23831348) |
 | **Author** | Purple Xanmal |
 | **Email** | PurpleTamaneko@gmail.com |
@@ -49,15 +40,14 @@ cd ~ && rm -rf nekojin-interactive-website/
 /home/xanmal/nekojin-site/
 ├── dashboard-server.js         # Main server (proxy, auth, CMS API)
 ├── admin.html                  # Admin panel (books, series, game, about, settings)
-├── dashboard.html              # Old dashboard (not actively used)
 ├── site-content.json           # CMS data (books, game, about, series, platforms)
-├── story-metrics.json          # Scraper metrics
-├── newsletter-subscribers.json # Public email capture ONLY (no mail infra)
-├── BookStatScraper.js          # Scraper logic
 ├── generate-meta.js            # Regenerates sitemap/rss/robots on demand
-├── package.json                # deps: puppeteer, ws, bcryptjs, uuid
-├── .gitignore                  # excludes node_modules, chrome-profile, etc.
+├── package.json                # deps: bcryptjs, mammoth, adm-zip
+├── .gitignore                  # excludes node_modules, runtime data, user files
 ├── KNOWN_ISSUES.md             # Documented bugs and next steps
+├── scraper/                    # SEPARATE scraper project (decoupled from site)
+│   ├── BookStatScraper.js      # Royal Road + ScribbleHub metrics scraper
+│   └── package.json            # puppeteer, puppeteer-extra, stealth plugin
 └── public/
     ├── index.html              # Homepage (hero + featured books + newsletter capture)
     ├── books.html              # Book listing grid → /book?id=xxx
@@ -66,7 +56,6 @@ cd ~ && rm -rf nekojin-interactive-website/
     ├── about.html              # Studio page (sprites, timeline, universe blurb)
     ├── aichat.html             # Multi-provider AI chat
     ├── read.html               # Chapter reader (docx → HTML, 3-chapter preview)
-    ├── action_registry.html    # Off main nav, scraper reference
     ├── style.css               # Shared styles
     ├── chat.js                 # pi Chat Widget (injected on all pages)
     ├── chat-client.js          # Multi-provider chat engine
@@ -97,11 +86,10 @@ cd ~ && rm -rf nekojin-interactive-website/
 | `/about.html` | Tama/Saki sprite animations, studio timeline, universe card, Find Us grid |
 | `/aichat.html` | Multi-provider AI chat (Claude, GPT, Grok, Ollama, pi Agent) |
 | `/read.html?book=slug` | Serif chapter reader, docx→HTML, full book for logged-in users |
-| `/action_registry.html` | Scraper status (off main nav) |
 
 ## CMS Data (`site-content.json`)
 
-**Books array:** Each book has `id`, `title`, `slug`, `description`, `status`, `genres[]`, `tags[]`, `platforms[]`, `cover`, `links[]`, `seriesId`, `wordCount`, `blurb` (added recently).
+**Books array:** Each book has `id`, `title`, `slug`, `description`, `status`, `genres[]`, `tags[]`, `platforms[]`, `cover`, `links[]`, `seriesId`, `wordCount`, `blurb`.
 
 **Game object:** Title, description, status, cover, screenshots, devlog entries.
 
@@ -204,26 +192,34 @@ Tama appears in: studio emblem (144×144 breathing), Saki orbits (72×72), unive
 - Added ★ favorites system to model picker
 - Created `AGENTS.md` base + this `PROJECT.md`
 
+**2026-05-18 — Repo Cleanup + Scraper Decoupling**
+- Removed deprecated files: dashboard.html, action_registry.html, push.sh
+- Removed duplicate cover images and sprite icons
+- Removed story-metrics.json and newsletter-subscribers.json from tracking
+- Decoupled BookStatScraper from website into `scraper/` directory
+- Removed scraper endpoints (/data, /scrape, /delete-metrics-date, /events) from server
+- Removed Metrics Calendar panel from admin.html
+- Removed puppeteer dependencies from root package.json
+- Switched repo auth from SSH to HTTPS token-based
+
 ## Push Workflow
 
 ```bash
-# From /home/xanmal/nekojin-site/
-GIT_SSH_COMMAND='ssh -i ~/.ssh/id_ed25519_nekojin -o StrictHostKeyChecking=no' git push origin main
+# Using stored credentials (token cached once)
+cd ~/Documents/nekojin-site/
+git pull origin main
 ```
 
-Or set remote with embedded token for convenience:
+Token setup (one time per machine):
 ```bash
-git remote set-url origin https://<TOKEN>@git.worldofxanrea.com/PurpleXanmal/nekojin-interactive-website.git
-```
-
-**Gitea CLI (for tokens):**
-```bash
-cd ~/Documents/Projects/Gitea
-./gitea admin user generate-access-token -u PurpleXanmal -t "pi-deploy-$(date +%s)" --raw
+git config --global credential.helper store
+git remote set-url origin https://git.worldofxanrea.com/PurpleXanmal/nekojin-interactive-website.git
+# On first pull/push, enter username + token as password
 ```
 
 ## Technical Notes
 
 - `dashboard-server.js` was once corrupted during bulk edits — always back up before big refactors.
-- Gitea SSH: port 22 on `127.0.0.1`, key `id_ed25519_nekojin`.
 - Server auth uses `bcryptjs` (already in `package.json`).
+- The `scraper/` directory is a standalone Node project. Run with `cd scraper && npm install && node BookStatScraper.js`.
+- Scraper reads `../site-content.json` and writes `story-metrics.json` locally in its own folder.
