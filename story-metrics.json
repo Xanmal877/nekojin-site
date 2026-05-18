@@ -3,6 +3,13 @@
     "rr-137945": {
       "history": [
         {
+          "date": "2026-05-17",
+          "timestamp": "2026-05-17T01:19:43.044Z",
+          "followers": 11,
+          "chapters": 76,
+          "views": 9287
+        },
+        {
           "date": "2026-05-16",
           "timestamp": "2026-05-16T01:18:21.745Z",
           "followers": 11,
@@ -484,15 +491,22 @@
       "id": "137945",
       "followers": 11,
       "chapters": 76,
-      "views": 9257,
+      "views": 9287,
       "growth": {
         "followers": 0,
         "chapters": 0,
-        "views": 9
+        "views": 30
       }
     },
     "rr-143276": {
       "history": [
+        {
+          "date": "2026-05-17",
+          "timestamp": "2026-05-17T01:19:45.125Z",
+          "followers": 138,
+          "chapters": 42,
+          "views": 10092
+        },
         {
           "date": "2026-05-16",
           "timestamp": "2026-05-16T01:18:23.644Z",
@@ -982,15 +996,22 @@
       "id": "143276",
       "followers": 138,
       "chapters": 42,
-      "views": 10080,
+      "views": 10092,
       "growth": {
         "followers": 0,
         "chapters": 0,
-        "views": 5
+        "views": 12
       }
     },
     "sh-2061119": {
       "history": [
+        {
+          "date": "2026-05-17",
+          "timestamp": "2026-05-17T01:19:57.886Z",
+          "followers": 76,
+          "chapters": 84,
+          "views": 12700
+        },
         {
           "date": "2026-05-16",
           "timestamp": "2026-05-16T01:18:37.249Z",
@@ -1480,11 +1501,11 @@
       "id": "2061119",
       "followers": 76,
       "chapters": 84,
-      "views": 12600,
+      "views": 12700,
       "growth": {
         "followers": 0,
         "chapters": 0,
-        "views": 0
+        "views": 100
       }
     },
     "sh-2203357": {
@@ -1974,6 +1995,13 @@
     "rr-160681": {
       "history": [
         {
+          "date": "2026-05-17",
+          "timestamp": "2026-05-17T01:19:46.760Z",
+          "followers": 9,
+          "chapters": 25,
+          "views": 2066
+        },
+        {
           "date": "2026-05-16",
           "timestamp": "2026-05-16T01:18:25.030Z",
           "followers": 9,
@@ -2168,15 +2196,22 @@
       "id": "160681",
       "followers": 9,
       "chapters": 25,
-      "views": 2064,
+      "views": 2066,
       "growth": {
         "followers": 0,
         "chapters": 0,
-        "views": 3
+        "views": 2
       }
     },
     "sh-2270576": {
       "history": [
+        {
+          "date": "2026-05-17",
+          "timestamp": "2026-05-17T01:20:14.471Z",
+          "followers": 19,
+          "chapters": 25,
+          "views": 1500
+        },
         {
           "date": "2026-05-16",
           "timestamp": "2026-05-16T01:18:53.683Z",
@@ -2374,13 +2409,20 @@
       "chapters": 25,
       "views": 1500,
       "growth": {
-        "followers": -1,
+        "followers": 0,
         "chapters": 0,
         "views": 0
       }
     },
     "sh-2305685": {
       "history": [
+        {
+          "date": "2026-05-17",
+          "timestamp": "2026-05-17T01:20:30.405Z",
+          "followers": 22,
+          "chapters": 3,
+          "views": 794
+        },
         {
           "date": "2026-05-16",
           "timestamp": "2026-05-16T01:19:09.490Z",
@@ -2394,13 +2436,13 @@
       "id": "2305685",
       "followers": 22,
       "chapters": 3,
-      "views": 782,
+      "views": 794,
       "growth": {
         "followers": 0,
         "chapters": 0,
-        "views": 0
+        "views": 12
       }
     }
   },
-  "lastUpdated": "2026-05-16T01:19:09.490Z"
+  "lastUpdated": "2026-05-17T01:20:30.405Z"
 }

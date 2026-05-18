@@ -165,10 +165,36 @@
       font-size: 0.65rem; color: var(--muted2);
     }
     .model-option .cap .has-img { color: var(--accent2); }
-    .model-option .check {
-      font-size: 0.75rem; color: var(--accent2); opacity: 0;
+    .model-option .star-btn {
+      font-size: 0.85rem;
+      background: none; border: none;
+      color: var(--muted2);
+      cursor: pointer;
+      padding: 0.15rem 0.3rem;
+      margin-left: 0.25rem;
+      border-radius: 4px;
+      transition: color 0.15s, transform 0.15s;
+      line-height: 1;
     }
-    .model-option.active .check { opacity: 1; }
+    .model-option .star-btn:hover {
+      color: #fbbf24;
+      transform: scale(1.15);
+    }
+    .model-option .star-btn.fav {
+      color: #fbbf24;
+    }
+    .model-option .star-btn.fav:hover {
+      color: #f59e0b;
+    }
+
+    /* Favorites section in model picker */
+    .favorites-group {
+      border-bottom: 1px solid var(--border);
+    }
+    .favorites-group .provider-header {
+      color: #fbbf24;
+    }
+    .favorites-group:last-child { border-bottom: none; }
 
     .sidebar-scroller {
       flex: 1; overflow-y: auto; padding: 0.5rem 0.5rem;
