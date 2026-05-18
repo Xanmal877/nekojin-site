@@ -6,11 +6,39 @@
 
 | | |
 |---|---|
-| **Live repo** | `/home/xanmal/nekojin-site/` (canonical) |
+| **Live site** | `/home/xanmal/Documents/nekojin-site/` (on `main` branch, pull-only, systemd service) |
 | **Remote** | `ssh://xanmal@127.0.0.1:22/PurpleXanmal/nekojin-interactive-website.git` |
 | **SSH key** | `~/.ssh/id_ed25519_nekojin` |
-| **Server** | `dashboard-server.js` on port `7771` |
+| **Server** | `nekojin.service` runs `dashboard-server.js` on port `7771` |
 | **Domain** | `https://worldofxanrea.com` |
+
+**Workflow:** Clone to a temp folder when needed, work on `dev`, push, merge to `main`, pull to live, delete workspace.
+
+```bash
+# Clone
+GIT_SSH_COMMAND='ssh -i ~/.ssh/id_ed25519_nekojin -o StrictHostKeyChecking=no' \
+  git clone ssh://xanmal@127.0.0.1:22/PurpleXanmal/nekojin-interactive-website.git
+
+# Work on dev branch
+cd nekojin-interactive-website
+git checkout -b dev
+# ... edit ...
+git commit -am "changes"
+git push origin dev
+
+# Merge to main when ready
+git checkout main
+git merge dev
+git push origin main
+
+# Update live site
+cd ~/Documents/nekojin-site/
+git pull origin main
+# Restart if needed: sudo systemctl restart nekojin
+
+# Delete workspace when done
+cd ~ && rm -rf nekojin-interactive-website/
+```
 | **Studio** | Nekojin Interactive LLC (founded May 25, 2025, Arizona, ID: 23831348) |
 | **Author** | Purple Xanmal |
 | **Email** | PurpleTamaneko@gmail.com |
