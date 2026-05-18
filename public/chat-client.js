@@ -182,7 +182,9 @@ els.sidebarOverlay && (els.sidebarOverlay.onclick = () => {
 
 // ── Model picker ────────────────────────────────────────
 function populateModels(models) {
-  availableModels = models || [];
+  if (models && models.length) {
+    availableModels = models;
+  }
   if (!availableModels.length && CFG.currentProvider === 'pi') {
     if (els['model-current']) els['model-current'].querySelector('span:first-child').textContent = 'Loading models…';
     return;
@@ -192,7 +194,9 @@ function populateModels(models) {
 
   // If pi agent, use server models. Otherwise use provider definition.
   let displayModels = availableModels;
-  if (CFG.currentProvider !== 'pi') {
+  if (CFG.currentProvider === 'pi') {
+    displayModels = availableModels.map(m => ({ ...m, provider: m.provider || 'pi' }));
+  } else if (CFG.currentProvider !== 'pi') {
     const prov = PROVIDERS[CFG.currentProvider];
     displayModels = prov ? prov.models.map(m => ({ ...m, provider: prov.id })) : [];
   }
@@ -202,7 +206,8 @@ function populateModels(models) {
   const first = displayModels[0];
   const display = current || first;
   if (display) {
-    const tag = display.provider ? `<span class="provider-tag">${escapeHtml(display.provider)}</span>` : '';
+    const provName = display.provider ? (PROVIDERS[display.provider]?.name || display.provider) : '';
+    const tag = provName ? `<span class="provider-tag">${escapeHtml(provName)}</span>` : '';
     cur.querySelector('span:first-child').innerHTML = `${escapeHtml(display.name || display.id)} ${tag}`;
     if (!currentModel) currentModel = display.id;
   } else if (CFG.currentProvider === 'ollama') {
@@ -600,6 +605,11 @@ window._selectProvider = async function(pid) {
     const models = await fetchOllamaModels(getStoredBaseUrl());
     PROVIDERS.ollama.models = models;
     populateModels([]);
+  } else if (pid === 'pi') {
+    populateModels(availableModels);
+    if (ws && ws.readyState === 1) {
+      ws.send(JSON.stringify({ type: 'get_available_models', id: 'models-req-' + Date.now() }));
+    }
   } else {
     populateModels([]);
   }
