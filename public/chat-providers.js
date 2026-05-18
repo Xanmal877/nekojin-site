@@ -359,3 +359,22 @@ function __nccCopyCode(btn) {
     setTimeout(() => btn.textContent = 'Copy', 1200);
   });
 }
+
+// Smart Failover Provider (Auto Desktop → Kimi)
+PROVIDERS.smart = {
+  id: 'smart',
+  name: 'Smart Auto',
+  description: 'Local desktop when ON, Kimi cloud when OFF',
+  logo: 'S',
+  color: '#6366f1',
+  models: [
+    { id: 'auto', name: 'Auto Desktop/Kimi' },
+    { id: 'gemma4:4b', name: 'Gemma 4 (Desktop)' },
+    { id: 'qwen2.5-coder:7b', name: 'Qwen2.5 Coder (Desktop)' },
+    { id: 'llama3.1:8b', name: 'Llama 3.1 (Desktop)' },
+    { id: 'kimi-k2-6', name: 'Kimi K2.6 (Cloud Fallback)' }
+  ],
+  defaultModel: 'auto',
+  supportsSystem: true,
+  supportsTemperature: true
+};
