@@ -1080,7 +1080,7 @@ const server = http.createServer(async (req, res) => {
                 res.writeHead(400, { 'Content-Type': 'application/json' });
                 return res.end(JSON.stringify({ error: 'Missing provider, model, or messages' }));
             }
-            return proxyProviderChat(res, provider, apiKey, baseUrl, model, messages, system, stream, temperature, topP, maxTokens);
+            return await proxyProviderChat(res, provider, apiKey, baseUrl, model, messages, system, stream, temperature, topP, maxTokens);
         } catch(e) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ error: e.message }));
@@ -1176,7 +1176,7 @@ const server = http.createServer(async (req, res) => {
     });
 
 // ── EXTERNAL PROVIDER PROXY ─────────────────────────────
-function proxyProviderChat(res, provider, apiKey, baseUrl, model, messages, system, stream, temperature, topP, maxTokens) {
+async function proxyProviderChat(res, provider, apiKey, baseUrl, model, messages, system, stream, temperature, topP, maxTokens) {
     const isStream = stream !== false;
     const headers = { 'Content-Type': 'application/json' };
     let hostname, pathReq, method = 'POST';
@@ -1209,6 +1209,36 @@ function proxyProviderChat(res, provider, apiKey, baseUrl, model, messages, syst
         const msgs = system ? [{ role: 'system', content: system }] : [];
         for (const m of messages) msgs.push({ role: m.role, content: m.content });
         body = JSON.stringify({ model, messages: msgs, max_tokens: maxTokens || 4096, stream: isStream, temperature: temperature ?? 0.7, top_p: topP ?? 1 });
+    } else if (provider === 'smart') {
+        // Smart failover: Desktop Ollama → Kimi Cloud
+        const desktopOnline = await new Promise((resolve) => {
+            const check = httpReq.request({ hostname: '192.168.1.101', port: 11434, path: '/api/tags', timeout: 2000 }, 
+                (r) => resolve(r.statusCode === 200));
+            check.on('error', () => resolve(false));
+            check.on('timeout', () => { check.destroy(); resolve(false); });
+            check.end();
+        });
+        if (desktopOnline) {
+            console.log('[Smart] Desktop ON - using Ollama');
+            baseUrl = 'http://192.168.1.101:11434';
+            provider = 'ollama';
+        } else {
+            console.log('[Smart] Desktop OFF - using Kimi');
+            provider = 'kimi';
+            apiKey = apiKey || process.env.KIMI_API_KEY;
+            if (!apiKey) {
+                res.writeHead(503, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ error: 'Desktop offline, no Kimi key. Add KIMI_API_KEY.' }));
+            }
+            model = model || 'kimi-k2-6';
+        }
+    } else if (provider === 'kimi') {
+        const kimiHeaders = { ...headers, 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' };
+        const kimiMsgs = [];
+        if (system) kimiMsgs.push({ role: 'system', content: system });
+        for (const m of messages) { if (m.role !== 'system') kimiMsgs.push({ role: m.role, content: m.content }); }
+        const kimiBody = JSON.stringify({ model: model, messages: kimiMsgs, stream: isStream, temperature: temperature ?? 0.7, top_p: topP ?? 1, max_tokens: maxTokens || 4096 });
+        return proxyViaRequest(res, https, 'api.moonshot.cn', 443, '/v1/chat/completions', kimiHeaders, kimiBody, 'kimi', isStream);
     } else if (provider === 'ollama') {
         const ollamaBase = (baseUrl || 'http://localhost:11434').replace(/\/$/, '');
         const target = new URL(ollamaBase);
