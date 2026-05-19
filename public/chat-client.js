@@ -693,7 +693,7 @@ function connectPiWS() {
 function handlePiEvent(data) {
   switch (data.type) {
     case 'response':
-      if (data.id === 'models-init' && data.command === 'get_available_models') {
+      if (data.command === 'get_available_models') {
         if (data.success && data.data?.models) {
           availableModels = data.data.models;
           if (!currentModel && availableModels.length) currentModel = availableModels[0].id;
