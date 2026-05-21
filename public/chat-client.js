@@ -1230,6 +1230,10 @@ function setupVoiceToText() {
       showToast('Microphone access denied');
     } else if (e.error === 'no-speech') {
       showToast('No speech detected');
+    } else if (e.error === 'network') {
+      showToast('Speech recognition requires internet (uses Google servers). For offline voice, a local Whisper model is needed.');
+    } else if (e.error === 'audio-capture') {
+      showToast('No microphone found');
     } else {
       showToast('Voice recognition error: ' + e.error);
     }
