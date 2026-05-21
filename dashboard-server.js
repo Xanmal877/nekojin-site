@@ -1024,7 +1024,8 @@ const server = http.createServer(async (req, res) => {
             const parts = parseMultipart(body, bm[1]);
             const file  = parts['file'];
             if (!file || !file.data) { res.writeHead(400); return res.end('No file'); }
-            const uploadDir = path.join('/tmp', 'pi-uploads', username);
+            const safeUsername = (username || 'unknown').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 64);
+            const uploadDir = path.join('/tmp', 'pi-uploads', safeUsername);
             if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
             // Sanitize filename
             const safeName = (file.filename || 'upload').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 100);
@@ -1176,7 +1177,35 @@ const server = http.createServer(async (req, res) => {
     });
 
 // ── EXTERNAL PROVIDER PROXY ─────────────────────────────
-function proxyProviderChat(res, provider, apiKey, baseUrl, model, messages, system, stream, temperature, topP, maxTokens) {
+async function proxyProviderChat(res, provider, apiKey, baseUrl, model, messages, system, stream, temperature, topP, maxTokens) {
+    // Resolve smart provider before branching
+    if (provider === 'smart') {
+        const smartBase = (baseUrl || 'http://192.168.1.23:11434').replace(/\/$/, '');
+        const smartUrl = new URL(smartBase);
+        const desktopOnline = await new Promise((resolve) => {
+            const check = httpReq.request({ hostname: smartUrl.hostname, port: smartUrl.port || 11434, path: '/api/tags', timeout: 2000 },
+                (r) => resolve(r.statusCode === 200));
+            check.on('error', () => resolve(false));
+            check.on('timeout', () => { check.destroy(); resolve(false); });
+            check.end();
+        });
+        if (desktopOnline) {
+            console.log('[Smart] Desktop ON - using Ollama');
+            baseUrl = smartBase;
+            provider = 'ollama';
+            if (!model || model === 'auto') model = 'llama3.1:8b';
+        } else {
+            console.log('[Smart] Desktop OFF - using Kimi');
+            provider = 'kimi';
+            apiKey = apiKey || process.env.KIMI_API_KEY;
+            if (!apiKey) {
+                res.writeHead(503, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ error: 'Desktop offline, no Kimi key. Add KIMI_API_KEY.' }));
+            }
+            if (!model || model === 'auto') model = 'kimi-k2-6';
+        }
+    }
+
     const isStream = stream !== false;
     const headers = { 'Content-Type': 'application/json' };
     let hostname, pathReq, method = 'POST';
@@ -1194,7 +1223,7 @@ function proxyProviderChat(res, provider, apiKey, baseUrl, model, messages, syst
             if (m.role === 'system') continue;
             msgs.push({ role: m.role, content: m.content });
         }
-        body = JSON.stringify({ model, messages: msgs, max_tokens: maxTokens || 4096, stream: isStream });
+        body = JSON.stringify({ model, messages: msgs, max_tokens: maxTokens || 4096, stream: isStream, temperature: temperature ?? 0.7, top_p: topP ?? 1 });
     } else if (provider === 'openai') {
         headers['Authorization'] = `Bearer ${apiKey}`;
         hostname = 'api.openai.com';
@@ -1209,6 +1238,13 @@ function proxyProviderChat(res, provider, apiKey, baseUrl, model, messages, syst
         const msgs = system ? [{ role: 'system', content: system }] : [];
         for (const m of messages) msgs.push({ role: m.role, content: m.content });
         body = JSON.stringify({ model, messages: msgs, max_tokens: maxTokens || 4096, stream: isStream, temperature: temperature ?? 0.7, top_p: topP ?? 1 });
+    } else if (provider === 'kimi') {
+        const kimiHeaders = { ...headers, 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' };
+        const kimiMsgs = [];
+        if (system) kimiMsgs.push({ role: 'system', content: system });
+        for (const m of messages) { if (m.role !== 'system') kimiMsgs.push({ role: m.role, content: m.content }); }
+        const kimiBody = JSON.stringify({ model: model, messages: kimiMsgs, stream: isStream, temperature: temperature ?? 0.7, top_p: topP ?? 1, max_tokens: maxTokens || 4096 });
+        return proxyViaRequest(res, https, 'api.moonshot.cn', 443, '/v1/chat/completions', kimiHeaders, kimiBody, 'kimi', isStream);
     } else if (provider === 'ollama') {
         const ollamaBase = (baseUrl || 'http://localhost:11434').replace(/\/$/, '');
         const target = new URL(ollamaBase);
