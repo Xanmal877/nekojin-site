@@ -1292,6 +1292,12 @@ async function proxyProviderChat(res, provider, apiKey, baseUrl, model, messages
         }
     }
 
+    // Validate required API key for non-local providers
+    if (provider !== 'ollama' && !apiKey) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ error: `Missing API key for ${provider}. Add it in Settings.` }));
+    }
+
     const isStream = stream !== false;
     const headers = { 'Content-Type': 'application/json' };
     let hostname, pathReq, method = 'POST';
