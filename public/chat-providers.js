@@ -144,14 +144,18 @@ async function fetchOllamaModels(baseUrl) {
       signal = ctrl.signal;
     }
     const res = await fetch(url, { method: 'GET', signal });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      console.warn('[Ollama] /api/tags returned', res.status, res.statusText);
+      return [];
+    }
     const data = await res.json();
     return (data.models || []).map(m => ({
       id: m.name,
       name: m.name,
       vision: false // ollama vision depends on model, assume false
     }));
-  } catch {
+  } catch (err) {
+    console.warn('[Ollama] Failed to fetch models from', baseUrl || getStoredBaseUrl(), ':', err.message);
     return [];
   }
 }

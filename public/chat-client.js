@@ -634,6 +634,9 @@ window._selectProvider = async function(pid) {
     const models = await fetchOllamaModels(getStoredBaseUrl());
     PROVIDERS.ollama.models = models;
     populateModels([]);
+    if (!models.length) {
+      showToast('No Ollama models found. Check console (F12) for details. If testing cross-machine, set OLLAMA_ORIGINS=* on the Ollama host.');
+    }
   } else if (pid === 'pi') {
     populateModels(availableModels);
     if (ws && ws.readyState === 1) {
