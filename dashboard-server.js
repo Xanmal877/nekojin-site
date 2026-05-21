@@ -1271,6 +1271,32 @@ async function proxyProviderChat(res, provider, apiKey, baseUrl, model, messages
 function proxyViaRequest(res, protoModule, hostname, port, pathReq, headers, body, provider, isStream) {
     const requestOpts = { hostname, port, path: pathReq, method: 'POST', headers };
     const proxyReq = protoModule.request(requestOpts, (proxyRes) => {
+        // Handle upstream HTTP errors
+        if (proxyRes.statusCode >= 400) {
+            let raw = '';
+            proxyRes.on('data', c => raw += c);
+            proxyRes.on('end', () => {
+                let err = `Provider returned ${proxyRes.statusCode}`;
+                try {
+                    const d = JSON.parse(raw);
+                    err = d.error?.message || d.error || err;
+                } catch {}
+                if (isStream) {
+                    res.writeHead(200, { 'Content-Type': 'application/x-ndjson', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
+                    res.write(`{"type":"error","error":${JSON.stringify(err)}\n`);
+                    res.end();
+                } else {
+                    res.writeHead(proxyRes.statusCode, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: err }));
+                }
+            });
+            proxyRes.on('error', () => {
+                res.writeHead(502, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Proxy stream error' }));
+            });
+            return;
+        }
+
         if (!isStream) {
             let raw = '';
             proxyRes.on('data', c => raw += c);
