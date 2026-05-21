@@ -1175,91 +1175,118 @@ async function startNewChat() {
 }
 
 // ── Voice to Text ──────────────────────────────────────
-let voiceRec = null;
-let isListening = false;
 let voiceMediaRecorder = null;
 let voiceChunks = [];
 let voiceStream = null;
+let voiceAudioCtx = null;
+let voiceRafId = null;
+const VAD_THRESHOLD = 15;
+const VAD_SILENCE_MS = 1500;
+
+async function transcribeVoice() {
+  if (!voiceChunks.length) return;
+  const blob = new Blob(voiceChunks, { type: voiceMediaRecorder?.mimeType || 'audio/webm' });
+  const form = new FormData();
+  form.append('file', blob, 'voice.webm');
+  try {
+    showToast('Transcribing…');
+    const r = await fetch('/api/transcribe', { method: 'POST', body: form });
+    if (!r.ok) throw new Error('Transcription failed');
+    const data = await r.json();
+    const text = (data.text || '').trim();
+    if (text && els.input) {
+      const prefix = els.input.value ? els.input.value + ' ' : '';
+      els.input.value = prefix + text;
+      els.input.dispatchEvent(new Event('input', { bubbles: true }));
+      els.input.focus();
+    } else {
+      showToast('No speech detected');
+    }
+  } catch (err) {
+    showToast('Transcription error: ' + (err.message || 'unknown'));
+  }
+}
+
+function stopVoiceRecording() {
+  if (voiceRafId) {
+    cancelAnimationFrame(voiceRafId);
+    voiceRafId = null;
+  }
+  if (voiceAudioCtx) {
+    voiceAudioCtx.close().catch(() => {});
+    voiceAudioCtx = null;
+  }
+  if (voiceMediaRecorder && voiceMediaRecorder.state !== 'inactive') {
+    voiceMediaRecorder.stop();
+  }
+  if (voiceStream) {
+    voiceStream.getTracks().forEach(t => t.stop());
+    voiceStream = null;
+  }
+  isListening = false;
+  if (els['btn-mic']) els['btn-mic'].classList.remove('listening');
+}
 
 function setupVoiceToText() {
   if (!els['btn-mic'] || !els.input) return;
   els['btn-mic'].style.display = 'flex';
   els['btn-mic'].onclick = async () => {
     if (isListening) {
-      // Stop recording
-      if (voiceMediaRecorder && voiceMediaRecorder.state !== 'inactive') {
-        voiceMediaRecorder.stop();
-      }
-      if (voiceStream) {
-        voiceStream.getTracks().forEach(t => t.stop());
-        voiceStream = null;
-      }
-      isListening = false;
-      if (els['btn-mic']) els['btn-mic'].classList.remove('listening');
+      stopVoiceRecording();
       return;
     }
-
-    // Start recording
     try {
       voiceStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch (err) {
       showToast('Microphone access denied or unavailable');
       return;
     }
-
     voiceChunks = [];
     let mimeType = 'audio/webm';
     if (!MediaRecorder.isTypeSupported(mimeType)) {
       mimeType = 'audio/mp4';
-      if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = '';
-      }
+      if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = '';
     }
     const options = mimeType ? { mimeType } : {};
     voiceMediaRecorder = new MediaRecorder(voiceStream, options);
-
     voiceMediaRecorder.ondataavailable = (e) => {
       if (e.data.size > 0) voiceChunks.push(e.data);
     };
-
-    voiceMediaRecorder.onstop = async () => {
-      isListening = false;
-      if (els['btn-mic']) els['btn-mic'].classList.remove('listening');
-      if (voiceStream) {
-        voiceStream.getTracks().forEach(t => t.stop());
-        voiceStream = null;
-      }
-
-      if (!voiceChunks.length) return;
-      const blob = new Blob(voiceChunks, { type: voiceMediaRecorder.mimeType || 'audio/webm' });
-      const form = new FormData();
-      form.append('file', blob, 'voice.webm');
-
-      try {
-        showToast('Transcribing…');
-        const r = await fetch('/api/transcribe', { method: 'POST', body: form });
-        if (!r.ok) throw new Error('Transcription failed');
-        const data = await r.json();
-        const text = (data.text || '').trim();
-        if (text && els.input) {
-          const prefix = els.input.value ? els.input.value + ' ' : '';
-          els.input.value = prefix + text;
-          els.input.dispatchEvent(new Event('input', { bubbles: true }));
-          els.input.focus();
-        } else {
-          showToast('No speech detected');
-        }
-      } catch (err) {
-        showToast('Transcription error: ' + (err.message || 'unknown'));
-      }
+    voiceMediaRecorder.onstop = () => {
+      transcribeVoice();
     };
-
     voiceMediaRecorder.onerror = () => {
-      isListening = false;
-      if (els['btn-mic']) els['btn-mic'].classList.remove('listening');
+      stopVoiceRecording();
       showToast('Recording error');
     };
-
+    // Web Audio VAD
+    voiceAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const src = voiceAudioCtx.createMediaStreamSource(voiceStream);
+    const analyser = voiceAudioCtx.createAnalyser();
+    analyser.fftSize = 256;
+    src.connect(analyser);
+    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+    let silenceMs = 0;
+    let lastTime = performance.now();
+    function checkVolume() {
+      if (!isListening || !voiceAudioCtx) return;
+      analyser.getByteFrequencyData(dataArray);
+      const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+      const now = performance.now();
+      const dt = now - lastTime;
+      lastTime = now;
+      if (avg < VAD_THRESHOLD) {
+        silenceMs += dt;
+        if (silenceMs >= VAD_SILENCE_MS) {
+          stopVoiceRecording();
+          return;
+        }
+      } else {
+        silenceMs = 0;
+      }
+      voiceRafId = requestAnimationFrame(checkVolume);
+    }
+    voiceRafId = requestAnimationFrame(checkVolume);
     voiceMediaRecorder.start();
     isListening = true;
     if (els['btn-mic']) els['btn-mic'].classList.add('listening');
