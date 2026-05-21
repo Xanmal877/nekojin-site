@@ -855,6 +855,22 @@ async function sendApiMessage(text) {
   if (modelId === 'custom') {
     modelId = getCustomModel(CFG.currentProvider) || prov.defaultModel;
   }
+  // Ollama safety: ensure we have a real model ID
+  if (CFG.currentProvider === 'ollama') {
+    if (!modelId && PROVIDERS.ollama.models?.length) {
+      modelId = PROVIDERS.ollama.models[0].id;
+      currentModel = modelId;
+      CFG.currentModel = modelId;
+    }
+    if (!modelId) {
+      showToast('No Ollama models available. Run `ollama list` on your desktop to see pulled models.');
+      return;
+    }
+  }
+  if (!modelId) {
+    showToast('No model selected. Choose one from the model picker.');
+    return;
+  }
   hideWelcome(); showStopButton();
 
   // Build messages array from current session
@@ -933,12 +949,17 @@ async function sendApiMessage(text) {
     }
     session.messages.push({ role: 'assistant', content: fullText, timestamp: Date.now() });
   } catch (err) {
+    let errText = err.message || 'Unknown error';
+    // If upstream rejected model, name the model in the error
+    if (/model.*not found|invalid model|model not supported|does not exist/i.test(errText)) {
+      errText += ` (tried model: ${modelId})`;
+    }
     if (currentAssistantEl) {
       if (currentAssistantEl._raf) cancelAnimationFrame(currentAssistantEl._raf);
-      currentAssistantEl.innerHTML = formatMarkdown(fullText + '\n\n**Error:** ' + err.message);
+      currentAssistantEl.innerHTML = formatMarkdown(fullText + '\n\n**Error:** ' + errText);
       currentAssistantEl.classList.remove('streaming'); highlightCode(currentAssistantEl); currentAssistantEl = null;
     }
-    session.messages.push({ role: 'error', content: err.message, timestamp: Date.now() });
+    session.messages.push({ role: 'error', content: errText, timestamp: Date.now() });
   } finally {
     isStreaming = false; abortCtrl = null; setStatus('online', 'Ready'); hideStopButton();
   }
