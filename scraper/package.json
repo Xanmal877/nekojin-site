@@ -1,0 +1,14 @@
+{
+  "name": "nekojin-scraper",
+  "version": "1.0.0",
+  "description": "Multi-platform story metrics scraper for Nekojin Interactive",
+  "main": "BookStatScraper.js",
+  "scripts": {
+    "start": "node BookStatScraper.js"
+  },
+  "dependencies": {
+    "puppeteer": "^24.37.5",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
+  }
+}

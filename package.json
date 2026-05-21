@@ -1,21 +1,20 @@
 {
-  "name": "files",
+  "name": "nekojin-site",
   "version": "1.0.0",
-  "description": "",
-  "main": "BookStatScraper.js",
+  "description": "Nekojin Interactive website",
+  "main": "dashboard-server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node dashboard-server.js",
+    "meta": "node generate-meta.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "Purple Xanmal",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
     "adm-zip": "^0.5.17",
     "bcryptjs": "^3.0.3",
     "mammoth": "^1.12.0",
-    "puppeteer": "^24.37.5",
-    "puppeteer-extra": "^3.3.6",
-    "puppeteer-extra-plugin-stealth": "^2.11.2"
+    "ws": "^8.18.1"
   }
 }

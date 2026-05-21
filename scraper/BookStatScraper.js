@@ -17,7 +17,7 @@ const fs   = require('fs');
 const path = require('path');
 
 const METRICS_FILE = path.join(__dirname, 'story-metrics.json');
-const CONTENT_FILE = path.join(__dirname, 'site-content.json');
+const CONTENT_FILE = path.join(__dirname, '..', 'site-content.json');
 
 ////////////////////////////////////////////////////////////
 // CONFIG LOADER

@@ -41,3 +41,7 @@ chrome-profile/
 users.json
 user-keys.json
 *.zip
+
+# Runtime / generated data
+story-metrics.json
+newsletter-subscribers.json
