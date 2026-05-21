@@ -1185,15 +1185,22 @@ const VAD_THRESHOLD = 15;
 const VAD_SILENCE_MS = 1500;
 
 async function transcribeVoice() {
-  if (!voiceChunks.length) return;
+  if (!voiceChunks.length) { console.warn('[voice] no chunks'); return; }
   const blob = new Blob(voiceChunks, { type: voiceMediaRecorder?.mimeType || 'audio/webm' });
+  console.log('[voice] blob size', blob.size, 'type', blob.type);
   const form = new FormData();
   form.append('file', blob, 'voice.webm');
   try {
     showToast('Transcribing…');
     const r = await fetch('/api/transcribe', { method: 'POST', body: form });
-    if (!r.ok) throw new Error('Transcription failed');
+    console.log('[voice] server status', r.status);
+    if (!r.ok) {
+      const txt = await r.text();
+      console.error('[voice] server error body', txt);
+      throw new Error('Transcription failed (' + r.status + ')');
+    }
     const data = await r.json();
+    console.log('[voice] server json', data);
     const text = (data.text || '').trim();
     if (text && els.input) {
       const prefix = els.input.value ? els.input.value + ' ' : '';
@@ -1204,6 +1211,7 @@ async function transcribeVoice() {
       showToast('No speech detected');
     }
   } catch (err) {
+    console.error('[voice] transcription error', err);
     showToast('Transcription error: ' + (err.message || 'unknown'));
   }
 }

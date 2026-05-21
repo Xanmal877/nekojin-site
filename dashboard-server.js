@@ -1154,18 +1154,22 @@ const server = http.createServer(async (req, res) => {
     // Audio transcription via local whisper.cpp server
     if (req.method === 'POST' && url === '/api/transcribe') {
         try {
+            console.log('[transcribe] request received');
             const body = await readRawBody(req);
             const ct = req.headers['content-type'] || '';
+            console.log('[transcribe] content-type', ct);
             const bm = ct.match(/boundary=([^\s;]+)/);
-            if (!bm) { res.writeHead(400); return res.end('No boundary'); }
+            if (!bm) { console.error('[transcribe] no boundary'); res.writeHead(400); return res.end('No boundary'); }
             const parts = parseMultipart(body, bm[1]);
             const file = parts['file'];
-            if (!file || !file.data) { res.writeHead(400); return res.end('No file'); }
+            if (!file || !file.data) { console.error('[transcribe] no file in multipart'); res.writeHead(400); return res.end('No file'); }
+            console.log('[transcribe] file size', file.data.length);
 
             // Write to temp file
             const tmpName = `whisper-${Date.now()}-${Math.random().toString(36).slice(2,8)}.webm`;
             const tmpPath = path.join('/tmp', tmpName);
             fs.writeFileSync(tmpPath, file.data);
+            console.log('[transcribe] temp written to', tmpPath);
 
             // Forward to whisper-server
             const form = new FormData();
@@ -1180,6 +1184,7 @@ const server = http.createServer(async (req, res) => {
                 let raw = '';
                 whisperRes.on('data', c => raw += c);
                 whisperRes.on('end', () => {
+                    console.log('[transcribe] whisper response', raw.slice(0, 200));
                     try {
                         const d = JSON.parse(raw);
                         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -1191,7 +1196,8 @@ const server = http.createServer(async (req, res) => {
                     fs.unlinkSync(tmpPath);
                 });
             });
-            whisperReq.on('error', () => {
+            whisperReq.on('error', (e) => {
+                console.error('[transcribe] whisper request error', e.message);
                 res.writeHead(503, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ error: 'Whisper server unavailable' }));
                 fs.unlinkSync(tmpPath);
