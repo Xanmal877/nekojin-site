@@ -1037,6 +1037,92 @@ const server = http.createServer(async (req, res) => {
         } catch(e) { res.writeHead(500); return res.end(e.message); }
     }
 
+    // Save current chat transcript to ~/.pi/agent/previous-chats/
+    if (req.method === 'POST' && url === '/api/chat-export') {
+        try {
+            const body = JSON.parse((await readRawBody(req)).toString() || '{}');
+            const topicRaw = (body.topic || 'chat-export').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
+            const date = new Date().toISOString().slice(0, 10);
+            const filename = `${date}_${topicRaw || 'chat-export'}.txt`;
+            const archiveDir = path.join(os.homedir(), '.pi', 'agent', 'previous-chats');
+            if (!fs.existsSync(archiveDir)) fs.mkdirSync(archiveDir, { recursive: true });
+            const outPath = path.join(archiveDir, filename);
+            const content = `${body.header || ''}\n\n${body.content || ''}`;
+            fs.writeFileSync(outPath, content);
+            // Append to index.md if it exists
+            const indexPath = path.join(archiveDir, 'index.md');
+            if (fs.existsSync(indexPath)) {
+                const line = `| ${date} | \`${filename}\` | ${topicRaw.replace(/-/g, ' ') || 'chat export'} |\n`;
+                fs.appendFileSync(indexPath, line);
+            }
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ filename, saved: true }));
+        } catch (e) { res.writeHead(500); return res.end(e.message); }
+    }
+
+    // Serve agent context files for injection into external API sessions
+    if (req.method === 'GET' && url === '/api/agent-context') {
+        const agentDir = path.join(os.homedir(), '.pi', 'agent');
+        const files = ['README.md', 'MEMORY.md', 'TASKS.md'];
+        const data = {};
+        for (const fn of files) {
+            const fp = path.join(agentDir, fn);
+            try { data[fn.replace('.md', '')] = fs.readFileSync(fp, 'utf8'); } catch { data[fn.replace('.md', '')] = ''; }
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify(data));
+    }
+
+    // Serve agent context files for injection into external API sessions
+    if (req.method === 'GET' && url === '/api/agent-context') {
+        const agentDir = path.join(os.homedir(), '.pi', 'agent');
+        const files = ['README.md', 'MEMORY.md', 'TASKS.md'];
+        const data = {};
+        for (const fn of files) {
+            const fp = path.join(agentDir, fn);
+            try { data[fn.replace('.md', '')] = fs.readFileSync(fp, 'utf8'); } catch { data[fn.replace('.md', '')] = ''; }
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify(data));
+    }
+
+    // Quick health endpoint: disk usage
+    if (req.method === 'GET' && url === '/api/health') {
+        try {
+            const stats = fs.statSync('/');
+            const { execSync } = require('child_process');
+            const df = execSync('df -h / | tail -n 1').toString().trim();
+            const parts = df.split(/\s+/);
+            const usage = parts[4]; // e.g. "76%"
+            const percent = parseInt(usage, 10);
+            let status = 'ok';
+            if (percent >= 90) status = 'crit';
+            else if (percent >= 80) status = 'warn';
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ disk: usage, percent, status }));
+        } catch (e) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ error: e.message }));
+        }
+    }
+
+    // List session templates from ~/.pi/agent/templates/
+    if (req.method === 'GET' && url === '/api/templates') {
+        const templatesDir = path.join(os.homedir(), '.pi', 'agent', 'templates');
+        const out = [];
+        try {
+            const files = fs.readdirSync(templatesDir);
+            for (const fn of files) {
+                if (!fn.endsWith('.md')) continue;
+                const fp = path.join(templatesDir, fn);
+                const content = fs.readFileSync(fp, 'utf8');
+                out.push({ name: fn.replace('.md', ''), content });
+            }
+        } catch { /* ignore missing dir */ }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ templates: out }));
+    }
+
     // Upload manuscript .docx (admin only)
     if (req.method === 'POST' && url === '/upload-manuscript') {
         if (!isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }

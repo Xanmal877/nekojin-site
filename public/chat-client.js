@@ -13,6 +13,8 @@ const MAX_RECONNECT = 5;
 const CFG = {
   get systemPrompt() { try { return localStorage.getItem('nekojin:systemPrompt') || ''; } catch { return ''; } },
   set systemPrompt(v) { try { localStorage.setItem('nekojin:systemPrompt', v || ''); } catch {} },
+  get injectContext() { try { return localStorage.getItem('nekojin:injectContext') === 'true'; } catch { return false; } },
+  set injectContext(v) { try { localStorage.setItem('nekojin:injectContext', String(v)); } catch {} },
   get currentProvider() { try { return localStorage.getItem('nekojin:provider') || 'pi'; } catch { return 'pi'; } },
   set currentProvider(v) { try { localStorage.setItem('nekojin:provider', v || 'pi'); } catch {} },
   get currentModel() { try { return localStorage.getItem('nekojin:model:' + CFG.currentProvider) || ''; } catch { return ''; } },
@@ -26,6 +28,60 @@ const CFG = {
 // ── Custom model storage ────────────────────────────────
 function getCustomModel(providerId) { try { return localStorage.getItem(`nekojin:customModel:${providerId}`) || ''; } catch { return ''; } }
 function setCustomModel(providerId, modelId) { try { localStorage.setItem(`nekojin:customModel:${providerId}`, modelId || ''); } catch {} }
+
+// ── Agent context (README + MEMORY + TASKS) ─────────────
+let agentContextText = null;
+let agentContextPromise = null;
+async function fetchAgentContext() {
+  if (agentContextText != null) return agentContextText;
+  if (agentContextPromise) return agentContextPromise;
+  agentContextPromise = fetch('/api/agent-context')
+    .then(r => { if (!r.ok) throw new Error('Failed to load context'); return r.json(); })
+    .then(data => {
+      const parts = [];
+      if (data.readme) parts.push('=== README ===\n' + data.readme);
+      if (data.memory) parts.push('=== MEMORY ===\n' + data.memory);
+      if (data.tasks) parts.push('=== TASKS ===\n' + data.tasks);
+      agentContextText = parts.join('\n\n');
+      return agentContextText;
+    })
+    .catch(() => { agentContextText = ''; return ''; })
+    .finally(() => { agentContextPromise = null; });
+  return agentContextPromise;
+}
+
+async function updateHealthWidget() {
+  const el = document.getElementById('health-widget');
+  if (!el) return;
+  try {
+    const r = await fetch('/api/health');
+    if (!r.ok) return;
+    const data = await r.json();
+    el.textContent = data.disk || '--';
+    el.className = 'health-widget ' + (data.status || 'ok');
+  } catch { el.textContent = '--'; el.className = 'health-widget'; }
+}
+
+let cachedTemplates = null;
+async function loadTemplates() {
+  const sel = document.getElementById('template-select');
+  if (!sel) return;
+  try {
+    const r = await fetch('/api/templates');
+    if (!r.ok) return;
+    const data = await r.json();
+    cachedTemplates = data.templates || [];
+    const currentVal = sel.value;
+    sel.innerHTML = '<option value="">— No template —</option>';
+    for (const t of cachedTemplates) {
+      const opt = document.createElement('option');
+      opt.value = t.name;
+      opt.textContent = t.name.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      sel.appendChild(opt);
+    }
+    sel.value = currentVal;
+  } catch { /* silently fail */ }
+}
 
 // ── IndexedDB ───────────────────────────────────────────
 const DB_NAME = 'nekojin-chat-v1';
@@ -101,8 +157,8 @@ function cacheEls() {
   const ids = [
     'messages','input','send','status-dot','status-text','conn-banner',
     'session-list','header-title','sidebar','sidebar-overlay','sidebar-toggle',
-    'model-picker','model-current','model-popover','file-input','btn-attach',
-    'attach-bar','toast','btn-new-chat','btn-settings','btn-clear','settings-panel',
+    'model-picker','model-current','model-popover','file-input','btn-attach','btn-mic',
+    'attach-bar','toast','btn-new-chat','btn-settings','btn-clear','btn-save-chat','settings-panel',
     'settings-overlay','btn-close-settings','system-prompt-input','btn-save-prompt',
     'btn-reset-prompt','welcome','stop-btn'
   ];
@@ -609,6 +665,13 @@ function loadSettingsUI() {
         <input type="number" id="settings-maxtokens" value="${CFG.maxTokens}" min="256" max="32000" step="256" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:0.4rem 0.6rem;color:var(--text);font-family:inherit;outline:none;">
       </div>
     </div>
+  </div>
+  <div class="setting-group">
+    <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;text-transform:none;font-size:0.85rem;">
+      <input type="checkbox" id="settings-inject-context" ${CFG.injectContext ? 'checked' : ''} style="accent-color:var(--accent);">
+      <span>Inject personal context</span>
+    </label>
+    <p class="hint" style="margin-top:0.2rem;">Include README, MEMORY, and TASKS from ~/.pi/agent/ in external API sessions.</p>
   </div>`;
 
   // System prompt (static textarea already exists in HTML)
@@ -661,6 +724,8 @@ function saveSettings() {
   if (tempIn) CFG.temperature = parseFloat(tempIn.value);
   const maxIn = document.getElementById('settings-maxtokens');
   if (maxIn) CFG.maxTokens = parseInt(maxIn.value, 10) || 4096;
+  const injectCtx = document.getElementById('settings-inject-context');
+  if (injectCtx) CFG.injectContext = injectCtx.checked;
 
   // Sync all provider keys to server
   const keysToSave = {};
@@ -881,8 +946,17 @@ async function sendApiMessage(text) {
     activeSessionId = id; activeSessionProvider = CFG.currentProvider;
     if (text) setHeaderTitle(session.name);
   }
-  if (session.messages.length === 0 && CFG.systemPrompt) {
-    session.messages.push({ role: 'system', content: CFG.systemPrompt, timestamp: Date.now() });
+  if (session.messages.length === 0) {
+    let sys = [];
+    if (CFG.injectContext && agentContextText !== '') {
+      // If agentContextText is null (not fetched yet), fetch lazily
+      if (agentContextText === null) await fetchAgentContext();
+      if (agentContextText) sys.push(agentContextText);
+    }
+    if (CFG.systemPrompt) sys.push(CFG.systemPrompt);
+    if (sys.length) {
+      session.messages.push({ role: 'system', content: sys.join('\n\n'), timestamp: Date.now() });
+    }
   }
 
   // Add user message
@@ -1000,6 +1074,34 @@ function stopGeneration() {
   setStatus('online', 'Ready');
 }
 
+async function saveCurrentChat() {
+  if (!els.messages) return;
+  const msgs = els.messages.querySelectorAll('.msg');
+  if (!msgs.length) { showToast('Nothing to save'); return; }
+  let transcript = '';
+  let firstUserText = '';
+  for (const m of msgs) {
+    const role = m.classList.contains('user') ? 'Xanmal'
+      : m.classList.contains('assistant') ? 'AI'
+      : m.classList.contains('tool') ? 'Tool'
+      : 'System';
+    const text = m.innerText.trim();
+    if (!text) continue;
+    if (!firstUserText && role === 'Xanmal') firstUserText = text.slice(0, 60);
+    transcript += `\n[${role}]\n${text}\n`;
+  }
+  const header = `Session: ${activeSessionId || 'current'} | Provider: ${CFG.currentProvider} | Model: ${CFG.currentModel || 'default'}\nDate: ${new Date().toISOString()}\n---`;
+  const body = { header, content: transcript.trim(), topic: firstUserText };
+  try {
+    const r = await fetch('/api/chat-export', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (!r.ok) throw new Error('Server rejected export');
+    const data = await r.json();
+    showToast('Saved to ' + (data.filename || 'archive'));
+  } catch (err) {
+    showToast('Save failed: ' + err.message);
+  }
+}
+
 // ── New Chat ────────────────────────────────────────────
 async function startNewChat() {
   if (isStreaming) stopGeneration();
@@ -1021,6 +1123,55 @@ async function startNewChat() {
   await refreshSessionList();
 }
 
+// ── Voice to Text ──────────────────────────────────────
+let voiceRec = null;
+let isListening = false;
+function setupVoiceToText() {
+  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRec || !els['btn-mic'] || !els.input) return;
+  els['btn-mic'].style.display = 'flex';
+  voiceRec = new SpeechRec();
+  voiceRec.continuous = false;
+  voiceRec.interimResults = true;
+  voiceRec.lang = 'en-US';
+  voiceRec.onstart = () => {
+    isListening = true;
+    if (els['btn-mic']) els['btn-mic'].classList.add('listening');
+  };
+  voiceRec.onend = () => {
+    isListening = false;
+    if (els['btn-mic']) els['btn-mic'].classList.remove('listening');
+  };
+  voiceRec.onresult = (e) => {
+    let transcript = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      transcript += e.results[i][0].transcript;
+    }
+    if (els.input) {
+      const prefix = els.input.value ? els.input.value + ' ' : '';
+      els.input.value = prefix + transcript;
+      els.input.dispatchEvent(new Event('input', { bubbles: true }));
+      els.input.focus();
+    }
+  };
+  voiceRec.onerror = (e) => {
+    if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+      showToast('Microphone access denied');
+    } else if (e.error === 'no-speech') {
+      showToast('No speech detected');
+    } else {
+      showToast('Voice recognition error: ' + e.error);
+    }
+    isListening = false;
+    if (els['btn-mic']) els['btn-mic'].classList.remove('listening');
+  };
+  els['btn-mic'].onclick = () => {
+    if (!voiceRec) return;
+    if (isListening) { voiceRec.stop(); return; }
+    try { voiceRec.start(); } catch (err) { showToast('Could not start voice recognition'); }
+  };
+}
+
 // ── Init ────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   cacheEls();
@@ -1036,6 +1187,7 @@ document.addEventListener('DOMContentLoaded', () => {
       showWelcome();
     };
   }
+  if (els['btn-save-chat']) els['btn-save-chat'].onclick = saveCurrentChat;
   if (els['btn-close-settings']) els['btn-close-settings'].onclick = closeSettings;
   if (els['settings-overlay']) els['settings-overlay'].onclick = closeSettings;
   if (els['btn-save-prompt']) els['btn-save-prompt'].onclick = saveSettings;
@@ -1080,6 +1232,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Init pi WS
   connectPiWS();
+
+  // Init voice-to-text
+  setupVoiceToText();
+
+  // Init health widget
+  updateHealthWidget();
+  setInterval(updateHealthWidget, 60000);
+
+  // Load session templates
+  loadTemplates();
+  const templateSel = document.getElementById('template-select');
+  if (templateSel) {
+    templateSel.onchange = () => {
+      const name = templateSel.value;
+      if (!name || !cachedTemplates) return;
+      const tpl = cachedTemplates.find(t => t.name === name);
+      if (!tpl) return;
+      const sysIn = document.getElementById('system-prompt-input');
+      if (sysIn) {
+        sysIn.value = tpl.content;
+        CFG.systemPrompt = tpl.content;
+      }
+    };
+  }
 
   // Load Ollama models if that's the current provider
   if (CFG.currentProvider === 'ollama') {
