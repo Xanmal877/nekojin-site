@@ -137,7 +137,13 @@ function setProviderDefaultModel(providerId, modelId) {
 async function fetchOllamaModels(baseUrl) {
   try {
     const url = (baseUrl || getStoredBaseUrl()).replace(/\/$/, '') + '/api/tags';
-    const res = await fetch(url, { method: 'GET', signal: AbortSignal.timeout(5000) });
+    let signal;
+    try { signal = AbortSignal.timeout(5000); } catch {
+      const ctrl = new AbortController();
+      setTimeout(() => ctrl.abort(), 5000);
+      signal = ctrl.signal;
+    }
+    const res = await fetch(url, { method: 'GET', signal });
     if (!res.ok) return [];
     const data = await res.json();
     return (data.models || []).map(m => ({
@@ -165,7 +171,7 @@ async function* proxyChatStream(provider, model, messages, systemPrompt, options
     maxTokens: options.maxTokens ?? 4096
   };
 
-  if (provider === 'ollama') {
+  if (provider === 'ollama' || provider === 'smart') {
     body.baseUrl = getStoredBaseUrl();
   } else {
     body.apiKey = getStoredKey(provider);
@@ -367,11 +373,16 @@ PROVIDERS.smart = {
   description: 'Local desktop when ON, Kimi cloud when OFF',
   logo: 'S',
   color: '#6366f1',
+  requiresKey: true,
+  keyName: 'Kimi API Key',
+  keyUrl: 'https://platform.moonshot.cn/',
+  needsBaseUrl: true,
+  baseUrlDefault: 'http://192.168.1.23:11434',
   models: [
-    { id: 'auto', name: 'Auto Desktop/Kimi' },
-    { id: 'gemma4:4b', name: 'Gemma 4 (Desktop)' },
-    { id: 'qwen2.5-coder:7b', name: 'Qwen2.5 Coder (Desktop)' },
-    { id: 'llama3.1:8b', name: 'Llama 3.1 (Desktop)' },
+    { id: 'auto', name: '[Auto] Desktop / Kimi Fallback' },
+    { id: 'gemma4:4b', name: 'Gemma 4 (Desktop Ollama)' },
+    { id: 'qwen2.5-coder:7b', name: 'Qwen2.5 Coder (Desktop Ollama)' },
+    { id: 'llama3.1:8b', name: 'Llama 3.1 (Desktop Ollama)' },
     { id: 'kimi-k2-6', name: 'Kimi K2.6 (Cloud Fallback)' }
   ],
   defaultModel: 'auto',
