@@ -23,6 +23,10 @@ const CFG = {
   set maxTokens(v) { try { localStorage.setItem('nekojin:maxTokens', String(v)); } catch {} },
 };
 
+// ── Custom model storage ────────────────────────────────
+function getCustomModel(providerId) { try { return localStorage.getItem(`nekojin:customModel:${providerId}`) || ''; } catch { return ''; } }
+function setCustomModel(providerId, modelId) { try { localStorage.setItem(`nekojin:customModel:${providerId}`, modelId || ''); } catch {} }
+
 // ── IndexedDB ───────────────────────────────────────────
 const DB_NAME = 'nekojin-chat-v1';
 const DB_VERSION = 1;
@@ -106,7 +110,7 @@ function cacheEls() {
 }
 
 let ws = null, reconnectAttempts = 0, reconnectTimer = null;
-let isStreaming = false, currentAssistantEl = null;
+let isStreaming = false, streamCount = 0, currentAssistantEl = null;
 let activeSessionId = null, activeSessionProvider = null;
 let sessionsData = [];
 let availableModels = [], currentModel = null;
@@ -130,6 +134,12 @@ function showToast(msg) {
   const t = els.toast; if (!t) return;
   t.textContent = msg; t.classList.add('visible');
   setTimeout(() => t.classList.remove('visible'), 2500);
+}
+function highlightCode(el) {
+  if (!window.Prism || !el) return;
+  el.querySelectorAll('pre code[class*="language-"]').forEach(block => {
+    try { Prism.highlightElement(block); } catch {}
+  });
 }
 function hideWelcome() { const w = document.getElementById('welcome'); if (w) w.remove(); }
 function showWelcome() {
@@ -199,6 +209,9 @@ function populateModels(models) {
   } else if (CFG.currentProvider !== 'pi') {
     const prov = PROVIDERS[CFG.currentProvider];
     displayModels = prov ? prov.models.map(m => ({ ...m, provider: prov.id })) : [];
+    // Inject stored custom model name into the display
+    const customVal = getCustomModel(CFG.currentProvider);
+    if (customVal) displayModels = displayModels.map(m => m.id === 'custom' ? { ...m, name: `Custom: ${customVal}` } : m);
   }
 
   // Update current button text
@@ -301,6 +314,13 @@ window._toggleFavorite = function(key) {
 };
 window._selectModel = function(id) {
   if (!id) return;
+  const modelDef = PROVIDERS[CFG.currentProvider]?.models.find(m => m.id === id);
+  if (modelDef?.custom) {
+    const stored = getCustomModel(CFG.currentProvider);
+    const input = prompt('Enter model ID (e.g. gpt-4o, claude-sonnet-4-5):', stored || '');
+    if (!input || !input.trim()) return;
+    setCustomModel(CFG.currentProvider, input.trim());
+  }
   currentModel = id; CFG.currentModel = id;
   populateModels(availableModels);
   const pop = els['model-popover']; const cur = els['model-current'];
@@ -448,7 +468,7 @@ window._onSessionClick = async function(ev, el) {
   await refreshSessionList();
   if (els.sidebar) { els.sidebar.classList.remove('open'); els.sidebarOverlay.style.display = 'none'; }
   if (currentAssistantEl) { if (currentAssistantEl._raf) cancelAnimationFrame(currentAssistantEl._raf); currentAssistantEl = null; }
-  isStreaming = false;
+  isStreaming = false; streamCount = 0;
 };
 
 function renderApiHistory(messages) {
@@ -465,7 +485,8 @@ function renderApiHistory(messages) {
       }
       createMessage('user', html);
     } else if (msg.role === 'assistant') {
-      createMessage('assistant', formatMarkdown(msg.content));
+      const el = createMessage('assistant', formatMarkdown(msg.content));
+      highlightCode(el);
     } else if (msg.role === 'error') {
       createMessage('error', escapeHtml(msg.content));
     }
@@ -480,38 +501,46 @@ window._onSessionRename = async function(id, source) {
   const input = document.getElementById('s-edit-' + id);
   input.focus(); input.select();
   const finish = async (name) => {
-    name = (name || '').trim();
-    if (!name || name === oldName) { await refreshSessionList(); return; }
-    if (source === 'pi') {
-      const s = sessionsData.find(s => s.id === id); if (s) s.name = name;
-      if (id === activeSessionId) setHeaderTitle(name);
-      fetch('/chat-session/rename', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, name }) }).catch(()=>{});
-      refreshSessionList();
-    } else {
-      const session = await getApiSession(id); if (!session) return;
-      session.name = name; session.updatedAt = Date.now();
-      await putApiSession(session);
-      if (id === activeSessionId) setHeaderTitle(name);
-      refreshSessionList();
+    try {
+      name = (name || '').trim();
+      if (!name || name === oldName) { await refreshSessionList(); return; }
+      if (source === 'pi') {
+        const s = sessionsData.find(s => s.id === id); if (s) s.name = name;
+        if (id === activeSessionId) setHeaderTitle(name);
+        try {
+          await fetch('/chat-session/rename', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, name }) });
+        } catch (e) { console.warn('Rename error:', e); }
+        await refreshSessionList();
+      } else {
+        const session = await getApiSession(id); if (!session) { await refreshSessionList(); return; }
+        session.name = name; session.updatedAt = Date.now();
+        await putApiSession(session);
+        if (id === activeSessionId) setHeaderTitle(name);
+        await refreshSessionList();
+      }
+    } catch (err) {
+      console.error('Rename failed:', err);
+      await refreshSessionList();
     }
   };
-  input.onkeydown = (e) => { if (e.key === 'Enter') finish(input.value); if (e.key === 'Escape') refreshSessionList(); };
+  input.onkeydown = (e) => { if (e.key === 'Enter') finish(input.value); if (e.key === 'Escape') { input.blur(); refreshSessionList(); } };
   input.onblur = () => finish(input.value);
 };
 
 window._onSessionDelete = async function(id, source) {
   if (!confirm('Delete this chat? This cannot be undone.')) return;
-  if (source === 'pi') {
-    fetch('/chat-session/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
-      .then(() => {
-        sessionsData = sessionsData.filter(s => s.id !== id);
-        if (id === activeSessionId) { activeSessionId = null; activeSessionProvider = null; els.messages.innerHTML = ''; showWelcome(); setHeaderTitle('New Chat'); }
-        refreshSessionList();
-      }).catch(()=>{});
-  } else {
-    await deleteApiSession(id);
+  try {
+    if (source === 'pi') {
+      await fetch('/chat-session/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+      sessionsData = sessionsData.filter(s => s.id !== id);
+    } else {
+      await deleteApiSession(id);
+    }
     if (id === activeSessionId) { activeSessionId = null; activeSessionProvider = null; if (els.messages) els.messages.innerHTML = ''; showWelcome(); setHeaderTitle('New Chat'); }
-    refreshSessionList();
+    await refreshSessionList();
+  } catch (err) {
+    console.error('Delete failed:', err);
+    showToast('Failed to delete session');
   }
 };
 
@@ -640,11 +669,22 @@ function saveSettings() {
       keysToSave[pid] = getStoredKey(pid);
     }
   }
-  fetch('/api/keys', {
+  const saves = [fetch('/api/keys', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(keysToSave)
-  }).catch(() => {});
+  })];
+
+  // If system prompt changed and provider is pi, persist server-side so new sessions use it
+  if (CFG.currentProvider === 'pi' && sysIn) {
+    saves.push(fetch('/system-prompt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: sysIn.value })
+    }));
+  }
+
+  Promise.allSettled(saves).catch(() => {});
 
   showToast('Settings saved');
   closeSettings();
@@ -723,7 +763,7 @@ function handlePiEvent(data) {
     case 'message_update': {
       const ev = data.assistantMessageEvent; if (!ev) return;
       if (ev.type === 'text_start') {
-        hideWelcome(); currentAssistantEl = createMessage('assistant streaming'); isStreaming = true; setStatus('busy', 'Thinking…');
+        hideWelcome(); currentAssistantEl = createMessage('assistant streaming'); streamCount++; isStreaming = true; setStatus('busy', 'Thinking…');
       } else if (ev.type === 'text_delta') {
         if (!currentAssistantEl) { hideWelcome(); currentAssistantEl = createMessage('assistant streaming'); }
         if (!currentAssistantEl._buf) currentAssistantEl._buf = '';
@@ -735,17 +775,17 @@ function handlePiEvent(data) {
           });
         }
       } else if (ev.type === 'text_end') {
-        if (currentAssistantEl) { if (currentAssistantEl._raf) cancelAnimationFrame(currentAssistantEl._raf); currentAssistantEl.innerHTML = formatMarkdown(currentAssistantEl._buf || ''); currentAssistantEl.classList.remove('streaming'); currentAssistantEl = null; }
-        isStreaming = false; setStatus('online', 'Ready'); refreshSessionList();
+        if (currentAssistantEl) { if (currentAssistantEl._raf) cancelAnimationFrame(currentAssistantEl._raf); currentAssistantEl.innerHTML = formatMarkdown(currentAssistantEl._buf || ''); currentAssistantEl.classList.remove('streaming'); highlightCode(currentAssistantEl); currentAssistantEl = null; }
+        streamCount = Math.max(0, streamCount - 1); isStreaming = streamCount > 0; if (!isStreaming) setStatus('online', 'Ready'); refreshSessionList();
       } else if (ev.type === 'done' || ev.type === 'error') {
-        if (currentAssistantEl) { if (currentAssistantEl._raf) cancelAnimationFrame(currentAssistantEl._raf); currentAssistantEl.innerHTML = formatMarkdown(currentAssistantEl._buf || ''); currentAssistantEl.classList.remove('streaming'); currentAssistantEl = null; }
-        isStreaming = false; setStatus('online', 'Ready'); refreshSessionList();
+        if (currentAssistantEl) { if (currentAssistantEl._raf) cancelAnimationFrame(currentAssistantEl._raf); currentAssistantEl.innerHTML = formatMarkdown(currentAssistantEl._buf || ''); currentAssistantEl.classList.remove('streaming'); highlightCode(currentAssistantEl); currentAssistantEl = null; }
+        streamCount = 0; isStreaming = false; setStatus('online', 'Ready'); refreshSessionList();
       }
       break;
     }
 
-    case 'agent_start': setStatus('busy', 'Working…'); break;
-    case 'agent_end': isStreaming = false; setStatus('online', 'Ready'); break;
+    case 'agent_start': streamCount++; isStreaming = true; setStatus('busy', 'Working…'); break;
+    case 'agent_end': streamCount = Math.max(0, streamCount - 1); isStreaming = streamCount > 0; if (!isStreaming) setStatus('online', 'Ready'); break;
 
     case 'tool_execution_start': {
       hideWelcome(); const el = createMessage('tool');
@@ -770,7 +810,7 @@ function renderHistory(messages) {
     if (msg.role === 'user') {
       createMessage('user', escapeHtml(msg.content));
     } else if (msg.role === 'assistant') {
-      const el = createMessage('assistant'); el.innerHTML = formatMarkdown(msg.content);
+      const el = createMessage('assistant'); el.innerHTML = formatMarkdown(msg.content); highlightCode(el);
     } else if (msg.role === 'tool') {
       const el = createMessage('tool'); el.innerHTML = `<span class="tool-name">⚙</span> ${escapeHtml(msg.content || '')}`;
     } else if (msg.role === 'error') {
@@ -788,9 +828,33 @@ function handlePiUI(data) {
 }
 
 // ── External Provider Engine ────────────────────────────
+function msgToApiFormat(m, provider) {
+  if (m.role !== 'user' || !m.attachments?.length || provider === 'ollama') {
+    return { role: m.role, content: m.content };
+  }
+  const content = [];
+  for (const att of m.attachments) {
+    if (att.type === 'image') {
+      if (provider === 'claude') {
+        const base64 = att.data.split(',')[1];
+        const mediaType = att.data.match(/^data:([^;]+);/)?.[1] || 'image/jpeg';
+        content.push({ type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } });
+      } else {
+        // openai / xai / kimi / smart
+        content.push({ type: 'image_url', image_url: { url: att.data } });
+      }
+    }
+  }
+  content.push({ type: 'text', text: m.content });
+  return { role: m.role, content };
+}
+
 async function sendApiMessage(text) {
   const prov = PROVIDERS[CFG.currentProvider]; if (!prov) return;
-  const modelId = currentModel || CFG.currentModel || prov.defaultModel;
+  let modelId = currentModel || CFG.currentModel || prov.defaultModel;
+  if (modelId === 'custom') {
+    modelId = getCustomModel(CFG.currentProvider) || prov.defaultModel;
+  }
   hideWelcome(); showStopButton();
 
   // Build messages array from current session
@@ -828,18 +892,21 @@ async function sendApiMessage(text) {
   let fullText = '';
   abortCtrl = new AbortController();
 
+  // Build API messages (convert attachments to multimodal format for vision providers)
+  const apiMessages = session.messages
+    .filter(m => m.role !== 'system' && m.role !== 'error')
+    .map(m => (CFG.currentProvider === 'ollama') ? { role: m.role, content: m.content } : msgToApiFormat(m, CFG.currentProvider));
+
   try {
     let stream;
     if (CFG.currentProvider === 'ollama') {
-      stream = ollamaChatStream(modelId,
-        session.messages.filter(m => m.role !== 'system' && m.role !== 'error').map(m => ({ role: m.role, content: m.content })),
+      stream = ollamaChatStream(modelId, apiMessages,
         CFG.systemPrompt, { temperature: CFG.temperature, topP: 1, maxTokens: CFG.maxTokens },
         abortCtrl.signal
       );
     } else {
       stream = proxyChatStream(
-        CFG.currentProvider, modelId,
-        session.messages.filter(m => m.role !== 'system' && m.role !== 'error').map(m => ({ role: m.role, content: m.content })),
+        CFG.currentProvider, modelId, apiMessages,
         CFG.systemPrompt, { temperature: CFG.temperature, topP: 1, maxTokens: CFG.maxTokens },
         abortCtrl.signal
       );
@@ -862,14 +929,14 @@ async function sendApiMessage(text) {
     if (currentAssistantEl) {
       if (currentAssistantEl._raf) cancelAnimationFrame(currentAssistantEl._raf);
       currentAssistantEl.innerHTML = formatMarkdown(fullText);
-      currentAssistantEl.classList.remove('streaming'); currentAssistantEl = null;
+      currentAssistantEl.classList.remove('streaming'); highlightCode(currentAssistantEl); currentAssistantEl = null;
     }
     session.messages.push({ role: 'assistant', content: fullText, timestamp: Date.now() });
   } catch (err) {
     if (currentAssistantEl) {
       if (currentAssistantEl._raf) cancelAnimationFrame(currentAssistantEl._raf);
       currentAssistantEl.innerHTML = formatMarkdown(fullText + '\n\n**Error:** ' + err.message);
-      currentAssistantEl.classList.remove('streaming'); currentAssistantEl = null;
+      currentAssistantEl.classList.remove('streaming'); highlightCode(currentAssistantEl); currentAssistantEl = null;
     }
     session.messages.push({ role: 'error', content: err.message, timestamp: Date.now() });
   } finally {
@@ -904,7 +971,7 @@ function stopGeneration() {
   } else {
     if (abortCtrl) { abortCtrl.abort(); abortCtrl = null; }
   }
-  isStreaming = false; hideStopButton();
+  streamCount = 0; isStreaming = false; hideStopButton();
   if (currentAssistantEl) {
     if (currentAssistantEl._raf) cancelAnimationFrame(currentAssistantEl._raf);
     currentAssistantEl.classList.remove('streaming'); currentAssistantEl = null;
@@ -929,7 +996,7 @@ async function startNewChat() {
     setHeaderTitle('New Chat');
   }
   if (currentAssistantEl) { if (currentAssistantEl._raf) cancelAnimationFrame(currentAssistantEl._raf); currentAssistantEl = null; }
-  isStreaming = false;
+  isStreaming = false; streamCount = 0;
   await refreshSessionList();
 }
 

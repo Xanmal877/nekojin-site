@@ -7,6 +7,7 @@
  * - /content        GET   → site-content.json (public, for dynamic pages)
  * - /save-content   POST  → write site-content.json (auth required)
  * - /upload-cover   POST  → save image to public/covers/ (auth required)
+ * - /data /scrape /events → scraper API (auth required)
  */
 
 const http        = require('http');
@@ -27,6 +28,8 @@ const PI_GRACE_MS    = 1000 * 60 * 5; // 5 minutes
 const SALT_ROUNDS    = 10;
 
 const PORT           = 7771;
+const METRICS_FILE   = path.join(__dirname, 'story-metrics.json');
+const SCRAPER_FILE   = path.join(__dirname, 'BookStatScraper.js');
 const CONTENT_FILE   = path.join(__dirname, 'site-content.json');
 const ADMIN_FILE     = path.join(__dirname, 'admin.html');
 const PUBLIC_DIR     = path.join(__dirname, 'public');
@@ -41,6 +44,7 @@ if (!fs.existsSync(MANUSCRIPTS_DIR)) fs.mkdirSync(MANUSCRIPTS_DIR, { recursive: 
 
 if (!fs.existsSync(WEBCHAT_ROOT)) fs.mkdirSync(WEBCHAT_ROOT, { recursive: true });
 
+let scrapeRunning = false;
 if (!fs.existsSync(COVERS_DIR)) fs.mkdirSync(COVERS_DIR, { recursive: true });
 
 // ── HTTP SESSIONS ─────────────────────────────────────────
@@ -379,6 +383,26 @@ function registerPage(error = '', success = '') {
 </body>
 </html>`;
 }
+
+// ── SSE ───────────────────────────────────────────────────
+const sseClients = new Set();
+let notifyTimer = null;
+function notifyClients() {
+    clearTimeout(notifyTimer);
+    notifyTimer = setTimeout(() => {
+        for (const r of sseClients) r.write('data: update\n\n');
+    }, 300);
+}
+try { fs.watch(METRICS_FILE, notifyClients); } catch {}
+let lastMtime = 0;
+try { lastMtime = fs.statSync(METRICS_FILE).mtimeMs; } catch {}
+setInterval(() => {
+    try {
+        const mt = fs.statSync(METRICS_FILE).mtimeMs;
+        if (mt !== lastMtime) { lastMtime = mt; notifyClients(); }
+    } catch {}
+}, 10_000);
+
 // ── PUBLIC ROUTES ─────────────────────────────────────────
 const PUBLIC_ROUTES = {
     '/':                      path.join(PUBLIC_DIR, 'index.html'),
@@ -1000,7 +1024,8 @@ const server = http.createServer(async (req, res) => {
             const parts = parseMultipart(body, bm[1]);
             const file  = parts['file'];
             if (!file || !file.data) { res.writeHead(400); return res.end('No file'); }
-            const uploadDir = path.join('/tmp', 'pi-uploads', username);
+            const safeUsername = (username || 'unknown').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 64);
+            const uploadDir = path.join('/tmp', 'pi-uploads', safeUsername);
             if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
             // Sanitize filename
             const safeName = (file.filename || 'upload').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 100);
@@ -1056,7 +1081,7 @@ const server = http.createServer(async (req, res) => {
                 res.writeHead(400, { 'Content-Type': 'application/json' });
                 return res.end(JSON.stringify({ error: 'Missing provider, model, or messages' }));
             }
-            return await proxyProviderChat(res, provider, apiKey, baseUrl, model, messages, system, stream, temperature, topP, maxTokens);
+            return proxyProviderChat(res, provider, apiKey, baseUrl, model, messages, system, stream, temperature, topP, maxTokens);
         } catch(e) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ error: e.message }));
@@ -1098,9 +1123,89 @@ const server = http.createServer(async (req, res) => {
             return res.end(JSON.stringify({ path: `/covers/${fname}` }));
         } catch(e) { res.writeHead(500); return res.end(e.message); }
     }
-    // External provider proxy
-    if (url === '/api/proxy/chat') {
+
+    // SSE (admin only)
+    if (url === '/events') {
+        if (!isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        res.writeHead(200, {
+            'Content-Type':'text/event-stream','Cache-Control':'no-cache',
+            'Connection':'keep-alive','Access-Control-Allow-Origin':'*',
+        });
+        res.write(':ok\n\n');
+        sseClients.add(res);
+        req.on('close', () => sseClients.delete(res));
+        return;
+    }
+
+    // Metrics data (admin only)
+    if (url === '/data') {
+        if (!isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        try { res.writeHead(200,{'Content-Type':'application/json'}); return res.end(fs.readFileSync(METRICS_FILE,'utf8')); }
+        catch { res.writeHead(500); return res.end('{}'); }
+    }
+
+    // Scrape now (admin only)
+    if (req.method === 'POST' && url === '/scrape') {
+        if (!isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        if (scrapeRunning) { res.writeHead(409); return res.end('Scrape already running'); }
+        scrapeRunning = true;
+        let stderr = '';
+        const child = spawn(process.execPath, [SCRAPER_FILE], { cwd: __dirname, env: process.env, stdio: ['ignore','inherit','pipe'] });
+        child.stderr.on('data', d => { stderr += d; process.stderr.write(d); });
+        child.on('close', code => {
+            scrapeRunning = false;
+            if (!res.headersSent) { res.writeHead(code===0?200:500,{'Content-Type':'text/plain'}); res.end(code===0 ? 'ok' : `exit ${code}\n${stderr.slice(0,2000)}`); }
+        });
+        child.on('error', err => { scrapeRunning = false; if (!res.headersSent) { res.writeHead(500); res.end('spawn failed: '+err.message); } });
+        return;
+    }
+
+    // Delete metrics date (admin only)
+    if (req.method === 'POST' && url === '/delete-metrics-date') {
+        if (!isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        try {
+            const body = await readRawBody(req);
+            const { date } = JSON.parse(body.toString());
+            if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) { res.writeHead(400); return res.end('Invalid date'); }
+            const data = JSON.parse(fs.readFileSync(METRICS_FILE, 'utf8'));
+            for (const story of Object.values(data.stories)) story.history = (story.history || []).filter(e => e.date !== date);
+            data.lastUpdated = new Date().toISOString();
+            fs.writeFileSync(METRICS_FILE, JSON.stringify(data, null, 2));
+            res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end('{"ok":true}');
+        } catch(e) { res.writeHead(500); return res.end(e.message); }
+    }
+    });
+
+// ── EXTERNAL PROVIDER PROXY ─────────────────────────────
 async function proxyProviderChat(res, provider, apiKey, baseUrl, model, messages, system, stream, temperature, topP, maxTokens) {
+    // Resolve smart provider before branching
+    if (provider === 'smart') {
+        const smartBase = (baseUrl || 'http://192.168.1.23:11434').replace(/\/$/, '');
+        const smartUrl = new URL(smartBase);
+        const desktopOnline = await new Promise((resolve) => {
+            const check = httpReq.request({ hostname: smartUrl.hostname, port: smartUrl.port || 11434, path: '/api/tags', timeout: 2000 },
+                (r) => resolve(r.statusCode === 200));
+            check.on('error', () => resolve(false));
+            check.on('timeout', () => { check.destroy(); resolve(false); });
+            check.end();
+        });
+        if (desktopOnline) {
+            console.log('[Smart] Desktop ON - using Ollama');
+            baseUrl = smartBase;
+            provider = 'ollama';
+            if (!model || model === 'auto') model = 'llama3.1:8b';
+        } else {
+            console.log('[Smart] Desktop OFF - using Kimi');
+            provider = 'kimi';
+            apiKey = apiKey || process.env.KIMI_API_KEY;
+            if (!apiKey) {
+                res.writeHead(503, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ error: 'Desktop offline, no Kimi key. Add KIMI_API_KEY.' }));
+            }
+            if (!model || model === 'auto') model = 'kimi-k2-6';
+        }
+    }
+
     const isStream = stream !== false;
     const headers = { 'Content-Type': 'application/json' };
     let hostname, pathReq, method = 'POST';
@@ -1118,7 +1223,7 @@ async function proxyProviderChat(res, provider, apiKey, baseUrl, model, messages
             if (m.role === 'system') continue;
             msgs.push({ role: m.role, content: m.content });
         }
-        body = JSON.stringify({ model, messages: msgs, max_tokens: maxTokens || 4096, stream: isStream });
+        body = JSON.stringify({ model, messages: msgs, max_tokens: maxTokens || 4096, stream: isStream, temperature: temperature ?? 0.7, top_p: topP ?? 1 });
     } else if (provider === 'openai') {
         headers['Authorization'] = `Bearer ${apiKey}`;
         hostname = 'api.openai.com';
@@ -1133,29 +1238,6 @@ async function proxyProviderChat(res, provider, apiKey, baseUrl, model, messages
         const msgs = system ? [{ role: 'system', content: system }] : [];
         for (const m of messages) msgs.push({ role: m.role, content: m.content });
         body = JSON.stringify({ model, messages: msgs, max_tokens: maxTokens || 4096, stream: isStream, temperature: temperature ?? 0.7, top_p: topP ?? 1 });
-    } else if (provider === 'smart') {
-        // Smart failover: Desktop Ollama → Kimi Cloud
-        const desktopOnline = await new Promise((resolve) => {
-            const check = httpReq.request({ hostname: '192.168.1.101', port: 11434, path: '/api/tags', timeout: 2000 }, 
-                (r) => resolve(r.statusCode === 200));
-            check.on('error', () => resolve(false));
-            check.on('timeout', () => { check.destroy(); resolve(false); });
-            check.end();
-        });
-        if (desktopOnline) {
-            console.log('[Smart] Desktop ON - using Ollama');
-            baseUrl = 'http://192.168.1.101:11434';
-            provider = 'ollama';
-        } else {
-            console.log('[Smart] Desktop OFF - using Kimi');
-            provider = 'kimi';
-            apiKey = apiKey || process.env.KIMI_API_KEY;
-            if (!apiKey) {
-                res.writeHead(503, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify({ error: 'Desktop offline, no Kimi key. Add KIMI_API_KEY.' }));
-            }
-            model = model || 'kimi-k2-6';
-        }
     } else if (provider === 'kimi') {
         const kimiHeaders = { ...headers, 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' };
         const kimiMsgs = [];
