@@ -1042,6 +1042,18 @@ async function sendApiMessage(text) {
   if (!session.name || session.name === 'New Chat') session.name = text.slice(0, 40) || 'New Chat';
   await putApiSession(session);
   await refreshSessionList();
+
+  // After first exchange, ask AI to generate a better title in the background
+  if (session.provider !== 'pi' && session.messages.length >= 2) {
+    generateChatTitle(session).then(async title => {
+      if (title && title !== (session.name || 'New Chat')) {
+        session.name = title;
+        setHeaderTitle(title);
+        await putApiSession(session);
+        await refreshSessionList();
+      }
+    }).catch(() => {});
+  }
 }
 
 // ── Send / Stop ─────────────────────────────────────────
@@ -1100,6 +1112,40 @@ async function saveCurrentChat() {
   } catch (err) {
     showToast('Save failed: ' + err.message);
   }
+}
+
+async function generateChatTitle(session) {
+  const prov = PROVIDERS[session.provider];
+  if (!prov || session.provider === 'pi') return null;
+  try {
+    const userMsg = session.messages.find(m => m.role === 'user')?.content?.slice(0, 800) || '';
+    const prompt = `Summarize this user message into a very short 3-5 word chat title. Be concise. Only output the title text, nothing else.\n\nUser message:\n"""${userMsg}"""`;
+    const r = await fetch('/api/proxy/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        provider: session.provider,
+        model: session.model,
+        messages: [{ role: 'user', content: prompt }],
+        maxTokens: 20,
+        temperature: 0.4,
+        topP: 1,
+        stream: false
+      })
+    });
+    if (!r.ok) return null;
+    const raw = await r.text();
+    const lines = raw.split('\n').filter(l => l.trim());
+    for (const line of lines) {
+      try {
+        const obj = JSON.parse(line);
+        if (obj.type === 'text' && obj.text) {
+          return obj.text.trim().replace(/^["'“”]+|["'“”]+$/g, '').slice(0, 60) || null;
+        }
+      } catch {}
+    }
+    return null;
+  } catch { return null; }
 }
 
 // ── New Chat ────────────────────────────────────────────
