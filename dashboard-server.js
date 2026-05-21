@@ -1123,6 +1123,34 @@ const server = http.createServer(async (req, res) => {
         return res.end(JSON.stringify({ templates: out }));
     }
 
+    // Proxy Ollama /api/tags to avoid CORS
+    if (req.method === 'GET' && url === '/api/ollama-models') {
+        try {
+            const targetBaseUrl = (query.get('baseUrl') || 'http://localhost:11434').replace(/\/$/, '');
+            const target = new URL(targetBaseUrl);
+            const proto = target.protocol === 'https:' ? https : httpReq;
+            const port = target.port || (target.protocol === 'https:' ? 443 : 80);
+            const proxyOpts = { hostname: target.hostname, port, path: '/api/tags', method: 'GET', headers: { 'Accept': 'application/json' } };
+            const proxyReq = proto.request(proxyOpts, (proxyRes) => {
+                let raw = '';
+                proxyRes.on('data', c => raw += c);
+                proxyRes.on('end', () => {
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(raw);
+                });
+            });
+            proxyReq.on('error', () => {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ models: [] }));
+            });
+            proxyReq.end();
+        } catch {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ models: [] }));
+        }
+        return;
+    }
+
     // Upload manuscript .docx (admin only)
     if (req.method === 'POST' && url === '/upload-manuscript') {
         if (!isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
