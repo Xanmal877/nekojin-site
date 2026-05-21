@@ -289,6 +289,13 @@
       padding: 0.2rem 0.4rem; border-radius: 4px; transition: color 0.2s;
     }
     .sidebar-footer .logout:hover { color: #fca5a5; }
+    .sidebar-footer .health-widget {
+      font-size: 0.65rem; color: var(--muted2); white-space: nowrap;
+    }
+    .sidebar-footer .health-widget.ok { color: #34d399; }
+    .sidebar-footer .health-widget.warn { color: #fbbf24; }
+    .sidebar-footer .health-widget.crit { color: #ef4444; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{ opacity: 1; } 50%{ opacity: 0.4; } }
 
     /* Mobile sidebar toggle */
     .sidebar-toggle {
@@ -573,6 +580,22 @@
     .aichat-attach-btn.has-files {
       color: var(--accent); border-color: rgba(139,92,246,0.3);
     }
+    .aichat-mic-btn {
+      width: 40px; height: 40px; border-radius: 10px;
+      background: transparent; border: 1px solid var(--border);
+      color: var(--muted); font-size: 1rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s; flex-shrink: 0;
+    }
+    .aichat-mic-btn:hover { background: var(--surface2); border-color: var(--border2); color: var(--text); }
+    .aichat-mic-btn.listening {
+      background: rgba(239,68,68,0.15); border-color: rgba(239,68,68,0.4); color: #ef4444;
+      animation: mic-pulse 1.2s ease-in-out infinite;
+    }
+    @keyframes mic-pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+    }
     .aichat-send {
       width: 40px; height: 40px; border-radius: 10px;
       background: var(--accent); border: none; color: #fff;
@@ -792,6 +815,7 @@
   </div>
   <div class="sidebar-footer">
     <span class="user" id="sidebar-user">xanmal</span>
+    <span class="health-widget" id="health-widget" title="Disk usage on Pi">--</span>
     <a href="/logout" class="logout">Log out</a>
   </div>
 </aside>
@@ -823,6 +847,7 @@
     <div class="aichat-actions">
       <button id="btn-settings" title="Settings">Settings</button>
       <button id="btn-clear" title="Clear display">Clear</button>
+      <button id="btn-save-chat" title="Save chat to archive">Save</button>
     </div>
   </header>
 
@@ -846,6 +871,9 @@
       <button class="aichat-attach-btn" id="btn-attach" title="Attach file">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
       </button>
+      <button class="aichat-mic-btn" id="btn-mic" title="Voice input" style="display:none">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+      </button>
       <textarea class="aichat-input" id="input" rows="1" placeholder="Ask pi anything…"></textarea>
       <button class="aichat-stop" id="stop-btn" title="Stop generation">◼</button>
       <button class="aichat-send" id="send">➤</button>
@@ -860,6 +888,13 @@
     <button class="close-btn" id="btn-close-settings">✕</button>
   </div>
   <div class="settings-body">
+    <div class="setting-group">
+      <label>Session Template</label>
+      <select id="template-select" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:0.6rem 0.8rem;color:var(--text);font-family:inherit;outline:none;">
+        <option value="">— No template —</option>
+      </select>
+      <p class="hint">Load a pre-built prompt for recurring workflows.</p>
+    </div>
     <div class="setting-group">
       <label>System Prompt</label>
       <p class="hint">This is the hidden instruction sent to the AI at the start of every new session. Changes take effect when you start a new chat.</p>
