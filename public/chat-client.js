@@ -62,6 +62,20 @@ async function updateHealthWidget() {
   } catch { el.textContent = '--'; el.className = 'health-widget'; }
 }
 
+function validateStoredModel() {
+  const prov = PROVIDERS[CFG.currentProvider];
+  if (!prov) return;
+  const stored = CFG.currentModel;
+  if (!stored || stored === 'custom') return;
+  // Check if stored model exists in the provider's model list
+  const exists = prov.models.some(m => m.id === stored);
+  if (!exists) {
+    console.warn(`[model] Invalid stored model "${stored}" for ${CFG.currentProvider}, resetting to default "${prov.defaultModel}"`);
+    CFG.currentModel = prov.defaultModel;
+    currentModel = prov.defaultModel;
+  }
+}
+
 let cachedTemplates = null;
 async function loadTemplates() {
   const sel = document.getElementById('template-select');
@@ -1175,6 +1189,17 @@ let isListening = false;
 function setupVoiceToText() {
   const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRec || !els['btn-mic'] || !els.input) return;
+
+  // SpeechRecognition requires HTTPS in most browsers
+  const isSecure = location.protocol === 'https:' || (typeof window.isSecureContext !== 'undefined' && window.isSecureContext);
+  if (!isSecure) {
+    els['btn-mic'].title = 'Microphone requires HTTPS';
+    els['btn-mic'].style.opacity = '0.4';
+    els['btn-mic'].style.display = 'flex';
+    els['btn-mic'].onclick = () => showToast('Voice input requires a secure (HTTPS) connection');
+    return;
+  }
+
   els['btn-mic'].style.display = 'flex';
   voiceRec = new SpeechRec();
   voiceRec.continuous = false;
@@ -1312,6 +1337,9 @@ document.addEventListener('DOMContentLoaded', () => {
   } else {
     populateModels([]);
   }
+
+  // Validate stored model against current provider list
+  validateStoredModel();
 
   refreshSessionList();
 });
