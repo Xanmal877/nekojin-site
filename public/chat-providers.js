@@ -131,18 +131,16 @@ function setProviderDefaultModel(providerId, modelId) {
 // ── Ollama model fetch ──────────────────────────────────
 async function fetchOllamaModels(baseUrl) {
   try {
-    const url = (baseUrl || getStoredBaseUrl()).replace(/\/$/, '') + '/api/tags';
+    const url = '/api/ollama-models';
+    const params = baseUrl ? '?baseUrl=' + encodeURIComponent(baseUrl) : '';
     let signal;
     try { signal = AbortSignal.timeout(5000); } catch {
       const ctrl = new AbortController();
       setTimeout(() => ctrl.abort(), 5000);
       signal = ctrl.signal;
     }
-    const res = await fetch(url, { method: 'GET', signal });
-    if (!res.ok) {
-      console.warn('[Ollama] /api/tags returned', res.status, res.statusText);
-      return [];
-    }
+    const res = await fetch(url + params, { method: 'GET', signal });
+    if (!res.ok) return [];
     const data = await res.json();
     return (data.models || []).map(m => ({
       id: m.name,

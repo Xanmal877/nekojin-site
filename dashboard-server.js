@@ -1123,6 +1123,88 @@ const server = http.createServer(async (req, res) => {
         return res.end(JSON.stringify({ templates: out }));
     }
 
+    // Proxy Ollama /api/tags to avoid CORS
+    if (req.method === 'GET' && url === '/api/ollama-models') {
+        try {
+            const targetBaseUrl = (query.get('baseUrl') || 'http://localhost:11434').replace(/\/$/, '');
+            const target = new URL(targetBaseUrl);
+            const proto = target.protocol === 'https:' ? https : httpReq;
+            const port = target.port || (target.protocol === 'https:' ? 443 : 80);
+            const proxyOpts = { hostname: target.hostname, port, path: '/api/tags', method: 'GET', headers: { 'Accept': 'application/json' } };
+            const proxyReq = proto.request(proxyOpts, (proxyRes) => {
+                let raw = '';
+                proxyRes.on('data', c => raw += c);
+                proxyRes.on('end', () => {
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(raw);
+                });
+            });
+            proxyReq.on('error', () => {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ models: [] }));
+            });
+            proxyReq.end();
+        } catch {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ models: [] }));
+        }
+        return;
+    }
+
+    // Audio transcription via local whisper.cpp server
+    if (req.method === 'POST' && url === '/api/transcribe') {
+        try {
+            const body = await readRawBody(req);
+            const ct = req.headers['content-type'] || '';
+            const bm = ct.match(/boundary=([^\s;]+)/);
+            if (!bm) { res.writeHead(400); return res.end('No boundary'); }
+            const parts = parseMultipart(body, bm[1]);
+            const file = parts['file'];
+            if (!file || !file.data) { res.writeHead(400); return res.end('No file'); }
+
+            // Write to temp file
+            const tmpName = `whisper-${Date.now()}-${Math.random().toString(36).slice(2,8)}.webm`;
+            const tmpPath = path.join('/tmp', tmpName);
+            fs.writeFileSync(tmpPath, file.data);
+
+            // Forward to whisper-server
+            const form = new FormData();
+            // Reconstruct multipart body manually for whisper-server
+            const boundary = '----FormBoundary' + Math.random().toString(36).slice(2, 14);
+            const multipartBody = Buffer.concat([
+                Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${tmpName}"\r\nContent-Type: application/octet-stream\r\n\r\n`),
+                file.data,
+                Buffer.from(`\r\n--${boundary}--\r\n`)
+            ]);
+            const whisperReq = httpReq.request({ hostname: '127.0.0.1', port: 9000, path: '/inference', method: 'POST', headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}`, 'Content-Length': multipartBody.length } }, (whisperRes) => {
+                let raw = '';
+                whisperRes.on('data', c => raw += c);
+                whisperRes.on('end', () => {
+                    try {
+                        const d = JSON.parse(raw);
+                        res.writeHead(200, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ text: (d.text || '').trim() }));
+                    } catch {
+                        res.writeHead(200, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ text: raw.trim() }));
+                    }
+                    fs.unlinkSync(tmpPath);
+                });
+            });
+            whisperReq.on('error', () => {
+                res.writeHead(503, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Whisper server unavailable' }));
+                fs.unlinkSync(tmpPath);
+            });
+            whisperReq.write(multipartBody);
+            whisperReq.end();
+        } catch (e) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: e.message }));
+        }
+        return;
+    }
+
     // Upload manuscript .docx (admin only)
     if (req.method === 'POST' && url === '/upload-manuscript') {
         if (!isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
@@ -1290,6 +1372,12 @@ async function proxyProviderChat(res, provider, apiKey, baseUrl, model, messages
             }
             if (!model || model === 'auto') model = 'kimi-k2-6';
         }
+    }
+
+    // Validate required API key for non-local providers
+    if (provider !== 'ollama' && !apiKey) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ error: `Missing API key for ${provider}. Add it in Settings.` }));
     }
 
     const isStream = stream !== false;

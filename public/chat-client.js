@@ -413,15 +413,6 @@ document.addEventListener('click', (e) => {
 });
 
 // ── File upload (images → base64, text → server upload) ─
-els['btn-attach'] && (els['btn-attach'].onclick = () => els['file-input']?.click());
-if (els['file-input']) {
-  els['file-input'].onchange = () => {
-    const files = Array.from(els['file-input'].files || []);
-    if (!files.length) return;
-    for (const file of files) processFile(file);
-    els['file-input'].value = '';
-  };
-}
 function processFile(file) {
   if (file.type.startsWith('image/')) {
     const reader = new FileReader();
@@ -1178,64 +1169,92 @@ async function startNewChat() {
 // ── Voice to Text ──────────────────────────────────────
 let voiceRec = null;
 let isListening = false;
+let voiceMediaRecorder = null;
+let voiceChunks = [];
+let voiceStream = null;
+
 function setupVoiceToText() {
-  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRec || !els['btn-mic'] || !els.input) return;
-
-  // SpeechRecognition requires HTTPS in most browsers
-  const isSecure = location.protocol === 'https:' || (typeof window.isSecureContext !== 'undefined' && window.isSecureContext);
-  if (!isSecure) {
-    els['btn-mic'].title = 'Microphone requires HTTPS';
-    els['btn-mic'].style.opacity = '0.4';
-    els['btn-mic'].style.display = 'flex';
-    els['btn-mic'].onclick = () => showToast('Voice input requires a secure (HTTPS) connection');
-    return;
-  }
-
+  if (!els['btn-mic'] || !els.input) return;
   els['btn-mic'].style.display = 'flex';
-  voiceRec = new SpeechRec();
-  voiceRec.continuous = false;
-  voiceRec.interimResults = true;
-  voiceRec.lang = 'en-US';
-  voiceRec.onstart = () => {
+  els['btn-mic'].onclick = async () => {
+    if (isListening) {
+      // Stop recording
+      if (voiceMediaRecorder && voiceMediaRecorder.state !== 'inactive') {
+        voiceMediaRecorder.stop();
+      }
+      if (voiceStream) {
+        voiceStream.getTracks().forEach(t => t.stop());
+        voiceStream = null;
+      }
+      isListening = false;
+      if (els['btn-mic']) els['btn-mic'].classList.remove('listening');
+      return;
+    }
+
+    // Start recording
+    try {
+      voiceStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (err) {
+      showToast('Microphone access denied or unavailable');
+      return;
+    }
+
+    voiceChunks = [];
+    let mimeType = 'audio/webm';
+    if (!MediaRecorder.isTypeSupported(mimeType)) {
+      mimeType = 'audio/mp4';
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = '';
+      }
+    }
+    const options = mimeType ? { mimeType } : {};
+    voiceMediaRecorder = new MediaRecorder(voiceStream, options);
+
+    voiceMediaRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) voiceChunks.push(e.data);
+    };
+
+    voiceMediaRecorder.onstop = async () => {
+      isListening = false;
+      if (els['btn-mic']) els['btn-mic'].classList.remove('listening');
+      if (voiceStream) {
+        voiceStream.getTracks().forEach(t => t.stop());
+        voiceStream = null;
+      }
+
+      if (!voiceChunks.length) return;
+      const blob = new Blob(voiceChunks, { type: voiceMediaRecorder.mimeType || 'audio/webm' });
+      const form = new FormData();
+      form.append('file', blob, 'voice.webm');
+
+      try {
+        showToast('Transcribing…');
+        const r = await fetch('/api/transcribe', { method: 'POST', body: form });
+        if (!r.ok) throw new Error('Transcription failed');
+        const data = await r.json();
+        const text = (data.text || '').trim();
+        if (text && els.input) {
+          const prefix = els.input.value ? els.input.value + ' ' : '';
+          els.input.value = prefix + text;
+          els.input.dispatchEvent(new Event('input', { bubbles: true }));
+          els.input.focus();
+        } else {
+          showToast('No speech detected');
+        }
+      } catch (err) {
+        showToast('Transcription error: ' + (err.message || 'unknown'));
+      }
+    };
+
+    voiceMediaRecorder.onerror = () => {
+      isListening = false;
+      if (els['btn-mic']) els['btn-mic'].classList.remove('listening');
+      showToast('Recording error');
+    };
+
+    voiceMediaRecorder.start();
     isListening = true;
     if (els['btn-mic']) els['btn-mic'].classList.add('listening');
-  };
-  voiceRec.onend = () => {
-    isListening = false;
-    if (els['btn-mic']) els['btn-mic'].classList.remove('listening');
-  };
-  voiceRec.onresult = (e) => {
-    let transcript = '';
-    for (let i = e.resultIndex; i < e.results.length; i++) {
-      transcript += e.results[i][0].transcript;
-    }
-    if (els.input) {
-      const prefix = els.input.value ? els.input.value + ' ' : '';
-      els.input.value = prefix + transcript;
-      els.input.dispatchEvent(new Event('input', { bubbles: true }));
-      els.input.focus();
-    }
-  };
-  voiceRec.onerror = (e) => {
-    if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
-      showToast('Microphone access denied');
-    } else if (e.error === 'no-speech') {
-      showToast('No speech detected');
-    } else if (e.error === 'network') {
-      showToast('Speech recognition requires internet (uses Google servers). For offline voice, a local Whisper model is needed.');
-    } else if (e.error === 'audio-capture') {
-      showToast('No microphone found');
-    } else {
-      showToast('Voice recognition error: ' + e.error);
-    }
-    isListening = false;
-    if (els['btn-mic']) els['btn-mic'].classList.remove('listening');
-  };
-  els['btn-mic'].onclick = () => {
-    if (!voiceRec) return;
-    if (isListening) { voiceRec.stop(); return; }
-    try { voiceRec.start(); } catch (err) { showToast('Could not start voice recognition'); }
   };
 }
 
@@ -1285,6 +1304,17 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault(); els.messages.classList.remove('drag-active');
       if (e.dataTransfer.files.length) for (const f of e.dataTransfer.files) processFile(f);
     });
+  }
+
+  // File attach button
+  if (els['btn-attach']) els['btn-attach'].onclick = () => els['file-input']?.click();
+  if (els['file-input']) {
+    els['file-input'].onchange = () => {
+      const files = Array.from(els['file-input'].files || []);
+      if (!files.length) return;
+      for (const file of files) processFile(file);
+      els['file-input'].value = '';
+    };
   }
 
   // Fetch saved API keys from server on load
