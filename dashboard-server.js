@@ -1283,7 +1283,7 @@ function proxyViaRequest(res, protoModule, hostname, port, pathReq, headers, bod
                 } catch {}
                 if (isStream) {
                     res.writeHead(200, { 'Content-Type': 'application/x-ndjson', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
-                    res.write(`{"type":"error","error":${JSON.stringify(err)}\n`);
+                    res.write(`{"type":"error","error":${JSON.stringify(err)}}\n`);
                     res.end();
                 } else {
                     res.writeHead(proxyRes.statusCode, { 'Content-Type': 'application/json' });
