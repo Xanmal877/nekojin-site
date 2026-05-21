@@ -672,22 +672,11 @@ function saveSettings() {
       keysToSave[pid] = getStoredKey(pid);
     }
   }
-  const saves = [fetch('/api/keys', {
+  fetch('/api/keys', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(keysToSave)
-  })];
-
-  // If system prompt changed and provider is pi, persist server-side so new sessions use it
-  if (CFG.currentProvider === 'pi' && sysIn) {
-    saves.push(fetch('/system-prompt', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: sysIn.value })
-    }));
-  }
-
-  Promise.allSettled(saves).catch(() => {});
+  }).catch(() => {});
 
   showToast('Settings saved');
   closeSettings();
