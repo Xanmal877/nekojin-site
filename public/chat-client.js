@@ -1175,6 +1175,7 @@ async function startNewChat() {
 }
 
 // ── Voice to Text ──────────────────────────────────────
+let isListening = false;
 let voiceMediaRecorder = null;
 let voiceChunks = [];
 let voiceStream = null;
