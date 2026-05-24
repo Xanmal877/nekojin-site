@@ -702,6 +702,9 @@ window._selectProvider = async function(pid) {
     const models = await fetchOllamaModels(getStoredBaseUrl());
     PROVIDERS.ollama.models = models;
     populateModels([]);
+    if (!models.length) {
+      showToast('No Ollama models found. Check console (F12) for details. If testing cross-machine, set OLLAMA_ORIGINS=* on the Ollama host.');
+    }
   } else if (pid === 'pi') {
     populateModels(availableModels);
     if (ws && ws.readyState === 1) {
@@ -739,22 +742,11 @@ function saveSettings() {
       keysToSave[pid] = getStoredKey(pid);
     }
   }
-  const saves = [fetch('/api/keys', {
+  fetch('/api/keys', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(keysToSave)
-  })];
-
-  // If system prompt changed and provider is pi, persist server-side so new sessions use it
-  if (CFG.currentProvider === 'pi' && sysIn) {
-    saves.push(fetch('/system-prompt', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: sysIn.value })
-    }));
-  }
-
-  Promise.allSettled(saves).catch(() => {});
+  }).catch(() => {});
 
   showToast('Settings saved');
   closeSettings();
