@@ -30,7 +30,6 @@ const SALT_ROUNDS    = 10;
 const PORT           = 7771;
 const METRICS_FILE   = path.join(__dirname, 'story-metrics.json');
 const SCRAPER_FILE   = path.join(__dirname, 'BookStatScraper.js');
-const CONTENT_FILE   = path.join(__dirname, 'site-content.json');
 const ADMIN_FILE     = path.join(__dirname, 'admin.html');
 const PUBLIC_DIR     = path.join(__dirname, 'public');
 const COVERS_DIR     = path.join(PUBLIC_DIR, 'covers');
