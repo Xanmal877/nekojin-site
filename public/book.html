@@ -281,7 +281,10 @@ document.addEventListener('DOMContentLoaded', function() {
   try {
     const res = await fetch('/content');
     const data = await res.json();
-    searchIndex = (data.books || []).filter(b => b.visible !== false).map(b => ({
+    // Index standalone books + series books
+    const standalone = (data.books || []).filter(b => b.visible !== false);
+    const seriesBooks = (data.series || []).filter(s => s.visible !== false).flatMap(s => (s.books || []).filter(b => b.visible !== false));
+    searchIndex = [...standalone, ...seriesBooks].map(b => ({
       id: b.id, title: b.title, volume: b.volume || '',
       description: b.blurb || b.description || '', tags: (b.tags || []).join(' '), cover: b.cover || ''
     }));
@@ -360,7 +363,9 @@ async function loadBook() {
     return;
   }
 
-  const allBooks = (data.books || []).filter(b => b.visible !== false);
+  const standaloneBooks = (data.books || []).filter(b => b.visible !== false);
+  const seriesBooks = (data.series || []).filter(s => s.visible !== false).flatMap(s => (s.books || []).filter(b => b.visible !== false));
+  const allBooks = [...standaloneBooks, ...seriesBooks];
   const book = allBooks.find(b => b.id === bookId || b.slug === bookId);
 
   if (!book) {
