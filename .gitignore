@@ -45,3 +45,4 @@ user-keys.json
 # Runtime / generated data
 story-metrics.json
 newsletter-subscribers.json
+sessions.json
