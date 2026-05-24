@@ -416,7 +416,13 @@
       </div>
     </div>
 
-    <!-- SCRAPER PANEL -->
+  </main>
+</div>
+
+<!-- SAVE BANNER -->
+<div id="save-banner" class="save-banner">
+  <span class="save-banner-text">You have unsaved changes</span>
+  <button class="btn btn-primary btn-sm" onclick="saveContent()">Save</button>
   <button class="btn btn-ghost btn-sm" onclick="discardChanges()">Discard</button>
 </div>
 
@@ -448,6 +454,7 @@
   </div>
 </div>
 
+<script>
 // ── STATE ─────────────────────────────────────────────────
 let siteContent = null;
 let dirty = false;
@@ -488,7 +495,6 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     modalCancel();
     seriesPickerCancel();
-    closeExport();
   }
 });
 
@@ -892,7 +898,7 @@ function renderBookEditor(si, bi, book, totalBooks) {
           <a href="/read?book=${encodeURIComponent(book.slug || book.id)}" target="_blank" class="btn btn-ghost btn-sm" id="ms-read-btn-${si}-${bi}" style="display:none;">Open Reader →</a>
         </div>
         <div style="font-size:0.75rem;color:var(--muted);margin-top:0.5rem;">
-          File will be saved as <strong style="color:var(--text2);">${esc(book.slug || book.id)}.docx</strong>. Use Heading 1 for chapter titles.
+          File will be saved as <strong style="color:var(--text);">${esc(book.slug || book.id)}.docx</strong>. Use Heading 1 for chapter titles.
         </div>
       </div>
     </div>
@@ -1189,7 +1195,7 @@ function renderVisibilityPanel() {
             <div class="toggle-sub">${esc(book.volume||'')}</div>
           </div>
           <label class="toggle">
-            <input type="checkbox" ${book.visible ? 'checked' : ''}
+            <input type="checkbox" ${book.visible !== false ? 'checked' : ''}
               onchange="siteContent.series[${si}].books[${bi}].visible=this.checked; markDirty()">
             <span class="toggle-slider"></span>
           </label>
@@ -1209,7 +1215,7 @@ function renderVisibilityPanel() {
             <div class="toggle-sub">${esc(book.volume||'')}</div>
           </div>
           <label class="toggle">
-            <input type="checkbox" ${book.visible ? 'checked' : ''}
+            <input type="checkbox" ${book.visible !== false ? 'checked' : ''}
               onchange="siteContent.books[${bi}].visible=this.checked; markDirty()">
             <span class="toggle-slider"></span>
           </label>
