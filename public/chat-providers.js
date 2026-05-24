@@ -147,7 +147,8 @@ async function fetchOllamaModels(baseUrl) {
       name: m.name,
       vision: false // ollama vision depends on model, assume false
     }));
-  } catch {
+  } catch (err) {
+    console.warn('[Ollama] Failed to fetch models from', baseUrl || getStoredBaseUrl(), ':', err.message);
     return [];
   }
 }

@@ -883,7 +883,9 @@ async function loadHome() {
 
   // ── BOOKS ────────────────────────────────────────────
   const grid = document.getElementById('featured-books');
-  const allBooks = (data.books || []).filter(b => b.visible !== false);
+  const standaloneBooks = (data.books || []).filter(b => b.visible !== false);
+  const seriesBooks = (data.series || []).filter(s => s.visible !== false).flatMap(s => (s.books || []).filter(b => b.visible !== false));
+  const allBooks = [...standaloneBooks, ...seriesBooks];
 
   const featured = allBooks.slice(0, 3);
   if (featured.length) {
@@ -966,7 +968,10 @@ loadHome();
   try {
     const res = await fetch('/content');
     const data = await res.json();
-    searchIndex = (data.books || []).filter(b => b.visible !== false).map(b => ({
+    // Index standalone + series books
+    const standalone = (data.books || []).filter(b => b.visible !== false);
+    const seriesBooks = (data.series || []).filter(s => s.visible !== false).flatMap(s => (s.books || []).filter(b => b.visible !== false));
+    searchIndex = [...standalone, ...seriesBooks].map(b => ({
       id: b.id,
       title: b.title,
       volume: b.volume || '',

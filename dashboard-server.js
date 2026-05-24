@@ -1403,7 +1403,7 @@ async function proxyProviderChat(res, provider, apiKey, baseUrl, model, messages
             if (m.role === 'system') continue;
             msgs.push({ role: m.role, content: m.content });
         }
-        body = JSON.stringify({ model, messages: msgs, max_tokens: maxTokens || 4096, stream: isStream, temperature: temperature ?? 0.7, top_p: topP ?? 1 });
+        body = JSON.stringify({ model, messages: msgs, max_tokens: maxTokens || 4096, stream: isStream });
     } else if (provider === 'openai') {
         headers['Authorization'] = `Bearer ${apiKey}`;
         hostname = 'api.openai.com';
@@ -1463,7 +1463,7 @@ function proxyViaRequest(res, protoModule, hostname, port, pathReq, headers, bod
                 } catch {}
                 if (isStream) {
                     res.writeHead(200, { 'Content-Type': 'application/x-ndjson', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
-                    res.write(`{"type":"error","error":${JSON.stringify(err)}\n`);
+                    res.write(`{"type":"error","error":${JSON.stringify(err)}}\n`);
                     res.end();
                 } else {
                     res.writeHead(proxyRes.statusCode, { 'Content-Type': 'application/json' });

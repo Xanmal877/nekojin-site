@@ -423,18 +423,49 @@ async function loadBooks() {
     const res = await fetch('/content');
     const data = await res.json();
 
-    const books = (data.books || []).filter(b => b.visible !== false);
+    const series = (data.series || []).filter(s => s.visible !== false)
+      .map(s => ({ ...s, _books: (s.books || []).filter(b => b.visible !== false) }))
+      .filter(s => s._books.length > 0);
 
-    if (!books.length) {
+    const standalone = (data.books || []).filter(b => b.visible !== false);
+
+    if (!series.length && !standalone.length) {
       container.innerHTML = '<p style="text-align:center;color:var(--muted);padding:4rem 0;">No books available yet.</p>';
       return;
     }
 
-    let html = `
-      <div class="book-grid reveal">
-        ${books.map((b, i) => `<div class="reveal reveal-d${Math.min(i+1,4)}">${renderBook(b)}</div>`).join('')}
-      </div>
-    `;
+    let html = '';
+
+    // ── SERIES ──
+    series.forEach((s, si) => {
+      html += `
+        <div class="series-block reveal">
+          <div class="series-header">
+            <div>
+              <span class="series-eyebrow">Series ${si + 1}</span>
+              <h2 class="series-name">${esc(s.universe)}</h2>
+            </div>
+            ${s.universeDesc ? `<p class="series-desc">${esc(s.universeDesc)}</p>` : ''}
+          </div>
+          <div class="book-grid">
+            ${s._books.map((b, bi) => `<div class="reveal reveal-d${Math.min(bi + 1, 4)}">${renderBook(b)}</div>`).join('')}
+          </div>
+        </div>
+      `;
+    });
+
+    // ── STANDALONE ──
+    if (standalone.length) {
+      html += `
+        <div class="standalone-header reveal">
+          <span class="standalone-eyebrow">Standalone</span>
+          <h2 class="standalone-title">Books Outside Series</h2>
+        </div>
+        <div class="book-grid reveal">
+          ${standalone.map((b, i) => `<div class="reveal reveal-d${Math.min(i + 1, 4)}">${renderBook(b)}</div>`).join('')}
+        </div>
+      `;
+    }
 
     // ── PATREON BANNER ──
     html += `
@@ -499,7 +530,10 @@ document.addEventListener('DOMContentLoaded', function() {
   try {
     const res = await fetch('/content');
     const data = await res.json();
-    searchIndex = (data.books || []).filter(b => b.visible !== false).map(b => ({
+    // Index standalone books + series books
+    const standalone = (data.books || []).filter(b => b.visible !== false);
+    const seriesBooks = (data.series || []).filter(s => s.visible !== false).flatMap(s => (s.books || []).filter(b => b.visible !== false));
+    searchIndex = [...standalone, ...seriesBooks].map(b => ({
       id: b.id,
       title: b.title,
       volume: b.volume || '',
