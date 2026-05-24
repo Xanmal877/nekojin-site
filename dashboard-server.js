@@ -38,33 +38,52 @@ const NEWSLETTER_FILE = path.join(__dirname, 'newsletter-subscribers.json');
 const WEBCHAT_ROOT   = path.join(os.homedir(), '.pi', 'agent', 'webchat-sessions');
 const USERS_FILE     = path.join(__dirname, 'users.json');
 const USER_KEYS_FILE = path.join(__dirname, 'user-keys.json');
+const SESSIONS_FILE  = path.join(__dirname, 'sessions.json');
 const MANUSCRIPTS_DIR = path.join(__dirname, 'manuscripts');
 
 if (!fs.existsSync(MANUSCRIPTS_DIR)) fs.mkdirSync(MANUSCRIPTS_DIR, { recursive: true });
 
 if (!fs.existsSync(WEBCHAT_ROOT)) fs.mkdirSync(WEBCHAT_ROOT, { recursive: true });
+if (!fs.existsSync(SESSIONS_FILE)) fs.writeFileSync(SESSIONS_FILE, '{}');
 
 let scrapeRunning = false;
 if (!fs.existsSync(COVERS_DIR)) fs.mkdirSync(COVERS_DIR, { recursive: true });
 
+function loadSessions() {
+    try {
+        const raw = JSON.parse(fs.readFileSync(SESSIONS_FILE, 'utf8'));
+        const now = Date.now();
+        for (const [id, s] of Object.entries(raw)) {
+            if (now - s.createdAt < SESSION_TTL) sessions.set(id, s);
+        }
+    } catch {}
+}
+function saveSessions() {
+    try { fs.writeFileSync(SESSIONS_FILE, JSON.stringify(Object.fromEntries(sessions), null, 2)); }
+    catch {}
+}
+
 // ── HTTP SESSIONS ─────────────────────────────────────────
 const sessions = new Map(); // sessionId → { createdAt, username }
+loadSessions();
+
 function createSession(username) {
     const id = crypto.randomBytes(32).toString('hex');
     sessions.set(id, { createdAt: Date.now(), username });
+    saveSessions();
     return id;
 }
 function isValidSession(id) {
     const s = sessions.get(id);
     if (!s) return false;
-    if (Date.now() - s.createdAt > SESSION_TTL) { sessions.delete(id); return false; }
+    if (Date.now() - s.createdAt > SESSION_TTL) { sessions.delete(id); saveSessions(); return false; }
     return true;
 }
 function getSessionUser(id) {
     const s = sessions.get(id);
     return s ? s.username : null;
 }
-function deleteSession(id) { sessions.delete(id); }
+function deleteSession(id) { sessions.delete(id); saveSessions(); }
 
 // ── USER DATABASE ───────────────────────────────────────
 function loadUsers() {
