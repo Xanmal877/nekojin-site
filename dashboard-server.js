@@ -35,7 +35,8 @@ const ADMIN_FILE     = path.join(__dirname, 'admin.html');
 const PUBLIC_DIR     = path.join(__dirname, 'public');
 const COVERS_DIR     = path.join(PUBLIC_DIR, 'covers');
 const NEWSLETTER_FILE = path.join(__dirname, 'newsletter-subscribers.json');
-const WEBCHAT_ROOT   = path.join(os.homedir(), '.pi', 'agent', 'webchat-sessions');
+const CONTENT_FILE     = path.join(os.homedir(), 'Documents', 'nekojin-data', 'site-content.json');
+const WEBCHAT_ROOT     = path.join(os.homedir(), '.pi', 'agent', 'webchat-sessions');
 const USERS_FILE     = path.join(__dirname, 'users.json');
 const USER_KEYS_FILE = path.join(__dirname, 'user-keys.json');
 const SESSIONS_FILE  = path.join(__dirname, 'sessions.json');
@@ -45,6 +46,11 @@ if (!fs.existsSync(MANUSCRIPTS_DIR)) fs.mkdirSync(MANUSCRIPTS_DIR, { recursive: 
 
 if (!fs.existsSync(WEBCHAT_ROOT)) fs.mkdirSync(WEBCHAT_ROOT, { recursive: true });
 if (!fs.existsSync(SESSIONS_FILE)) fs.writeFileSync(SESSIONS_FILE, '{}');
+if (!fs.existsSync(CONTENT_FILE)) {
+    const dataDir = path.dirname(CONTENT_FILE);
+    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+    fs.writeFileSync(CONTENT_FILE, JSON.stringify({ series: [], books: [], game: {}, about: {} }, null, 2));
+}
 
 let scrapeRunning = false;
 if (!fs.existsSync(COVERS_DIR)) fs.mkdirSync(COVERS_DIR, { recursive: true });
