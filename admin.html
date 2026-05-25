@@ -1115,6 +1115,20 @@ function renderGamePanel() {
       <div id="game-features-editor">${renderGameFeatureRows(g.features || [])}</div>
       <button class="btn btn-ghost btn-sm" onclick="addGameFeature()">+ Add Feature</button>
     </div>
+
+    <div style="margin-top:1.5rem;border-top:1px solid var(--border);padding-top:1rem;">
+      <div class="card-title" style="margin-bottom:0.75rem;">📸 Screenshots</div>
+      <p style="font-size:0.78rem;color:var(--muted);margin-bottom:1rem;">Image URL and optional caption. Shown on the Games page gallery.</p>
+      <div id="game-screenshots-editor">${renderScreenshotRows(g.screenshots || [])}</div>
+      <button class="btn btn-ghost btn-sm" onclick="addScreenshot()">+ Add Screenshot</button>
+    </div>
+
+    <div style="margin-top:1.5rem;border-top:1px solid var(--border);padding-top:1rem;">
+      <div class="card-title" style="margin-bottom:0.75rem;">📝 Devlog Entries</div>
+      <p style="font-size:0.78rem;color:var(--muted);margin-bottom:1rem;">Date, title, and body for each development update. Shown on Games page.</p>
+      <div id="game-devlog-editor">${renderDevlogRows(g.devlog || [])}</div>
+      <button class="btn btn-ghost btn-sm" onclick="addDevlogEntry()">+ Add Devlog Entry</button>
+    </div>
   `;
 }
 
@@ -1166,6 +1180,75 @@ function removeGameFeature(index) {
   siteContent.game.features.splice(index, 1);
   markDirty();
   document.getElementById('game-features-editor').innerHTML = renderGameFeatureRows(siteContent.game.features);
+}
+
+// ── SCREENSHOTS ───────────────────────────────────────────
+function renderScreenshotRows(screenshots) {
+  if (!screenshots || !screenshots.length) return '<p style="font-size:0.78rem;color:var(--muted);">No screenshots yet.</p>';
+  return screenshots.map((s, i) => `
+    <div class="form-row" style="margin-bottom:0.5rem;align-items:center;">
+      <div style="flex:2">
+        <input type="url" value="${esc(s.url || '')}" placeholder="https://... or /screenshots/..."
+          oninput="siteContent.game.screenshots[${i}].url=this.value; markDirty()">
+      </div>
+      <div style="flex:1">
+        <input type="text" value="${esc(s.caption || '')}" placeholder="Caption (optional)"
+          oninput="siteContent.game.screenshots[${i}].caption=this.value; markDirty()">
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="removeScreenshot(${i})">✕</button>
+    </div>
+  `).join('');
+}
+
+function addScreenshot() {
+  if (!Array.isArray(siteContent.game.screenshots)) siteContent.game.screenshots = [];
+  siteContent.game.screenshots.push({ url: '', caption: '' });
+  markDirty();
+  document.getElementById('game-screenshots-editor').innerHTML = renderScreenshotRows(siteContent.game.screenshots);
+}
+
+function removeScreenshot(index) {
+  if (!siteContent.game.screenshots) return;
+  siteContent.game.screenshots.splice(index, 1);
+  markDirty();
+  document.getElementById('game-screenshots-editor').innerHTML = renderScreenshotRows(siteContent.game.screenshots);
+}
+
+// ── DEVLOG ────────────────────────────────────────────────
+function renderDevlogRows(devlog) {
+  if (!devlog || !devlog.length) return '<p style="font-size:0.78rem;color:var(--muted);">No devlog entries yet.</p>';
+  return devlog.map((d, i) => `
+    <div class="book-editor" style="margin-bottom:0.75rem;padding:1rem;">
+      <div class="form-row" style="gap:0.5rem;margin-bottom:0.5rem;">
+        <div style="flex:1">
+          <label style="font-size:0.7rem;">Date</label>
+          <input type="text" value="${esc(d.date || '')}" placeholder="April 2026"
+            oninput="siteContent.game.devlog[${i}].date=this.value; markDirty()">
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="removeDevlogEntry(${i})" style="margin-top:1.1rem;">✕</button>
+      </div>
+      <label style="font-size:0.7rem;">Title</label>
+      <input type="text" value="${esc(d.title || '')}" placeholder="Update title"
+        oninput="siteContent.game.devlog[${i}].title=this.value; markDirty()">
+      <label style="font-size:0.7rem;margin-top:0.5rem;">Body</label>
+      <textarea rows="3" placeholder="Description..."
+        oninput="siteContent.game.devlog[${i}].body=this.value; markDirty()">${esc(d.body || '')}</textarea>
+    </div>
+  `).join('');
+}
+
+function addDevlogEntry() {
+  if (!Array.isArray(siteContent.game.devlog)) siteContent.game.devlog = [];
+  siteContent.game.devlog.push({ date: '', title: '', body: '' });
+  markDirty();
+  document.getElementById('game-devlog-editor').innerHTML = renderDevlogRows(siteContent.game.devlog);
+}
+
+function removeDevlogEntry(index) {
+  if (!siteContent.game.devlog) return;
+  siteContent.game.devlog.splice(index, 1);
+  markDirty();
+  document.getElementById('game-devlog-editor').innerHTML = renderDevlogRows(siteContent.game.devlog);
 }
 
 // ── RENDER: ABOUT ─────────────────────────────────────────

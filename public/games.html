@@ -309,6 +309,41 @@
       line-height: 1.7; font-weight: 300;
     }
 
+    /* ── SCREENSHOTS ── */
+    .screenshots-section {
+      padding: 4rem 2rem;
+      background: var(--bg);
+    }
+    .screenshots-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.25rem;
+      margin-top: 2.5rem;
+    }
+    .screenshot-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      transition: all 0.25s;
+    }
+    .screenshot-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--border2);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.35);
+    }
+    .screenshot-card img {
+      width: 100%; height: auto;
+      display: block; aspect-ratio: 16/9;
+      object-fit: cover;
+    }
+    .screenshot-caption {
+      padding: 0.75rem 1rem;
+      font-size: 0.78rem;
+      color: rgba(212,200,240,0.72);
+      text-align: center;
+    }
+
     /* ── REVEAL ── */
     .reveal {
       opacity: 0; transform: translateY(22px);
@@ -386,6 +421,19 @@
     </div>
   </section>
 
+  <!-- SCREENSHOTS -->
+  <section class="screenshots-section" id="screenshots-section" style="display:none;">
+    <div class="section-inner">
+      <div class="section-header reveal">
+        <p class="section-eyebrow">📸 Gallery</p>
+        <h2 class="section-title">Screenshots</h2>
+      </div>
+      <div class="screenshots-grid" id="screenshots-grid"></div>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
   <!-- FEATURES -->
   <section class="features-section">
     <div class="section-inner">
@@ -394,38 +442,7 @@
         <h2 class="section-title">What to Expect</h2>
         <p class="section-desc">Every system interlocks. Every NPC thinks. Every world runs while you're not watching.</p>
       </div>
-      <div class="features-grid">
-        <div class="feature-card reveal reveal-d1">
-          <div class="feature-icon">🧠</div>
-          <div class="feature-title">Emergent AI</div>
-          <div class="feature-desc">NPCs run on a Utility AI + GOAP hybrid. They remember, plan, and surprise you.</div>
-        </div>
-        <div class="feature-card reveal reveal-d2">
-          <div class="feature-icon">⚔️</div>
-          <div class="feature-title">Tactical Dungeon Crawl</div>
-          <div class="feature-desc">Grid-based exploration with real-time decision making and strategic depth.</div>
-        </div>
-        <div class="feature-card reveal reveal-d3">
-          <div class="feature-icon">👥</div>
-          <div class="feature-title">Up to 32 Players</div>
-          <div class="feature-desc">Soul-Brain-Body multiplayer architecture keeps the server authoritative and responsive.</div>
-        </div>
-        <div class="feature-card reveal reveal-d4">
-          <div class="feature-icon">🌍</div>
-          <div class="feature-title">Living World</div>
-          <div class="feature-desc">Chunk-based world streaming, dynamic quests, and a simulation that runs whether you're watching or not.</div>
-        </div>
-        <div class="feature-card reveal reveal-d5">
-          <div class="feature-icon">🍂</div>
-          <div class="feature-title">Cozy Aesthetic</div>
-          <div class="feature-desc">Warm pixel art, seasonal themes, and a tone that balances comfort with challenge.</div>
-        </div>
-        <div class="feature-card reveal reveal-d6">
-          <div class="feature-icon">🎒</div>
-          <div class="feature-title">Deep Systems</div>
-          <div class="feature-desc">Inventory, skills, quests, and crafting. All interlocked, all emergent.</div>
-        </div>
-      </div>
+      <div class="features-grid" id="features-grid"></div>
     </div>
   </section>
 
@@ -439,28 +456,7 @@
         <h2 class="section-title">Recent Progress</h2>
         <p class="section-desc">A solo dev build. Real updates, real challenges, real progress.</p>
       </div>
-      <div class="devlog-list">
-        <div class="devlog-entry reveal reveal-d1">
-          <div class="devlog-date">April 2026 - Active Dev</div>
-          <div class="devlog-title">Skill System & Combat Architecture</div>
-          <div class="devlog-desc">Named skill ID registry replacing hardcoded integers. Elemental and class skill trees refactored. Immutable blueprint pattern finalized. Skills are data, not objects.</div>
-        </div>
-        <div class="devlog-entry reveal reveal-d2">
-          <div class="devlog-date">March 2026 - Multiplayer</div>
-          <div class="devlog-title">Networking & NPC Behavior</div>
-          <div class="devlog-desc">Client-server architecture finalized with Soul/Brain/Body separation. A* pathfinding grid implemented after NavAgent2D performance issues at scale. NPC behavior trees running on Utility AI with GOAP planning.</div>
-        </div>
-        <div class="devlog-entry reveal reveal-d3">
-          <div class="devlog-date">2026 - UI Systems</div>
-          <div class="devlog-title">Inventory & Character Profile</div>
-          <div class="devlog-desc">Click-and-drag UI windows, inventory slot rendering, and the character profile screen in active development. Dictionary-based blueprint system replacing file-based resources.</div>
-        </div>
-        <div class="devlog-entry reveal reveal-d4">
-          <div class="devlog-date">2025 - Foundation</div>
-          <div class="devlog-title">Engine Selection & World Architecture</div>
-          <div class="devlog-desc">Godot 4.6 selected after evaluation. Chunk-based world streaming designed. Quest system scaffolded. Steam page live with wishlist base. Steam Deck compatibility testing begun.</div>
-        </div>
-      </div>
+      <div class="devlog-list" id="devlog-list"></div>
     </div>
   </section>
 
@@ -559,6 +555,47 @@ async function loadGame() {
 
     // Re-observe the newly rendered card
     document.querySelectorAll('#game-card .reveal').forEach(el => revealObs.observe(el));
+
+    // ── FEATURES ──
+    const featGrid = document.getElementById('features-grid');
+    if (featGrid && Array.isArray(g.features) && g.features.length) {
+      featGrid.innerHTML = g.features.map((f,i) => `
+        <div class="feature-card reveal reveal-d${Math.min(i+1,6)}">
+          <div class="feature-icon">${esc(f.icon || '✨')}</div>
+          <div class="feature-title">${esc(f.title)}</div>
+          <div class="feature-desc">${esc(f.desc)}</div>
+        </div>
+      `).join('');
+      featGrid.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+    }
+
+    // ── SCREENSHOTS ──
+    const screenshotSection = document.getElementById('screenshots-section');
+    if (screenshotSection && Array.isArray(g.screenshots) && g.screenshots.length) {
+      screenshotSection.style.display = '';
+      document.getElementById('screenshots-grid').innerHTML = g.screenshots.map((s,i) => `
+        <div class="screenshot-card reveal reveal-d${Math.min(i+1,4)}">
+          <img src="${esc(s.url)}" alt="${esc(s.caption || '')}" loading="lazy">
+          ${s.caption ? `<div class="screenshot-caption">${esc(s.caption)}</div>` : ''}
+        </div>
+      `).join('');
+      screenshotSection.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+    } else if (screenshotSection) {
+      screenshotSection.style.display = 'none';
+    }
+
+    // ── DEVLOG ──
+    const devlogList = document.getElementById('devlog-list');
+    if (devlogList && Array.isArray(g.devlog) && g.devlog.length) {
+      devlogList.innerHTML = g.devlog.map((d,i) => `
+        <div class="devlog-entry reveal reveal-d${Math.min(i+1,4)}">
+          <div class="devlog-date">${esc(d.date)}</div>
+          <div class="devlog-title">${esc(d.title)}</div>
+          <div class="devlog-desc">${esc(d.body)}</div>
+        </div>
+      `).join('');
+      devlogList.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+    }
 
     // Footer tagline
     if (data.about && data.about.tagline) {
