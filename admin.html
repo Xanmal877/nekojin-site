@@ -1101,6 +1101,20 @@ function renderGamePanel() {
       <div><label>Steam URL</label><input type="url" value="${esc(g.steamUrl||'')}" placeholder="https://store.steampowered.com/..."
         oninput="siteContent.game.steamUrl=this.value; markDirty()"></div>
     </div>
+
+    <div class="form-row">
+      <div><label>Engine</label><input type="text" value="${esc(g.engine||'')}" placeholder="Godot 4, Unity, Unreal..."
+        oninput="siteContent.game.engine=this.value; markDirty()"></div>
+      <div><label>Players</label><input type="text" value="${esc(g.players||'')}" placeholder="1, Up to 32, etc."
+        oninput="siteContent.game.players=this.value; markDirty()"></div>
+    </div>
+
+    <div style="margin-top:1.5rem;border-top:1px solid var(--border);padding-top:1rem;">
+      <div class="card-title" style="margin-bottom:0.75rem;">✨ Features</div>
+      <p style="font-size:0.78rem;color:var(--muted);margin-bottom:1rem;">Icon, title, and short description for each feature card on the Games page.</p>
+      <div id="game-features-editor">${renderGameFeatureRows(g.features || [])}</div>
+      <button class="btn btn-ghost btn-sm" onclick="addGameFeature()">+ Add Feature</button>
+    </div>
   `;
 }
 
@@ -1123,6 +1137,35 @@ async function handleGameCoverUpload(event) {
     document.getElementById('game-cover-url').value = data.path;
     showToast('Game cover uploaded!');
   } catch(e) { showToast('Upload failed', 'error'); }
+}
+
+function renderGameFeatureRows(features) {
+  if (!features || !features.length) return '';
+  return features.map((f, i) => `
+    <div class="platform-row" style="grid-template-columns:60px 1fr 1fr auto;" id="gf-${i}">
+      <input type="text" value="${esc(f.icon || '')}" placeholder="🎮" title="Emoji / icon"
+        oninput="siteContent.game.features[${i}].icon=this.value; markDirty()">
+      <input type="text" value="${esc(f.title || '')}" placeholder="Feature title"
+        oninput="siteContent.game.features[${i}].title=this.value; markDirty()">
+      <input type="text" value="${esc(f.desc || '')}" placeholder="Short description"
+        oninput="siteContent.game.features[${i}].desc=this.value; markDirty()">
+      <button class="btn btn-danger btn-sm" onclick="removeGameFeature(${i})">✕</button>
+    </div>
+  `).join('');
+}
+
+function addGameFeature() {
+  if (!Array.isArray(siteContent.game.features)) siteContent.game.features = [];
+  siteContent.game.features.push({ icon: '', title: '', desc: '' });
+  markDirty();
+  document.getElementById('game-features-editor').innerHTML = renderGameFeatureRows(siteContent.game.features);
+}
+
+function removeGameFeature(index) {
+  if (!siteContent.game.features) return;
+  siteContent.game.features.splice(index, 1);
+  markDirty();
+  document.getElementById('game-features-editor').innerHTML = renderGameFeatureRows(siteContent.game.features);
 }
 
 // ── RENDER: ABOUT ─────────────────────────────────────────
