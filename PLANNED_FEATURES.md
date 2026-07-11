@@ -58,6 +58,39 @@ Improve data integrity:
 
 ## Phase 2: Content Features
 
+### 2.4 Games Page Revamp 🎮
+**Status:** In Progress — Core Complete  
+**Priority:** High  
+**Estimated:** 2-3 sessions
+
+Major redesign of games showcase. Core features complete, polish remaining.
+
+#### Completed ✅
+- **Hero moved to homepage** with particles/parallax
+- **Multi-game support** — Admin can add/manage multiple games
+- **Multi-platform wishlist** — Steam, Itch, GOG, Epic with smart labels
+- **Demo support** — Try Demo buttons for all platforms
+- **Atmospheric cards** — Glass-morphism, hover effects, animations
+
+#### Still To Do
+- Screenshot gallery with lightbox
+- Gameplay video section
+- System requirements panel
+- Tabbed interface (Overview/Features/Media/Devlog)
+- Development progress bar
+
+---
+
+### 2.5 Homepage Polish ✅ COMPLETE
+**Date:** 2026-07-11
+
+- Removed "Solo Indie Studio" tagline
+- Updated CTAs: "Check Out Our Books!" / "Explore Our Games!"
+- Styled navigation tabs — bigger, boxed, with hover effects
+- Improved text contrast against particle background
+
+---
+
 ### 2.1 Book Status Workflow
 **Priority:** Medium  
 **Estimated:** 0.5 sessions

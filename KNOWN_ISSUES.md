@@ -122,6 +122,8 @@
 
 | Issue | Date Fixed | Commit |
 |-------|------------|--------|
+| Homepage hero needed company-first branding | 2026-07-11 | `feat: homepage hero and navigation improvements` |
+| Navigation tabs too small, not prominent | 2026-07-11 | (same) |
 | Navigation search bar too small, wrong placeholder | 2026-07-11 | `fix: improve search bar UX` |
 | AI chat code bloated server | 2026-07-11 | `refactor: extract accounts module, remove AI chat` |
 | Unused WebSocket dependency | 2026-07-11 | (same) |
