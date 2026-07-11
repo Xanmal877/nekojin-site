@@ -34,13 +34,9 @@ const MANUSCRIPTS_DIR = path.join(__dirname, 'manuscripts');
 if (!fs.existsSync(MANUSCRIPTS_DIR)) fs.mkdirSync(MANUSCRIPTS_DIR, { recursive: true });
 if (!fs.existsSync(COVERS_DIR)) fs.mkdirSync(COVERS_DIR, { recursive: true });
 
-// Open database connection (async)
-contentDB.Open().then(() => {
-    console.log('Database connection opened');
-}).catch(err => {
-    console.error('Failed to open database:', err);
-    process.exit(1);
-});
+// Open database connection
+contentDB.Open();
+console.log('Database connection opened');
 
 let scrapeRunning = false;
 
@@ -110,6 +106,7 @@ function listManuscripts() {
             .map(f => f.replace(/\.(docx|epub)$/i, ''));
     } catch { return []; }
 }
+
 
 // ── BODY PARSING ─────────────────────────────────────────
 function readRawBody(req) {
