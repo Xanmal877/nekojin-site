@@ -18,6 +18,13 @@
   <link rel="stylesheet" href="/style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Darumadrop+One&family=Zen+Kaku+Gothic+New:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <script>
+    // Apply saved theme immediately before page renders to prevent flash
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    }
+  </script>
   <style>
     /* ── PAGE-SPECIFIC OVERRIDES & ENHANCEMENTS ── */
 
@@ -198,13 +205,14 @@
       text-shadow: 0 4px 20px rgba(0,0,0,0.5);
     }
     .hero-title .accent {
-      background: linear-gradient(135deg, #7c3aed, #4f46e5);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      color: var(--royal);
+      -webkit-text-fill-color: var(--royal);
     }
     [data-theme="dark"] .hero-title .accent {
       background: linear-gradient(135deg, #c084fc, #818cf8, #60a5fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
 
     .hero-sub {
@@ -840,10 +848,6 @@
   <div class="hero-cta">
     <a href="/books" class="btn-hero-primary"><img src="/images/saki-icon.png" alt="" style="width:1.4em;height:1.4em;vertical-align:middle;margin-right:0.4em;"> Check Out Our Books!</a>
     <a href="/games" class="btn-hero-outline"><img src="/images/tama-icon.png" alt="" style="width:1.4em;height:1.4em;vertical-align:middle;margin-right:0.4em;"> Explore Our Games!</a>
-  </div>
-  <div class="scroll-hint">
-    <span class="scroll-hint-text">Scroll to explore</span>
-    <div class="scroll-hint-line"></div>
   </div>
 </header>
 
