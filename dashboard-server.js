@@ -19,6 +19,67 @@ const mammoth = require('mammoth');
 const accounts = require('./accounts.js');
 const contentDB = require('./database.js');
 
+// ── RATE LIMITING ─────────────────────────────────────────
+const rateLimits = new Map();
+
+const RATE_LIMIT_CONFIG = {
+    '/login': { windowMs: 15 * 60 * 1000, max: 5, message: 'Too many login attempts. Try again in 15 minutes.' },
+    '/register': { windowMs: 60 * 60 * 1000, max: 3, message: 'Too many registration attempts. Try again in 1 hour.' },
+    '/newsletter': { windowMs: 60 * 60 * 1000, max: 10, message: 'Too many newsletter signups from this IP.' },
+    '/api/users': { windowMs: 15 * 60 * 1000, max: 20, message: 'Too many user management requests.' },
+    'default': { windowMs: 60 * 1000, max: 100, message: 'Too many requests. Please slow down.' }
+};
+
+function getClientIP(req) {
+    return req.headers['x-forwarded-for']?.split(',')[0].trim() || 
+           req.headers['x-real-ip'] || 
+           req.connection.remoteAddress || 
+           'unknown';
+}
+
+function checkRateLimit(req, endpoint) {
+    const ip = getClientIP(req);
+    const config = RATE_LIMIT_CONFIG[endpoint] || RATE_LIMIT_CONFIG['default'];
+    const key = `${ip}:${endpoint}`;
+    const now = Date.now();
+    
+    if (!rateLimits.has(key)) {
+        rateLimits.set(key, { count: 1, resetTime: now + config.windowMs });
+        return { allowed: true };
+    }
+    
+    const record = rateLimits.get(key);
+    
+    // Reset if window expired
+    if (now > record.resetTime) {
+        record.count = 1;
+        record.resetTime = now + config.windowMs;
+        return { allowed: true };
+    }
+    
+    // Check limit
+    if (record.count >= config.max) {
+        const retryAfter = Math.ceil((record.resetTime - now) / 1000);
+        return { 
+            allowed: false, 
+            status: 429, 
+            message: config.message,
+            retryAfter 
+        };
+    }
+    
+    record.count++;
+    return { allowed: true };
+}
+
+// Cleanup old entries every 10 minutes
+setInterval(() => {
+    const now = Date.now();
+    for (const [key, record] of rateLimits) {
+        if (now > record.resetTime) rateLimits.delete(key);
+    }
+}, 10 * 60 * 1000);
+
 // ── CONFIG ────────────────────────────────────────────────
 const PORT = 7771;
 const METRICS_FILE = path.join(__dirname, 'story-metrics.json');
@@ -396,6 +457,13 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === 'POST' && url === '/login') {
+        // Rate limit check
+        const limit = checkRateLimit(req, '/login');
+        if (!limit.allowed) {
+            res.writeHead(429, { 'Content-Type': 'text/plain', 'Retry-After': limit.retryAfter });
+            return res.end(limit.message);
+        }
+        
         const body = await readRawBody(req);
         const params = parseFormBody(body);
         if (accounts.verifyUser(params.username, params.password)) {
@@ -417,6 +485,13 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === 'POST' && url === '/register') {
+        // Rate limit check
+        const limit = checkRateLimit(req, '/register');
+        if (!limit.allowed) {
+            res.writeHead(429, { 'Content-Type': 'text/plain', 'Retry-After': limit.retryAfter });
+            return res.end(limit.message);
+        }
+        
         const body = await readRawBody(req);
         const params = parseFormBody(body);
         const username = (params.username || '').trim().toLowerCase();
@@ -451,6 +526,13 @@ const server = http.createServer(async (req, res) => {
 
     // ── PUBLIC NEWSLETTER ─────────────────────────────────
     if (req.method === 'POST' && url === '/newsletter') {
+        // Rate limit check
+        const limit = checkRateLimit(req, '/newsletter');
+        if (!limit.allowed) {
+            res.writeHead(429, { 'Content-Type': 'application/json', 'Retry-After': limit.retryAfter });
+            return res.end(JSON.stringify({ error: limit.message }));
+        }
+        
         try {
             const body = await readRawBody(req);
             const { email } = JSON.parse(body.toString());
@@ -636,6 +718,14 @@ const server = http.createServer(async (req, res) => {
     // List all users (admin only)
     if (req.method === 'GET' && url === '/api/users') {
         if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        
+        // Rate limit check
+        const limit = checkRateLimit(req, '/api/users');
+        if (!limit.allowed) {
+            res.writeHead(429, { 'Content-Type': 'application/json', 'Retry-After': limit.retryAfter });
+            return res.end(JSON.stringify({ error: limit.message }));
+        }
+        
         try {
             const users = accounts.listAllUsers();
             res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -646,6 +736,14 @@ const server = http.createServer(async (req, res) => {
     // Create new user (admin only)
     if (req.method === 'POST' && url === '/api/users') {
         if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        
+        // Rate limit check
+        const limit = checkRateLimit(req, '/api/users');
+        if (!limit.allowed) {
+            res.writeHead(429, { 'Content-Type': 'application/json', 'Retry-After': limit.retryAfter });
+            return res.end(JSON.stringify({ error: limit.message }));
+        }
+        
         try {
             const body = await readRawBody(req);
             const { username, password, role } = JSON.parse(body.toString());
