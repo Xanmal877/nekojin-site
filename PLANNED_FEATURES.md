@@ -158,6 +158,7 @@ Complete redesign of the games showcase page for Autumn's Dungeoneering.
   - Platform-specific branded buttons with icons
   - Support for custom platforms via `platforms` object
   - Graceful "Coming Soon" fallback
+  - Smart labels: Wishlist (in-dev) → Get/Buy (released) → Try Demo (with demo)
 
 - [x] **Admin Multi-Game Management** ✅ COMPLETE
   - Games list view in admin panel
