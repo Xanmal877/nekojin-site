@@ -21,48 +21,81 @@ class ContentDB {
     constructor() {
         this.db = null;
         this.isOpen = false;
+        this.initPromise = null;
     }
 
     /**
      * Open the database connection
      * Similar to your Open(path) method
      */
-    Open() {
+    async Open() {
         if (this.isOpen) return;
+        if (this.initPromise) return this.initPromise;
 
+        this.initPromise = this._initialize();
+        return this.initPromise;
+    }
+
+    async _initialize() {
         // Ensure directory exists
         if (!fs.existsSync(DB_DIR)) {
             fs.mkdirSync(DB_DIR, { recursive: true });
         }
 
-        this.db = new sqlite3.Database(DB_PATH, (err) => {
-            if (err) {
-                console.error('Failed to open database:', err);
-                throw err;
-            }
-            console.log('ContentDB: Connected to', DB_PATH);
+        // Open database
+        await new Promise((resolve, reject) => {
+            this.db = new sqlite3.Database(DB_PATH, (err) => {
+                if (err) {
+                    console.error('Failed to open database:', err);
+                    reject(err);
+                } else {
+                    console.log('ContentDB: Connected to', DB_PATH);
+                    resolve();
+                }
+            });
         });
 
-        // Enable foreign keys (like your foreign_keys = false/true)
-        this.db.run('PRAGMA foreign_keys = ON');
+        // Enable foreign keys
+        await this._run('PRAGMA foreign_keys = ON');
         this.isOpen = true;
 
-        // Auto-initialize tables
-        this._CreateTables();
+        // Create tables
+        await this._CreateTables();
+        console.log('ContentDB: Tables created');
     }
 
     /**
-     * Close the database connection
-     * Similar to your Close(path) method
+     * Helper: Run SQL with promise
      */
-    Close() {
-        if (!this.db) return;
-        return new Promise((resolve) => {
-            this.db.close((err) => {
-                if (err) console.error('Error closing database:', err);
-                else console.log('ContentDB: Closed');
-                this.isOpen = false;
-                resolve();
+    _run(sql, params = []) {
+        return new Promise((resolve, reject) => {
+            this.db.run(sql, params, function(err) {
+                if (err) reject(err);
+                else resolve({ lastID: this.lastID, changes: this.changes });
+            });
+        });
+    }
+
+    /**
+     * Helper: Get single row
+     */
+    _get(sql, params = []) {
+        return new Promise((resolve, reject) => {
+            this.db.get(sql, params, (err, row) => {
+                if (err) reject(err);
+                else resolve(row);
+            });
+        });
+    }
+
+    /**
+     * Helper: Get all rows
+     */
+    _all(sql, params = []) {
+        return new Promise((resolve, reject) => {
+            this.db.all(sql, params, (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows);
             });
         });
     }
@@ -71,9 +104,9 @@ class ContentDB {
      * Create all tables
      * Similar to your _CreateTables() method
      */
-    _CreateTables() {
-        // Series table (like your accounts table)
-        this.db.run(`
+    async _CreateTables() {
+        // Series table
+        await this._run(`
             CREATE TABLE IF NOT EXISTS series (
                 id TEXT PRIMARY KEY,
                 name TEXT NOT NULL,
@@ -84,8 +117,8 @@ class ContentDB {
             )
         `);
 
-        // Books table (complex data like your account_souls)
-        this.db.run(`
+        // Books table
+        await this._run(`
             CREATE TABLE IF NOT EXISTS books (
                 id TEXT PRIMARY KEY,
                 title TEXT NOT NULL,
@@ -98,16 +131,16 @@ class ContentDB {
                 word_count INTEGER DEFAULT 0,
                 cover_path TEXT,
                 visible BOOLEAN DEFAULT 1,
-                genres TEXT, -- JSON array
-                tags TEXT,   -- JSON array
+                genres TEXT,
+                tags TEXT,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (series_id) REFERENCES series(id) ON DELETE SET NULL
             )
         `);
 
-        // Book platforms (like account_souls linking table)
-        this.db.run(`
+        // Book platforms
+        await this._run(`
             CREATE TABLE IF NOT EXISTS book_platforms (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 book_id TEXT NOT NULL,
@@ -120,8 +153,8 @@ class ContentDB {
             )
         `);
 
-        // Game info (singleton like your game data)
-        this.db.run(`
+        // Game info
+        await this._run(`
             CREATE TABLE IF NOT EXISTS game (
                 id TEXT PRIMARY KEY DEFAULT 'main',
                 title TEXT NOT NULL,
@@ -135,7 +168,7 @@ class ContentDB {
         `);
 
         // Game screenshots
-        this.db.run(`
+        await this._run(`
             CREATE TABLE IF NOT EXISTS game_screenshots (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 game_id TEXT DEFAULT 'main',
@@ -147,7 +180,7 @@ class ContentDB {
         `);
 
         // Devlog entries
-        this.db.run(`
+        await this._run(`
             CREATE TABLE IF NOT EXISTS devlog (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 game_id TEXT DEFAULT 'main',
@@ -160,403 +193,323 @@ class ContentDB {
             )
         `);
 
-        // About/studio info (singleton)
-        this.db.run(`
+        // About/studio info
+        await this._run(`
             CREATE TABLE IF NOT EXISTS about (
                 id INTEGER PRIMARY KEY CHECK (id = 1),
                 studio_name TEXT,
                 founded_date TEXT,
                 description TEXT,
                 email TEXT,
-                social_links TEXT, -- JSON object
+                social_links TEXT,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         `);
 
-        // Create indexes for performance
-        this.db.run('CREATE INDEX IF NOT EXISTS idx_books_series ON books(series_id)');
-        this.db.run('CREATE INDEX IF NOT EXISTS idx_books_status ON books(status)');
-        this.db.run('CREATE INDEX IF NOT EXISTS idx_books_visible ON books(visible)');
-        this.db.run('CREATE INDEX IF NOT EXISTS idx_platforms_book ON book_platforms(book_id)');
-
-        console.log('ContentDB: Tables created');
+        // Create indexes
+        await this._run('CREATE INDEX IF NOT EXISTS idx_books_series ON books(series_id)');
+        await this._run('CREATE INDEX IF NOT EXISTS idx_books_status ON books(status)');
+        await this._run('CREATE INDEX IF NOT EXISTS idx_books_visible ON books(visible)');
+        await this._run('CREATE INDEX IF NOT EXISTS idx_platforms_book ON book_platforms(book_id)');
     }
 
-    // ============================================================
-    // SERIES CRUD (similar to your accounts CRUD)
-    // ============================================================
-
-    InsertSeries(data) {
-        return new Promise((resolve, reject) => {
-            const sql = `
-                INSERT INTO series (id, name, description, sort_order)
-                VALUES (?, ?, ?, ?)
-                ON CONFLICT(id) DO UPDATE SET
-                    name = excluded.name,
-                    description = excluded.description,
-                    sort_order = excluded.sort_order,
-                    updated_at = CURRENT_TIMESTAMP
-            `;
-            this.db.run(sql, [
-                data.id,
-                data.name || data.title || '',
-                data.description || '',
-                data.sort_order || 0
-            ], function(err) {
-                if (err) reject(err);
-                else resolve({ id: data.id, changes: this.changes });
-            });
-        });
-    }
-
-    SelectSeries(whereClause = '', params = []) {
-        return new Promise((resolve, reject) => {
-            let sql = 'SELECT * FROM series ORDER BY sort_order, name';
-            if (whereClause) {
-                sql = `SELECT * FROM series WHERE ${whereClause} ORDER BY sort_order, name`;
-            }
-            this.db.all(sql, params, (err, rows) => {
-                if (err) reject(err);
-                else resolve(rows || []);
-            });
-        });
-    }
-
-    DeleteSeries(id) {
-        return new Promise((resolve, reject) => {
-            this.db.run('DELETE FROM series WHERE id = ?', [id], function(err) {
-                if (err) reject(err);
-                else resolve({ changes: this.changes });
+    /**
+     * Close the database connection
+     * Similar to your Close(path) method
+     */
+    async Close() {
+        if (!this.db || !this.isOpen) return;
+        this.isOpen = false;
+        await new Promise((resolve) => {
+            this.db.close((err) => {
+                if (err) console.error('Error closing database:', err);
+                else console.log('ContentDB: Closed');
+                this.initPromise = null;
+                resolve();
             });
         });
     }
 
     // ============================================================
-    // BOOKS CRUD (complex like your soul/account link tables)
+    // SERIES CRUD
     // ============================================================
 
-    InsertBook(data) {
-        return new Promise((resolve, reject) => {
-            const sql = `
-                INSERT INTO books (
-                    id, title, slug, description, blurb, status, series_id,
-                    volume_number, word_count, cover_path, visible, genres, tags
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(id) DO UPDATE SET
-                    title = excluded.title,
-                    slug = excluded.slug,
-                    description = excluded.description,
-                    blurb = excluded.blurb,
-                    status = excluded.status,
-                    series_id = excluded.series_id,
-                    volume_number = excluded.volume_number,
-                    word_count = excluded.word_count,
-                    cover_path = excluded.cover_path,
-                    visible = excluded.visible,
-                    genres = excluded.genres,
-                    tags = excluded.tags,
-                    updated_at = CURRENT_TIMESTAMP
-            `;
-
-            this.db.run(sql, [
-                data.id,
-                data.title,
-                data.slug,
-                data.description || '',
-                data.blurb || '',
-                data.status || 'draft',
-                data.seriesId || data.series_id || null,
-                data.volumeNumber || data.volume_number || null,
-                data.wordCount || data.word_count || 0,
-                data.cover || data.cover_path || null,
-                data.visible !== false ? 1 : 0,
-                JSON.stringify(data.genres || []),
-                JSON.stringify(data.tags || [])
-            ], function(err) {
-                if (err) reject(err);
-                else resolve({ id: data.id, changes: this.changes });
-            });
-        });
+    async InsertSeries(data) {
+        const sql = `
+            INSERT INTO series (id, name, description, sort_order)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+                name = excluded.name,
+                description = excluded.description,
+                sort_order = excluded.sort_order,
+                updated_at = CURRENT_TIMESTAMP
+        `;
+        const result = await this._run(sql, [
+            data.id,
+            data.name || data.title || '',
+            data.description || '',
+            data.sort_order || 0
+        ]);
+        return { id: data.id, changes: result.changes };
     }
 
-    SelectBooks(whereClause = '', params = []) {
-        return new Promise((resolve, reject) => {
-            let sql = 'SELECT * FROM books ORDER BY series_id, volume_number, title';
-            if (whereClause) {
-                sql = `SELECT * FROM books WHERE ${whereClause} ORDER BY series_id, volume_number, title`;
-            }
-            this.db.all(sql, params, async (err, rows) => {
-                if (err) {
-                    reject(err);
-                    return;
-                }
-
-                // Parse JSON fields and load platforms for each book
-                const books = [];
-                for (const row of rows || []) {
-                    try {
-                        row.genres = row.genres ? JSON.parse(row.genres) : [];
-                        row.tags = row.tags ? JSON.parse(row.tags) : [];
-                    } catch {
-                        row.genres = [];
-                        row.tags = [];
-                    }
-                    row.visible = !!row.visible;
-                    row.wordCount = row.word_count;
-
-                    // Load platforms (like your GetAccountSouls)
-                    row.platforms = await this.SelectBookPlatforms(row.id);
-                    books.push(row);
-                }
-                resolve(books);
-            });
-        });
+    async SelectSeries(whereClause = '', params = []) {
+        let sql = 'SELECT * FROM series ORDER BY sort_order, name';
+        if (whereClause) {
+            sql = `SELECT * FROM series WHERE ${whereClause} ORDER BY sort_order, name`;
+        }
+        return await this._all(sql, params);
     }
 
-    DeleteBook(id) {
-        return new Promise((resolve, reject) => {
-            // Platforms delete automatically via CASCADE
-            this.db.run('DELETE FROM books WHERE id = ?', [id], function(err) {
-                if (err) reject(err);
-                else resolve({ changes: this.changes });
-            });
-        });
+    async DeleteSeries(id) {
+        const result = await this._run('DELETE FROM series WHERE id = ?', [id]);
+        return { changes: result.changes };
     }
 
     // ============================================================
-    // BOOK PLATFORMS (like account_souls linking table)
+    // BOOKS CRUD
     // ============================================================
 
-    InsertBookPlatform(data) {
-        return new Promise((resolve, reject) => {
-            const sql = `
+    async InsertBook(data) {
+        const sql = `
+            INSERT INTO books (
+                id, title, slug, description, blurb, status, series_id,
+                volume_number, word_count, cover_path, visible, genres, tags
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+                title = excluded.title,
+                slug = excluded.slug,
+                description = excluded.description,
+                blurb = excluded.blurb,
+                status = excluded.status,
+                series_id = excluded.series_id,
+                volume_number = excluded.volume_number,
+                word_count = excluded.word_count,
+                cover_path = excluded.cover_path,
+                visible = excluded.visible,
+                genres = excluded.genres,
+                tags = excluded.tags,
+                updated_at = CURRENT_TIMESTAMP
+        `;
+
+        await this._run(sql, [
+            data.id,
+            data.title,
+            data.slug,
+            data.description || '',
+            data.blurb || '',
+            data.status || 'draft',
+            data.seriesId || data.series_id || null,
+            data.volumeNumber || data.volume_number || null,
+            data.wordCount || data.word_count || 0,
+            data.cover || data.cover_path || null,
+            data.visible !== false ? 1 : 0,
+            JSON.stringify(data.genres || []),
+            JSON.stringify(data.tags || [])
+        ]);
+
+        // Insert platforms
+        const platforms = data.platforms || [];
+        for (let i = 0; i < platforms.length; i++) {
+            const p = platforms[i];
+            await this._run(`
                 INSERT INTO book_platforms (book_id, platform_type, platform_name, url, sort_order)
                 VALUES (?, ?, ?, ?, ?)
-            `;
-            this.db.run(sql, [
-                data.book_id,
-                data.platform_type || data.type,
-                data.platform_name || data.name,
-                data.url,
-                data.sort_order || 0
-            ], function(err) {
-                if (err) reject(err);
-                else resolve({ id: this.lastID, changes: this.changes });
-            });
-        });
+            `, [
+                data.id,
+                p.type || p.platform_type,
+                p.name || p.platform_name,
+                p.url,
+                i
+            ]);
+        }
+
+        return { id: data.id };
     }
 
-    SelectBookPlatforms(bookId) {
-        return new Promise((resolve, reject) => {
-            this.db.all(
-                'SELECT * FROM book_platforms WHERE book_id = ? ORDER BY sort_order',
-                [bookId],
-                (err, rows) => {
-                    if (err) reject(err);
-                    else resolve(rows || []);
-                }
-            );
-        });
+    async SelectBooks(whereClause = '', params = []) {
+        let sql = 'SELECT * FROM books ORDER BY series_id, volume_number, title';
+        if (whereClause) {
+            sql = `SELECT * FROM books WHERE ${whereClause} ORDER BY series_id, volume_number, title`;
+        }
+        const rows = await this._all(sql, params);
+
+        // Parse JSON and load platforms
+        const books = [];
+        for (const row of rows) {
+            try {
+                row.genres = row.genres ? JSON.parse(row.genres) : [];
+                row.tags = row.tags ? JSON.parse(row.tags) : [];
+            } catch {
+                row.genres = [];
+                row.tags = [];
+            }
+            row.visible = !!row.visible;
+            row.wordCount = row.word_count;
+            row.platforms = await this.SelectBookPlatforms(row.id);
+            books.push(row);
+        }
+        return books;
     }
 
-    DeleteBookPlatforms(bookId) {
-        return new Promise((resolve, reject) => {
-            this.db.run('DELETE FROM book_platforms WHERE book_id = ?', [bookId], function(err) {
-                if (err) reject(err);
-                else resolve({ changes: this.changes });
-            });
-        });
+    async DeleteBook(id) {
+        // Platforms delete via CASCADE
+        const result = await this._run('DELETE FROM books WHERE id = ?', [id]);
+        return { changes: result.changes };
     }
 
     // ============================================================
-    // GAME CRUD (singleton, like your main game data)
+    // BOOK PLATFORMS
     // ============================================================
 
-    InsertGame(data) {
-        return new Promise((resolve, reject) => {
-            const sql = `
-                INSERT INTO game (id, title, slug, description, status, cover_path)
-                VALUES (?, ?, ?, ?, ?, ?)
-                ON CONFLICT(id) DO UPDATE SET
-                    title = excluded.title,
-                    slug = excluded.slug,
-                    description = excluded.description,
-                    status = excluded.status,
-                    cover_path = excluded.cover_path,
-                    updated_at = CURRENT_TIMESTAMP
-            `;
-            this.db.run(sql, [
-                data.id || 'main',
-                data.title || 'Untitled',
-                data.slug || 'current-project',
-                data.description || '',
-                data.status || 'in_development',
-                data.cover || data.cover_path || null
-            ], function(err) {
-                if (err) reject(err);
-                else resolve({ changes: this.changes });
-            });
-        });
+    async SelectBookPlatforms(bookId) {
+        return await this._all(
+            'SELECT * FROM book_platforms WHERE book_id = ? ORDER BY sort_order',
+            [bookId]
+        );
     }
 
-    SelectGame() {
-        return new Promise((resolve, reject) => {
-            this.db.get('SELECT * FROM game WHERE id = ?', ['main'], async (err, row) => {
-                if (err) {
-                    reject(err);
-                    return;
-                }
-                if (!row) {
-                    resolve(null);
-                    return;
-                }
+    async DeleteBookPlatforms(bookId) {
+        const result = await this._run('DELETE FROM book_platforms WHERE book_id = ?', [bookId]);
+        return { changes: result.changes };
+    }
 
-                // Load related data
-                row.screenshots = await this.SelectGameScreenshots();
-                row.devlog = await this.SelectDevlog();
-                resolve(row);
-            });
-        });
+    // ============================================================
+    // GAME CRUD
+    // ============================================================
+
+    async InsertGame(data) {
+        const sql = `
+            INSERT INTO game (id, title, slug, description, status, cover_path)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+                title = excluded.title,
+                slug = excluded.slug,
+                description = excluded.description,
+                status = excluded.status,
+                cover_path = excluded.cover_path,
+                updated_at = CURRENT_TIMESTAMP
+        `;
+        await this._run(sql, [
+            data.id || 'main',
+            data.title || 'Untitled',
+            data.slug || 'current-project',
+            data.description || '',
+            data.status || 'in_development',
+            data.cover || data.cover_path || null
+        ]);
+        return { id: data.id || 'main' };
+    }
+
+    async SelectGame() {
+        const row = await this._get('SELECT * FROM game WHERE id = ?', ['main']);
+        if (!row) return null;
+
+        row.screenshots = await this.SelectGameScreenshots();
+        row.devlog = await this.SelectDevlog();
+        return row;
     }
 
     // ============================================================
     // GAME SCREENSHOTS
     // ============================================================
 
-    InsertGameScreenshot(data) {
-        return new Promise((resolve, reject) => {
-            const sql = `
-                INSERT INTO game_screenshots (game_id, path, caption, sort_order)
-                VALUES (?, ?, ?, ?)
-            `;
-            this.db.run(sql, [
-                data.game_id || 'main',
-                data.path,
-                data.caption || '',
-                data.sort_order || 0
-            ], function(err) {
-                if (err) reject(err);
-                else resolve({ id: this.lastID });
-            });
-        });
+    async InsertGameScreenshot(data) {
+        const sql = `
+            INSERT INTO game_screenshots (game_id, path, caption, sort_order)
+            VALUES (?, ?, ?, ?)
+        `;
+        const result = await this._run(sql, [
+            data.game_id || 'main',
+            data.path,
+            data.caption || '',
+            data.sort_order || 0
+        ]);
+        return { id: result.lastID };
     }
 
-    SelectGameScreenshots() {
-        return new Promise((resolve, reject) => {
-            this.db.all(
-                'SELECT * FROM game_screenshots WHERE game_id = ? ORDER BY sort_order',
-                ['main'],
-                (err, rows) => {
-                    if (err) reject(err);
-                    else resolve(rows || []);
-                }
-            );
-        });
+    async SelectGameScreenshots() {
+        return await this._all(
+            'SELECT * FROM game_screenshots WHERE game_id = ? ORDER BY sort_order',
+            ['main']
+        );
     }
 
-    DeleteGameScreenshots() {
-        return new Promise((resolve, reject) => {
-            this.db.run('DELETE FROM game_screenshots WHERE game_id = ?', ['main'], function(err) {
-                if (err) reject(err);
-                else resolve({ changes: this.changes });
-            });
-        });
+    async DeleteGameScreenshots() {
+        const result = await this._run('DELETE FROM game_screenshots WHERE game_id = ?', ['main']);
+        return { changes: result.changes };
     }
 
     // ============================================================
     // DEVLOG
     // ============================================================
 
-    InsertDevlog(data) {
-        return new Promise((resolve, reject) => {
-            const sql = `
-                INSERT INTO devlog (game_id, title, content, date, visible)
-                VALUES (?, ?, ?, ?, ?)
-            `;
-            this.db.run(sql, [
-                data.game_id || 'main',
-                data.title,
-                data.content || '',
-                data.date || new Date().toISOString().split('T')[0],
-                data.visible !== false ? 1 : 0
-            ], function(err) {
-                if (err) reject(err);
-                else resolve({ id: this.lastID });
-            });
-        });
+    async InsertDevlog(data) {
+        const sql = `
+            INSERT INTO devlog (game_id, title, content, date, visible)
+            VALUES (?, ?, ?, ?, ?)
+        `;
+        const result = await this._run(sql, [
+            data.game_id || 'main',
+            data.title,
+            data.content || '',
+            data.date || new Date().toISOString().split('T')[0],
+            data.visible !== false ? 1 : 0
+        ]);
+        return { id: result.lastID };
     }
 
-    SelectDevlog(visibleOnly = true) {
-        return new Promise((resolve, reject) => {
-            let sql = 'SELECT * FROM devlog WHERE game_id = ? ORDER BY date DESC';
-            const params = ['main'];
-            if (visibleOnly) {
-                sql = 'SELECT * FROM devlog WHERE game_id = ? AND visible = 1 ORDER BY date DESC';
-            }
-            this.db.all(sql, params, (err, rows) => {
-                if (err) reject(err);
-                else resolve(rows || []);
-            });
-        });
+    async SelectDevlog(visibleOnly = true) {
+        let sql = 'SELECT * FROM devlog WHERE game_id = ? ORDER BY date DESC';
+        const params = ['main'];
+        if (visibleOnly) {
+            sql = 'SELECT * FROM devlog WHERE game_id = ? AND visible = 1 ORDER BY date DESC';
+        }
+        return await this._all(sql, params);
     }
 
     // ============================================================
     // ABOUT CRUD
     // ============================================================
 
-    InsertAbout(data) {
-        return new Promise((resolve, reject) => {
-            const sql = `
-                INSERT INTO about (id, studio_name, founded_date, description, email, social_links)
-                VALUES (1, ?, ?, ?, ?, ?)
-                ON CONFLICT(id) DO UPDATE SET
-                    studio_name = excluded.studio_name,
-                    founded_date = excluded.founded_date,
-                    description = excluded.description,
-                    email = excluded.email,
-                    social_links = excluded.social_links,
-                    updated_at = CURRENT_TIMESTAMP
-            `;
-            this.db.run(sql, [
-                data.studio_name || data.studioName || '',
-                data.founded_date || data.foundedDate || '',
-                data.description || '',
-                data.email || '',
-                JSON.stringify(data.social_links || data.socialLinks || {})
-            ], function(err) {
-                if (err) reject(err);
-                else resolve({ changes: this.changes });
-            });
-        });
+    async InsertAbout(data) {
+        const sql = `
+            INSERT INTO about (id, studio_name, founded_date, description, email, social_links)
+            VALUES (1, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+                studio_name = excluded.studio_name,
+                founded_date = excluded.founded_date,
+                description = excluded.description,
+                email = excluded.email,
+                social_links = excluded.social_links,
+                updated_at = CURRENT_TIMESTAMP
+        `;
+        await this._run(sql, [
+            data.studio_name || data.studioName || '',
+            data.founded_date || data.foundedDate || '',
+            data.description || '',
+            data.email || '',
+            JSON.stringify(data.social_links || data.socialLinks || {})
+        ]);
+        return { id: 1 };
     }
 
-    SelectAbout() {
-        return new Promise((resolve, reject) => {
-            this.db.get('SELECT * FROM about WHERE id = 1', [], (err, row) => {
-                if (err) {
-                    reject(err);
-                    return;
-                }
-                if (row && row.social_links) {
-                    try {
-                        row.social_links = JSON.parse(row.social_links);
-                    } catch {
-                        row.social_links = {};
-                    }
-                }
-                resolve(row || {});
-            });
-        });
+    async SelectAbout() {
+        const row = await this._get('SELECT * FROM about WHERE id = 1', []);
+        if (row && row.social_links) {
+            try {
+                row.social_links = JSON.parse(row.social_links);
+            } catch {
+                row.social_links = {};
+            }
+        }
+        return row || {};
     }
 
     // ============================================================
-    // BULK OPERATIONS (for API compatibility)
+    // BULK OPERATIONS
     // ============================================================
 
-    /**
-     * Get all content in one call (matches your old JSON API)
-     * Similar to loading all your game data at once
-     */
     async GetAllContent() {
         const [series, books, game, about] = await Promise.all([
             this.SelectSeries(),
@@ -573,158 +526,101 @@ class ContentDB {
         };
     }
 
-    /**
-     * Save all content (transaction-safe)
-     * Similar to your SaveGame() in Godot
-     */
     async SaveAllContent(data) {
         const { series = [], books = [], game = {}, about = {} } = data;
 
-        return new Promise((resolve, reject) => {
-            this.db.serialize(() => {
-                this.db.run('BEGIN TRANSACTION');
+        // Clear existing data
+        await this._run('DELETE FROM book_platforms');
+        await this._run('DELETE FROM books');
+        await this._run('DELETE FROM series');
+        await this._run('DELETE FROM game_screenshots');
+        await this._run('DELETE FROM devlog');
+        await this._run('DELETE FROM game');
+        await this._run('DELETE FROM about');
 
-                // Clear existing data (like resetting your dictionaries)
-                this.db.run('DELETE FROM book_platforms');
-                this.db.run('DELETE FROM books');
-                this.db.run('DELETE FROM series');
-                this.db.run('DELETE FROM game_screenshots');
-                this.db.run('DELETE FROM devlog');
-                this.db.run('DELETE FROM game');
-                this.db.run('DELETE FROM about');
-
-                // Insert series
-                const seriesStmt = this.db.prepare(`
-                    INSERT INTO series (id, name, description, sort_order)
-                    VALUES (?, ?, ?, ?)
-                `);
-                series.forEach((s, i) => {
-                    seriesStmt.run(s.id, s.name || s.title, s.description || '', s.sort_order || i);
-                });
-                seriesStmt.finalize();
-
-                // Insert books
-                const bookStmt = this.db.prepare(`
-                    INSERT INTO books (id, title, slug, description, blurb, status, series_id,
-                        volume_number, word_count, cover_path, visible, genres, tags)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                `);
-                books.forEach(b => {
-                    bookStmt.run(
-                        b.id,
-                        b.title,
-                        b.slug,
-                        b.description || '',
-                        b.blurb || '',
-                        b.status || 'draft',
-                        b.seriesId || b.series_id || null,
-                        b.volume_number || b.volumeNumber || null,
-                        b.word_count || b.wordCount || 0,
-                        b.cover || b.cover_path || null,
-                        b.visible !== false ? 1 : 0,
-                        JSON.stringify(b.genres || []),
-                        JSON.stringify(b.tags || [])
-                    );
-                });
-                bookStmt.finalize();
-
-                // Insert platforms
-                const platStmt = this.db.prepare(`
-                    INSERT INTO book_platforms (book_id, platform_type, platform_name, url, sort_order)
-                    VALUES (?, ?, ?, ?, ?)
-                `);
-                books.forEach(b => {
-                    const platforms = b.platforms || b.links || [];
-                    platforms.forEach((p, i) => {
-                        platStmt.run(
-                            b.id,
-                            p.type || p.platform_type,
-                            p.name || p.platform_name,
-                            p.url,
-                            i
-                        );
-                    });
-                });
-                platStmt.finalize();
-
-                // Insert game
-                if (game && Object.keys(game).length > 0) {
-                    this.db.run(`
-                        INSERT INTO game (id, title, slug, description, status, cover_path)
-                        VALUES (?, ?, ?, ?, ?, ?)
-                    `, [
-                        'main',
-                        game.title || 'Untitled',
-                        game.slug || 'current-project',
-                        game.description || '',
-                        game.status || 'in_development',
-                        game.cover || null
-                    ]);
-
-                    // Screenshots
-                    const screenshots = game.screenshots || [];
-                    const ssStmt = this.db.prepare(`
-                        INSERT INTO game_screenshots (game_id, path, caption, sort_order)
-                        VALUES (?, ?, ?, ?)
-                    `);
-                    screenshots.forEach((s, i) => {
-                        ssStmt.run('main', s.path || s, s.caption || '', i);
-                    });
-                    ssStmt.finalize();
-
-                    // Devlog
-                    const devlog = game.devlog || [];
-                    const devStmt = this.db.prepare(`
-                        INSERT INTO devlog (game_id, title, content, date, visible)
-                        VALUES (?, ?, ?, ?, ?)
-                    `);
-                    devlog.forEach(d => {
-                        devStmt.run(
-                            'main',
-                            d.title,
-                            d.content || '',
-                            d.date || new Date().toISOString().split('T')[0],
-                            d.visible !== false ? 1 : 0
-                        );
-                    });
-                    devStmt.finalize();
-                }
-
-                // Insert about
-                if (about && Object.keys(about).length > 0) {
-                    this.db.run(`
-                        INSERT INTO about (id, studio_name, founded_date, description, email, social_links)
-                        VALUES (1, ?, ?, ?, ?, ?)
-                    `, [
-                        about.studio_name || about.studioName || '',
-                        about.founded_date || about.foundedDate || '',
-                        about.description || '',
-                        about.email || '',
-                        JSON.stringify(about.social_links || about.socialLinks || {})
-                    ]);
-                }
-
-                this.db.run('COMMIT', (err) => {
-                    if (err) {
-                        this.db.run('ROLLBACK');
-                        reject(err);
-                    } else {
-                        console.log('ContentDB: All data saved successfully');
-                        resolve();
-                    }
-                });
+        // Insert series
+        for (let i = 0; i < series.length; i++) {
+            const s = series[i];
+            await this.InsertSeries({
+                id: s.id,
+                name: s.name || s.title,
+                description: s.description || '',
+                sort_order: s.sort_order || i
             });
-        });
+        }
+
+        // Insert books
+        for (const b of books) {
+            await this.InsertBook({
+                id: b.id,
+                title: b.title,
+                slug: b.slug || b.id,
+                description: b.description || '',
+                blurb: b.blurb || '',
+                status: b.status || 'draft',
+                seriesId: b.seriesId || b.series_id,
+                volumeNumber: b.volumeNumber || b.volume_number,
+                wordCount: b.wordCount || b.word_count || 0,
+                cover: b.cover || b.cover_path,
+                visible: b.visible !== false,
+                genres: b.genres || [],
+                tags: b.tags || [],
+                platforms: b.platforms || b.links || []
+            });
+        }
+
+        // Insert game
+        if (game && Object.keys(game).length > 0) {
+            await this.InsertGame({
+                id: 'main',
+                title: game.title || 'Untitled',
+                slug: game.slug || 'current-project',
+                description: game.description || '',
+                status: game.status || 'in_development',
+                cover: game.cover
+            });
+
+            // Screenshots
+            const screenshots = game.screenshots || [];
+            for (let i = 0; i < screenshots.length; i++) {
+                const ss = screenshots[i];
+                await this.InsertGameScreenshot({
+                    game_id: 'main',
+                    path: typeof ss === 'string' ? ss : ss.path,
+                    caption: typeof ss === 'string' ? '' : (ss.caption || ''),
+                    sort_order: i
+                });
+            }
+
+            // Devlog
+            const devlog = game.devlog || [];
+            for (const d of devlog) {
+                await this.InsertDevlog({
+                    game_id: 'main',
+                    title: d.title,
+                    content: d.content || '',
+                    date: d.date || d.created_at,
+                    visible: d.visible !== false
+                });
+            }
+        }
+
+        // Insert about
+        if (about && Object.keys(about).length > 0) {
+            await this.InsertAbout({
+                studioName: about.studio_name || about.studioName,
+                foundedDate: about.founded_date || about.foundedDate,
+                description: about.description || '',
+                email: about.email || '',
+                socialLinks: about.social_links || about.socialLinks || {}
+            });
+        }
+
+        console.log('ContentDB: All data saved');
     }
 }
 
-// ============================================================
-// SINGLETON INSTANCE (like your static vars in Godot)
-// Usage: const contentDB = require('./database.js');
-//        contentDB.Open();
-//        const books = await contentDB.SelectBooks();
-// ============================================================
-
+// Singleton instance
 const contentDB = new ContentDB();
 
 module.exports = contentDB;
