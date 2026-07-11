@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Games - Nekojin Interactive</title>
   <meta name="description" content="Autumn's Dungeoneering. A cozy tactical dungeon-crawling RPG with emergent AI. Built in Godot 4. Coming to Steam.">
+  <meta name="keywords" content="indie games, rpg, godot, dungeon crawler, tactical rpg, autumn's dungeoneering, xanrea">
   <meta property="og:title" content="Games - Nekojin Interactive">
   <meta property="og:description" content="Autumn's Dungeoneering. A cozy tactical dungeon-crawling RPG with emergent AI. Built in Godot 4. Coming to Steam.">
   <meta property="og:image" content="https://worldofxanrea.com/covers/game-cover-1772952121717.png">
@@ -17,10 +18,14 @@
   <link rel="alternate" type="application/atom+xml" title="Nekojin Interactive Feed" href="https://worldofxanrea.com/rss.xml">
   <link rel="stylesheet" href="/style.css">
   <script>
-    // Apply saved theme immediately before page renders to prevent flash
+    // Theme: Check localStorage first, then system preference, default light
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme) {
       document.documentElement.setAttribute('data-theme', savedTheme);
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'light');
     }
   </script>
   <style>

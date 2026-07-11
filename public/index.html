@@ -4,10 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Nekojin Interactive - Games & Stories</title>
-  <meta name="description" content="Nekojin Interactive is a solo indie studio crafting interconnected fiction and games.">
+  <meta name="description" content="Stories and games where characters think for themselves. Solo indie studio building the Xanrea universe. Books on Royal Road & ScribbleHub, game in Godot 4.">
+  <meta name="keywords" content="indie games, fantasy books, progression fiction, xanrea, godot, autumn's dungeoneering, solo developer">
   <meta property="og:title" content="Nekojin Interactive - Games & Stories">
-  <meta property="og:description" content="Nekojin Interactive is a solo indie studio crafting interconnected fiction and games.">
-  <meta property="og:image" content="https://worldofxanrea.com/covers/game-cover-1772952121717.png">
+  <meta property="og:description" content="Stories and games where characters think for themselves. The Xanrea universe — books and games, one system at a time.">
+  <meta property="og:image" content="https://worldofxanrea.com/covers/sb-cover.png">
   <meta property="og:url" content="https://worldofxanrea.com/">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary_large_image">
@@ -19,10 +20,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Darumadrop+One&family=Zen+Kaku+Gothic+New:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
   <script>
-    // Apply saved theme immediately before page renders to prevent flash
+    // Theme: Check localStorage first, then system preference, default light
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme) {
       document.documentElement.setAttribute('data-theme', savedTheme);
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'light');
     }
   </script>
   <style>

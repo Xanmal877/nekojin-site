@@ -5,9 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Book - Nekojin Interactive</title>
   <meta name="description" content="Read books set within the Xanrea universe.">
+  <meta name="keywords" content="fantasy books, progression fiction, xanrea universe">
   <meta property="og:title" content="Book - Nekojin Interactive">
   <meta property="og:description" content="Read books set within the Xanrea universe.">
-  <meta property="og:image" content="https://worldofxanrea.com/covers/game-cover-1772952121717.png">
+  <meta property="og:image" content="https://worldofxanrea.com/covers/sb-cover.png">
   <meta property="og:url" content="https://worldofxanrea.com/book">
   <meta property="og:type" content="article">
   <meta name="twitter:card" content="summary_large_image">
@@ -17,10 +18,14 @@
   <link rel="alternate" type="application/atom+xml" title="Nekojin Interactive Feed" href="https://worldofxanrea.com/rss.xml">
   <link rel="stylesheet" href="/style.css">
   <script>
-    // Apply saved theme immediately before page renders to prevent flash
+    // Theme: Check localStorage first, then system preference, default light
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme) {
       document.documentElement.setAttribute('data-theme', savedTheme);
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'light');
     }
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
