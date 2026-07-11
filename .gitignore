@@ -1,3 +1,8 @@
+# Database and data directory
+data/
+nekojin.db
+*.db
+
 # Dependencies
 node_modules/
 package-lock.json
