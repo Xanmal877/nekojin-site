@@ -159,10 +159,7 @@ class ContentDB {
             CREATE TABLE IF NOT EXISTS game (
                 id TEXT PRIMARY KEY DEFAULT 'main',
                 title TEXT NOT NULL,
-                slug TEXT UNIQUE DEFAULT 'current-project',
-                description TEXT,
-                status TEXT DEFAULT 'in_development',
-                cover_path TEXT,
+                data TEXT,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
@@ -398,23 +395,17 @@ class ContentDB {
 
     async InsertGame(data) {
         const sql = `
-            INSERT INTO game (id, title, slug, description, status, cover_path)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO game (id, title, data)
+            VALUES (?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
                 title = excluded.title,
-                slug = excluded.slug,
-                description = excluded.description,
-                status = excluded.status,
-                cover_path = excluded.cover_path,
+                data = excluded.data,
                 updated_at = CURRENT_TIMESTAMP
         `;
         await this._run(sql, [
             data.id || 'main',
             data.title || 'Untitled',
-            data.slug || 'current-project',
-            data.description || '',
-            data.status || 'in_development',
-            data.cover || data.cover_path || null
+            JSON.stringify(data)
         ]);
         return { id: data.id || 'main' };
     }
@@ -423,9 +414,24 @@ class ContentDB {
         const row = await this._get('SELECT * FROM game WHERE id = ?', ['main']);
         if (!row) return null;
 
-        row.screenshots = await this.SelectGameScreenshots();
-        row.devlog = await this.SelectDevlog();
-        return row;
+        // Parse the stored JSON data
+        let gameData = {};
+        if (row.data) {
+            try {
+                gameData = JSON.parse(row.data);
+            } catch {
+                gameData = {};
+            }
+        }
+
+        // Ensure title is present
+        gameData.title = gameData.title || row.title;
+
+        // Load related data
+        gameData.screenshots = await this.SelectGameScreenshots();
+        gameData.devlog = await this.SelectDevlog();
+
+        return gameData;
     }
 
     // ============================================================
@@ -592,16 +598,9 @@ class ContentDB {
             });
         }
 
-        // Insert game
+        // Insert game - store full JSON
         if (game && Object.keys(game).length > 0) {
-            await this.InsertGame({
-                id: 'main',
-                title: game.title || 'Untitled',
-                slug: game.slug || 'current-project',
-                description: game.description || '',
-                status: game.status || 'in_development',
-                cover: game.cover
-            });
+            await this.InsertGame(game);
 
             // Screenshots
             const screenshots = game.screenshots || [];

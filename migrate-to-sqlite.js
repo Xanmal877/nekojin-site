@@ -97,16 +97,7 @@ async function migrate() {
         // Game
         if (jsonData.game && Object.keys(jsonData.game).length > 0) {
             console.log('  → Migrating game data...');
-            await contentDB.InsertGame({
-                id: 'main',
-                title: jsonData.game.title || 'Untitled Project',
-                slug: jsonData.game.slug || 'current-project',
-                description: jsonData.game.description || '',
-                status: jsonData.game.status || 'in_development',
-                cover: jsonData.game.cover,
-                screenshots: jsonData.game.screenshots || [],
-                devlog: jsonData.game.devlog || []
-            });
+            await contentDB.InsertGame(jsonData.game);
             console.log('     ✓ Migrated game info');
 
             // Screenshots
