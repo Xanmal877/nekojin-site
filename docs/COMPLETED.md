@@ -2,7 +2,7 @@
 
 > A running log of everything we've built, fixed, and improved.
 > 
-> **Last Updated:** 2026-07-11 (Phase 1 Complete)
+> **Last Updated:** 2026-07-11 (Phase 1 Complete + Polish)
 
 ---
 
@@ -14,6 +14,44 @@
 
 **Before:** `newsletter-subscribers.json` file (corruption risk)  
 **After:** ACID-compliant database table
+
+---
+
+### Content Backup System ✅
+**What:** Automatic database backups with retention policy
+- `backup.js`: standalone backup utility
+- Auto-backup on server start (if not already done today)
+- Daily scheduled backups (24h interval)
+- Admin API: POST /api/backup, GET /api/backup/status
+- Cleanup: keeps last 7 days, auto-deletes older backups
+
+**Storage:** `data/backups/nekojin-YYYY-MM-DD.db` (~90KB per backup)
+
+**Before:** No backups, data loss risk  
+**After:** Daily backups, 7-day retention, manual trigger via API
+
+---
+
+### System Theme Detection ✅
+**What:** Respect user's OS dark/light mode preference
+- Detection priority: localStorage → system preference → default light
+- Applied before first render (no flash of wrong theme)
+- Works with existing toggle (toggle overrides system)
+
+**Before:** Light default, no system detection  
+**After:** System-aware, user-overridable
+
+---
+
+### SEO Meta Tags ✅
+**What:** Improved Open Graph and meta tags for all pages
+- Compelling descriptions matching actual content
+- Keywords: indie games, fantasy, progression fiction, litrpg, etc.
+- Proper OG images (book covers for books, game for games)
+- Dynamic meta updates on book.html when book loads
+
+**Before:** Generic descriptions, game cover used everywhere  
+**After:** Tailored per-page, proper keywords, relevant images
 
 ---
 
