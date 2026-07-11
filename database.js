@@ -204,6 +204,17 @@ class ContentDB {
             )
         `);
 
+        // Newsletter subscribers
+        await this._run(`
+            CREATE TABLE IF NOT EXISTS subscribers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email TEXT UNIQUE NOT NULL,
+                subscribed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                source TEXT DEFAULT 'website',
+                active BOOLEAN DEFAULT 1
+            )
+        `);
+
         // Create indexes
         await this._run('CREATE INDEX IF NOT EXISTS idx_books_series ON books(series_id)');
         await this._run('CREATE INDEX IF NOT EXISTS idx_books_status ON books(status)');
@@ -557,6 +568,53 @@ class ContentDB {
             }
         }
         return row || {};
+    }
+
+    // ============================================================
+    // NEWSLETTER SUBSCRIBERS
+    // ============================================================
+
+    async InsertSubscriber(email, source = 'website') {
+        try {
+            const sql = `
+                INSERT INTO subscribers (email, source)
+                VALUES (?, ?)
+                ON CONFLICT(email) DO UPDATE SET
+                    active = 1,
+                    subscribed_at = CURRENT_TIMESTAMP
+            `;
+            await this._run(sql, [email, source]);
+            return { success: true, email };
+        } catch (err) {
+            console.error('Failed to insert subscriber:', err);
+            return { success: false, error: err.message };
+        }
+    }
+
+    async SelectSubscribers(activeOnly = true) {
+        let sql = 'SELECT * FROM subscribers';
+        const params = [];
+        if (activeOnly) {
+            sql += ' WHERE active = 1';
+        }
+        sql += ' ORDER BY subscribed_at DESC';
+        return await this._all(sql, params);
+    }
+
+    async Unsubscribe(email) {
+        const result = await this._run(
+            'UPDATE subscribers SET active = 0 WHERE email = ?',
+            [email]
+        );
+        return { changes: result.changes };
+    }
+
+    async DeleteSubscriber(email) {
+        const result = await this._run(
+            'DELETE FROM subscribers WHERE email = ?',
+            [email]
+        );
+        return { changes: result.changes };
     }
 
     // ============================================================
