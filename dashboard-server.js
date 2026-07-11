@@ -14,6 +14,7 @@ const path = require('path');
 const { spawn } = require('child_process');
 const os = require('os');
 const mammoth = require('mammoth');
+const sharp = require('sharp');
 
 // Import modules
 const accounts = require('./accounts.js');
@@ -602,7 +603,7 @@ const server = http.createServer(async (req, res) => {
         }
     }
 
-    // Cover image upload (admin only)
+    // Cover image upload (admin only) with optimization
     if (req.method === 'POST' && url === '/upload-cover') {
         if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
         try {
@@ -613,13 +614,47 @@ const server = http.createServer(async (req, res) => {
             const parts = parseMultipart(body, bm[1]);
             const file = parts['cover'];
             if (!file || !file.data) { res.writeHead(400); return res.end('No file'); }
+            
             const bookId = parts['bookId'] || 'cover';
-            const ext = path.extname(file.filename).toLowerCase() || '.jpg';
-            const fname = `${bookId}-${Date.now()}${ext}`;
-            fs.writeFileSync(path.join(COVERS_DIR, fname), file.data);
+            const timestamp = Date.now();
+            const fname = `${bookId}-${timestamp}.webp`;
+            const thumbFname = `${bookId}-${timestamp}-thumb.webp`;
+            
+            // Process image with sharp
+            const image = sharp(file.data);
+            const metadata = await image.metadata();
+            
+            // Resize if too large (max 1200px width/height)
+            const maxDimension = 1200;
+            if (metadata.width > maxDimension || metadata.height > maxDimension) {
+                image.resize(maxDimension, maxDimension, { 
+                    fit: 'inside', 
+                    withoutEnlargement: true 
+                });
+            }
+            
+            // Save optimized WebP
+            await image
+                .webp({ quality: 85, effort: 4 })
+                .toFile(path.join(COVERS_DIR, fname));
+            
+            // Generate thumbnail (400px)
+            await sharp(file.data)
+                .resize(400, 400, { fit: 'inside', withoutEnlargement: true })
+                .webp({ quality: 80, effort: 4 })
+                .toFile(path.join(COVERS_DIR, thumbFname));
+            
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ path: `/covers/${fname}` }));
-        } catch (e) { res.writeHead(500); return res.end(e.message); }
+            return res.end(JSON.stringify({ 
+                path: `/covers/${fname}`,
+                thumbnail: `/covers/${thumbFname}`,
+                originalSize: file.data.length,
+                optimized: true
+            }));
+        } catch (e) { 
+            res.writeHead(500); 
+            return res.end(e.message); 
+        }
     }
 
     // Upload manuscript .docx (admin only)
