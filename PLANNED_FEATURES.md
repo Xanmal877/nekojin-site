@@ -82,18 +82,23 @@ Major redesign of games showcase. Core features complete, polish remaining.
 
 ---
 
-### 2.5 Homepage Simplification ✅ COMPLETE
+### 2.5 Homepage Redesign ✅ COMPLETE
 **Date:** 2026-07-11
 
-Stripped homepage down to essentials:
-- Removed "Featured Products" / "Featured" sections
-- Updated CTAs: "Check Out Our Books!" / "Explore Our Games!"
-- Added Saki/Tama character icons to CTA buttons
-- Styled navigation tabs — bigger, boxed, with hover effects
-- **Simplified text** — punchy descriptions instead of wordy paragraphs
-- **Light/Dark mode** — sun/moon toggle, light default, saves preference
+Complete homepage overhaul:
+- **Single-page layout** — hero, CTAs, newsletter, footer all visible without scrolling
+- **Better typography** — 2.5:1 ratio (title 4rem, body 1.5rem), readable on all screens
+- **Bigger CTA buttons** — 1.25rem padding, 1.1rem font, prominent styling
+- **Animated character icons** — Saki and Tama idle animations in buttons
+- **Inline newsletter** — compact card below CTAs instead of separate section
+- **Light/Dark mode** — sun/moon toggle, light default, saves across pages
+- **Simplified text** — "Stories and games where characters think for themselves"
+- **No "Featured" sections** — removed redundant featured books/games blocks
 
-**New homepage flow:** Hero → Newsletter → Footer
+**New ratios:**
+- Title: `clamp(2.5rem, 5vw, 4rem)`
+- Body: `clamp(1.25rem, 2.5vw, 1.5rem)`
+- Buttons: `1.1rem` with `1.25rem 2.5rem` padding
 
 ---
 

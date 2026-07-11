@@ -122,8 +122,10 @@
 
 | Issue | Date Fixed | Commit |
 |-------|------------|--------|
-| Homepage hero needed company-first branding | 2026-07-11 | `feat: homepage hero and navigation improvements` |
-| Navigation tabs too small, not prominent | 2026-07-11 | (same) |
+| Homepage typography imbalanced (title too big, text too small) | 2026-07-11 | `fix: better font sizing ratio, compact layout` |
+| Homepage scroll required to see newsletter | 2026-07-11 | (same) |
+| CTA buttons too small, static icons | 2026-07-11 | `feat: bigger CTA buttons with animated characters, inline newsletter` |
+| Theme toggle didn't persist across pages | 2026-07-11 | `fix: theme toggle persistence across all pages` |
 | Navigation search bar too small, wrong placeholder | 2026-07-11 | `fix: improve search bar UX` |
 | AI chat code bloated server | 2026-07-11 | `refactor: extract accounts module, remove AI chat` |
 | Unused WebSocket dependency | 2026-07-11 | (same) |
