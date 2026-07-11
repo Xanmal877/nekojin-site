@@ -3,17 +3,14 @@
  * Nekojin Interactive - Server
  * - Public site at / (served from ./public/)
  * - Admin panel at /admin (login required)
- * - /content        GET   → site-content.json (public, for dynamic pages)
- * - /save-content   POST  → write site-content.json (auth required)
- * - /upload-cover   POST  → save image to public/covers/ (auth required)
+ * - /content        GET   → database (public)
+ * - /save-content   POST  → database (auth required)
+ * - /upload-cover   POST  → image optimization (auth required)
  */
 
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { spawn } = require('child_process');
-const os = require('os');
-const mammoth = require('mammoth');
 const sharp = require('sharp');
 
 // Import modules
@@ -83,24 +80,26 @@ setInterval(() => {
 
 // ── CONFIG ────────────────────────────────────────────────
 const PORT = 7771;
-const METRICS_FILE = path.join(__dirname, 'story-metrics.json');
-const SCRAPER_FILE = path.join(__dirname, 'scraper', 'BookStatScraper.js');
+
+// OPTION 1: Manuscript system disabled (can re-enable later)
+// Set to true to re-enable .docx reading and /read page
+const MANUSCRIPTS_ENABLED = false;
+
+// Conditionally import mammoth only if manuscripts enabled
+const mammoth = MANUSCRIPTS_ENABLED ? require('mammoth') : null;
+
 const ADMIN_FILE = path.join(__dirname, 'admin.html');
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const COVERS_DIR = path.join(PUBLIC_DIR, 'covers');
-const NEWSLETTER_FILE = path.join(__dirname, 'newsletter-subscribers.json');
-const CONTENT_FILE = path.join(os.homedir(), 'Documents', 'nekojin-data', 'site-content.json');
 const MANUSCRIPTS_DIR = path.join(__dirname, 'manuscripts');
 
 // Ensure directories exist
-if (!fs.existsSync(MANUSCRIPTS_DIR)) fs.mkdirSync(MANUSCRIPTS_DIR, { recursive: true });
 if (!fs.existsSync(COVERS_DIR)) fs.mkdirSync(COVERS_DIR, { recursive: true });
+if (MANUSCRIPTS_ENABLED && !fs.existsSync(MANUSCRIPTS_DIR)) fs.mkdirSync(MANUSCRIPTS_DIR, { recursive: true });
 
 // Open database connection
 contentDB.Open();
 console.log('Database connection opened');
-
-let scrapeRunning = false;
 
 // ── MANUSCRIPT PARSING (.docx → chapters) ──────────────────
 const MANUSCRIPT_CACHE = new Map();
@@ -336,27 +335,6 @@ function registerPage(error = '', success = '') {
 </html>`;
 }
 
-// ── SSE ───────────────────────────────────────────────────
-const sseClients = new Set();
-let notifyTimer = null;
-
-function notifyClients() {
-    clearTimeout(notifyTimer);
-    notifyTimer = setTimeout(() => {
-        for (const r of sseClients) r.write('data: update\n\n');
-    }, 300);
-}
-
-try { fs.watch(METRICS_FILE, notifyClients); } catch {}
-let lastMtime = 0;
-try { lastMtime = fs.statSync(METRICS_FILE).mtimeMs; } catch {}
-setInterval(() => {
-    try {
-        const mt = fs.statSync(METRICS_FILE).mtimeMs;
-        if (mt !== lastMtime) { lastMtime = mt; notifyClients(); }
-    } catch {}
-}, 10_000);
-
 // ── PUBLIC ROUTES ─────────────────────────────────────────
 const PUBLIC_ROUTES = {
     '/': path.join(PUBLIC_DIR, 'index.html'),
@@ -383,14 +361,37 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && PUBLIC_ROUTES[url])
         return serveFile(res, PUBLIC_ROUTES[url]);
 
-    // Static assets
-    if (req.method === 'GET' && (
-        url.endsWith('.html') || url.endsWith('.css') || url.endsWith('.js') ||
-        url.endsWith('.xml') || url.endsWith('.txt') || url.endsWith('.json') ||
-        url.startsWith('/covers/') || url.startsWith('/assets/') ||
-        url.endsWith('.png') || url.endsWith('.jpg') || url.endsWith('.jpeg') ||
-        url.endsWith('.ico') || url.endsWith('.svg') || url.endsWith('.webp')
-    )) return serveFile(res, path.join(PUBLIC_DIR, url));
+    // Static assets with whitelist validation
+    // Security: Only serve allowed file types from safe directories
+    const ALLOWED_EXTENSIONS = new Set([
+        '.html', '.css', '.js', '.xml', '.txt', '.json',
+        '.png', '.jpg', '.jpeg', '.ico', '.svg', '.webp', '.gif'
+    ]);
+    
+    const ALLOWED_DIRECTORIES = [
+        '/covers/',
+        '/assets/',
+        '/images/',
+        '/fonts/'
+    ];
+    
+    if (req.method === 'GET') {
+        const ext = path.extname(url).toLowerCase();
+        const isAllowedExt = ALLOWED_EXTENSIONS.has(ext);
+        const isAllowedDir = ALLOWED_DIRECTORIES.some(dir => url.startsWith(dir));
+        
+        // Block path traversal attempts
+        const resolvedPath = path.resolve(path.join(PUBLIC_DIR, url));
+        const isPathSafe = resolvedPath.startsWith(PUBLIC_DIR);
+        
+        if ((isAllowedExt || isAllowedDir) && isPathSafe) {
+            return serveFile(res, resolvedPath);
+        } else if (isAllowedExt && !isPathSafe) {
+            // Path traversal attempt detected
+            res.writeHead(403, { 'Content-Type': 'text/plain' });
+            return res.end('Forbidden: Invalid path');
+        }
+    }
 
     // Public content API - now from database
     if (req.method === 'GET' && url === '/content') {
@@ -405,47 +406,52 @@ const server = http.createServer(async (req, res) => {
         }
     }
 
-    // ── MANUSCRIPT API (public read) ──────────────────────
-    const mList = /^\/api\/manuscripts$/;
-    const mChapters = /^\/api\/manuscripts\/([^\/]+)\/chapters$/;
-    const mChapter = /^\/api\/manuscripts\/([^\/]+)\/chapters\/([0-9]+)$/;
+    // ── MANUSCRIPT API (OPTION 1: DISABLED) ─────────────────
+    // Set MANUSCRIPTS_ENABLED = true above to re-enable
+    // Manuscript reading system hidden to focus on external platform links
+    if (MANUSCRIPTS_ENABLED) {
+        const mList = /^\/api\/manuscripts$/;
+        const mChapters = /^\/api\/manuscripts\/([^\/]+)\/chapters$/;
+        const mChapter = /^\/api\/manuscripts\/([^\/]+)\/chapters\/([0-9]+)$/;
 
-    if (req.method === 'GET' && mList.test(url)) {
-        const slugs = listManuscripts();
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ manuscripts: slugs }));
-    }
+        if (req.method === 'GET' && mList.test(url)) {
+            const slugs = listManuscripts();
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ manuscripts: slugs }));
+        }
 
-    const chaptersMatch = url.match(mChapters);
-    if (req.method === 'GET' && chaptersMatch) {
-        const slug = chaptersMatch[1];
-        const chapters = await parseManuscript(slug);
-        if (!chapters) { res.writeHead(404); return res.end('Not found'); }
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({
-            slug,
-            total: chapters.length,
-            preview: chapters.length > 3 ? 3 : chapters.length,
-            chapters: chapters.map((c, i) => ({ num: c.num, title: c.title, index: i }))
-        }));
-    }
+        const chaptersMatch = url.match(mChapters);
+        if (req.method === 'GET' && chaptersMatch) {
+            const slug = chaptersMatch[1];
+            const chapters = await parseManuscript(slug);
+            if (!chapters) { res.writeHead(404); return res.end('Not found'); }
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({
+                slug,
+                total: chapters.length,
+                preview: chapters.length > 3 ? 3 : chapters.length,
+                chapters: chapters.map((c, i) => ({ num: c.num, title: c.title, index: i }))
+            }));
+        }
 
-    const chapterMatch = url.match(mChapter);
-    if (req.method === 'GET' && chapterMatch) {
-        const slug = chapterMatch[1];
-        const num = parseInt(chapterMatch[2], 10);
-        const chapters = await parseManuscript(slug);
-        if (!chapters) { res.writeHead(404); return res.end('Not found'); }
-        const ch = chapters.find(c => c.num === num);
-        if (!ch) { res.writeHead(404); return res.end('Chapter not found'); }
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({
-            num: ch.num,
-            title: ch.title,
-            content: ch.content,
-            total: chapters.length
-        }));
+        const chapterMatch = url.match(mChapter);
+        if (req.method === 'GET' && chapterMatch) {
+            const slug = chapterMatch[1];
+            const num = parseInt(chapterMatch[2], 10);
+            const chapters = await parseManuscript(slug);
+            if (!chapters) { res.writeHead(404); return res.end('Not found'); }
+            const ch = chapters.find(c => c.num === num);
+            if (!ch) { res.writeHead(404); return res.end('Chapter not found'); }
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({
+                num: ch.num,
+                title: ch.title,
+                content: ch.content,
+                total: chapters.length
+            }));
+        }
     }
+    // ── END MANUSCRIPT API ──────────────────────────────────
 
     // ── LOGIN / LOGOUT / REGISTER ─────────────────────────
     if (req.method === 'GET' && url === '/login') {
@@ -537,16 +543,24 @@ const server = http.createServer(async (req, res) => {
         try {
             const body = await readRawBody(req);
             const { email } = JSON.parse(body.toString());
-            if (!email || !email.includes('@')) { res.writeHead(400); return res.end('Invalid email'); }
-            let subs = [];
-            try { subs = JSON.parse(fs.readFileSync(NEWSLETTER_FILE, 'utf8')); } catch { }
-            if (!subs.find(s => s.email === email)) {
-                subs.push({ email, subscribedAt: Date.now() });
-                fs.writeFileSync(NEWSLETTER_FILE, JSON.stringify(subs, null, 2));
+            if (!email || !email.includes('@')) { 
+                res.writeHead(400); 
+                return res.end(JSON.stringify({ error: 'Invalid email' }));
             }
+            
+            // Use database instead of JSON file
+            const result = await contentDB.InsertSubscriber(email, 'website');
+            if (!result.success) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ error: result.error }));
+            }
+            
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end('{"ok":true}');
-        } catch (e) { res.writeHead(500); return res.end(e.message); }
+        } catch (e) { 
+            res.writeHead(500); 
+            return res.end(e.message); 
+        }
     }
 
     // ── AUTH GATE ─────────────────────────────────────────
@@ -657,8 +671,9 @@ const server = http.createServer(async (req, res) => {
         }
     }
 
-    // Upload manuscript .docx (admin only)
-    if (req.method === 'POST' && url === '/upload-manuscript') {
+    // Upload manuscript .docx (OPTION 1: DISABLED)
+    // Set MANUSCRIPTS_ENABLED = true above to re-enable
+    if (MANUSCRIPTS_ENABLED && req.method === 'POST' && url === '/upload-manuscript') {
         if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
         try {
             const body = await readRawBody(req);
@@ -681,72 +696,10 @@ const server = http.createServer(async (req, res) => {
         } catch (e) { res.writeHead(500); return res.end(e.message); }
     }
 
-    // SSE (admin only)
-    if (url === '/events') {
-        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
-        res.writeHead(200, {
-            'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-            'Access-Control-Allow-Origin': '*',
-        });
-        res.write(':ok\n\n');
-        sseClients.add(res);
-        req.on('close', () => sseClients.delete(res));
-        return;
-    }
-
-    // Metrics data (admin only)
-    if (url === '/data') {
-        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
-        try {
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(fs.readFileSync(METRICS_FILE, 'utf8'));
-        } catch {
-            res.writeHead(500);
-            return res.end('{}');
-        }
-    }
-
-    // Scrape now (admin only)
-    if (req.method === 'POST' && url === '/scrape') {
-        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
-        if (scrapeRunning) { res.writeHead(409); return res.end('Scrape already running'); }
-        scrapeRunning = true;
-        let stderr = '';
-        const child = spawn(process.execPath, [SCRAPER_FILE], { cwd: __dirname, env: process.env, stdio: ['ignore', 'inherit', 'pipe'] });
-        child.stderr.on('data', d => { stderr += d; process.stderr.write(d); });
-        child.on('close', code => {
-            scrapeRunning = false;
-            if (!res.headersSent) {
-                res.writeHead(code === 0 ? 200 : 500, { 'Content-Type': 'text/plain' });
-                res.end(code === 0 ? 'ok' : `exit ${code}\n${stderr.slice(0, 2000)}`);
-            }
-        });
-        child.on('error', err => {
-            scrapeRunning = false;
-            if (!res.headersSent) {
-                res.writeHead(500);
-                res.end('spawn failed: ' + err.message);
-            }
-        });
-        return;
-    }
-
-    // Delete metrics date (admin only)
-    if (req.method === 'POST' && url === '/delete-metrics-date') {
-        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
-        try {
-            const body = await readRawBody(req);
-            const { date } = JSON.parse(body.toString());
-            if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) { res.writeHead(400); return res.end('Invalid date'); }
-            const data = JSON.parse(fs.readFileSync(METRICS_FILE, 'utf8'));
-            for (const story of Object.values(data.stories)) story.history = (story.history || []).filter(e => e.date !== date);
-            data.lastUpdated = new Date().toISOString();
-            fs.writeFileSync(METRICS_FILE, JSON.stringify(data, null, 2));
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end('{"ok":true}');
-        } catch (e) { res.writeHead(500); return res.end(e.message); }
+    // Disabled manuscript upload response
+    if (!MANUSCRIPTS_ENABLED && req.method === 'POST' && url === '/upload-manuscript') {
+        res.writeHead(503, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ error: 'Manuscript upload disabled (Option 1). Set MANUSCRIPTS_ENABLED=true to re-enable.' }));
     }
 
     // ── USER MANAGEMENT API ───────────────────────────────
