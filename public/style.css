@@ -731,11 +731,11 @@ footer::before {
   background: rgba(124,58,237,0.08);
   border: 1px solid rgba(124,58,237,0.15);
   border-radius: 10px;
-  padding: 0.4rem 0.7rem;
+  padding: 0.5rem 1rem;
   color: var(--text);
   font-family: var(--font-body);
-  font-size: 0.82rem;
-  width: 160px;
+  font-size: 0.85rem;
+  width: 220px;
   outline: none;
   transition: all 0.2s;
 }
@@ -743,7 +743,7 @@ footer::before {
 .nav-search:focus {
   border-color: rgba(124,58,237,0.4);
   background: rgba(124,58,237,0.12);
-  width: 220px;
+  width: 280px;
 }
 .nav-search-results {
   position: absolute;
