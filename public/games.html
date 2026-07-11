@@ -887,6 +887,17 @@
       box-shadow: 0 8px 30px rgba(124,58,237,0.6);
     }
 
+    /* Demo Button */
+    .btn-demo {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(245, 158, 11, 0.4);
+    }
+    .btn-demo:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(245, 158, 11, 0.6);
+    }
+
     /* Disabled/Coming Soon */
     .btn-wishlist-primary:disabled,
     .btn-wishlist-primary.disabled {
@@ -1704,7 +1715,32 @@ async function loadGame() {
             game.platform && `<span class="game-card-meta-item">${esc(game.platform)}</span>`
           ].filter(Boolean).join('');
           
-          // Platform buttons - support multiple platforms
+          // Platform buttons with smart labeling based on status
+          const isReleased = ['released', 'available', 'launched'].includes(statusClass);
+          const hasDemo = game.demoUrl || (game.platforms?.demo && game.platforms.demo !== '');
+          
+          // Define button labels based on status
+          const getSteamLabel = () => {
+            if (hasDemo && !isReleased) return 'Try Steam Demo';
+            if (isReleased) return 'Get on Steam';
+            return 'Wishlist on Steam';
+          };
+          const getItchLabel = () => {
+            if (hasDemo && !isReleased) return 'Try Demo on Itch.io';
+            if (isReleased) return 'Get on Itch.io';
+            return 'Get on Itch.io';
+          };
+          const getGOGLabel = () => {
+            if (hasDemo && !isReleased) return 'Try GOG Demo';
+            if (isReleased) return 'Buy on GOG';
+            return 'Wishlist on GOG';
+          };
+          const getEpicLabel = () => {
+            if (hasDemo && !isReleased) return 'Try Epic Demo';
+            if (isReleased) return 'Get on Epic';
+            return 'Wishlist on Epic';
+          };
+          
           const platformButtons = [];
           
           // Steam
@@ -1712,7 +1748,7 @@ async function loadGame() {
             const url = game.steamUrl || game.platforms?.steam;
             platformButtons.push(`<a href="${esc(url)}" target="_blank" rel="noopener" class="btn-wishlist-primary btn-steam">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15h-2v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3l-.5 3H13v6.95c5.05-.5 9-4.76 9-9.95 0-5.52-4.48-10-10-10z"/></svg>
-              Wishlist on Steam
+              ${getSteamLabel()}
             </a>`);
           }
           
@@ -1721,7 +1757,7 @@ async function loadGame() {
             const url = game.itchUrl || game.platforms?.itch;
             platformButtons.push(`<a href="${esc(url)}" target="_blank" rel="noopener" class="btn-wishlist-primary btn-itch">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M4 2h16c1.1 0 2 .9 2 2v16c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2zm8 4c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"/></svg>
-              Get on Itch.io
+              ${getItchLabel()}
             </a>`);
           }
           
@@ -1730,7 +1766,7 @@ async function loadGame() {
             const url = game.gogUrl || game.platforms?.gog;
             platformButtons.push(`<a href="${esc(url)}" target="_blank" rel="noopener" class="btn-wishlist-primary btn-gog">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-              GOG Galaxy
+              ${getGOGLabel()}
             </a>`);
           }
           
@@ -1739,14 +1775,23 @@ async function loadGame() {
             const url = game.epicUrl || game.platforms?.epic;
             platformButtons.push(`<a href="${esc(url)}" target="_blank" rel="noopener" class="btn-wishlist-primary btn-epic">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
-              Epic Games
+              ${getEpicLabel()}
+            </a>`);
+          }
+          
+          // Dedicated demo button (if demoUrl set separately)
+          if (hasDemo && !game.platforms?.steam && !game.platforms?.itch) {
+            platformButtons.push(`<a href="${esc(game.demoUrl || game.platforms.demo)}" target="_blank" rel="noopener" class="btn-wishlist-primary btn-demo"
+               style="background: linear-gradient(135deg, #f59e0b, #d97706);"
+            >
+              🎮 Try Demo
             </a>`);
           }
           
           // Generic/custom platform
           if (game.platforms) {
             Object.entries(game.platforms).forEach(([name, url]) => {
-              if (['steam', 'itch', 'gog', 'epic'].includes(name)) return;
+              if (['steam', 'itch', 'gog', 'epic', 'demo'].includes(name)) return;
               if (typeof url === 'string') {
                 platformButtons.push(`<a href="${esc(url)}" target="_blank" rel="noopener" class="btn-wishlist-primary btn-platform">
                   ${esc(name.charAt(0).toUpperCase() + name.slice(1))}
