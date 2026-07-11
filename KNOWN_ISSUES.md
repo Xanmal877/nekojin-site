@@ -31,14 +31,14 @@
 
 ## Medium Priority
 
-### 2. Navigation Search Bar UX Issues
-**Status:** Open  
-**Impact:** Search is hard to find and incorrectly labeled
+### 2. ✅ Navigation Search Bar UX Issues — FIXED
+**Status:** Fixed 2026-07-11  
+**Commit:** `8007570`
 
-- Search bar in top-right is too small (easy to miss)
-- Placeholder says "Search books" but searches entire site (books + games)
-- Should say "Search site" or "Search..." to match actual behavior
-- Consider making search more prominent or adding search icon
+- Search bar width: 160px → 220px (280px on focus)
+- Placeholder: "Search books…" → "Search…"
+- Better padding for click target
+- Empty state: "No results" instead of "No books found"
 
 ---
 
@@ -122,6 +122,7 @@
 
 | Issue | Date Fixed | Commit |
 |-------|------------|--------|
+| Navigation search bar too small, wrong placeholder | 2026-07-11 | `fix: improve search bar UX` |
 | AI chat code bloated server | 2026-07-11 | `refactor: extract accounts module, remove AI chat` |
 | Unused WebSocket dependency | 2026-07-11 | (same) |
 | Chat references in service worker | 2026-07-11 | (same) |
