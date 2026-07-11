@@ -27,11 +27,44 @@ function loadSessions() {
     try {
         const raw = JSON.parse(fs.readFileSync(SESSIONS_FILE, 'utf8'));
         const now = Date.now();
+        let cleaned = false;
         for (const [id, s] of Object.entries(raw)) {
-            if (now - s.createdAt < SESSION_TTL) sessions.set(id, s);
+            if (now - s.createdAt < SESSION_TTL) {
+                sessions.set(id, s);
+            } else {
+                cleaned = true;
+            }
         }
+        // Save cleaned file if we removed expired sessions
+        if (cleaned) saveSessions();
     } catch {}
 }
+
+function cleanupExpiredSessions() {
+    try {
+        const raw = JSON.parse(fs.readFileSync(SESSIONS_FILE, 'utf8'));
+        const now = Date.now();
+        let removed = 0;
+        
+        for (const [id, s] of Object.entries(raw)) {
+            if (now - s.createdAt > SESSION_TTL) {
+                delete raw[id];
+                sessions.delete(id);
+                removed++;
+            }
+        }
+        
+        if (removed > 0) {
+            fs.writeFileSync(SESSIONS_FILE, JSON.stringify(raw, null, 2));
+            console.log(`Session cleanup: removed ${removed} expired sessions`);
+        }
+    } catch (e) {
+        console.error('Session cleanup error:', e);
+    }
+}
+
+// Run cleanup every hour
+setInterval(cleanupExpiredSessions, 60 * 60 * 1000);
 
 function saveSessions() {
     try {
@@ -226,6 +259,7 @@ module.exports = {
     isValidSession,
     getSessionUser,
     deleteSession,
+    cleanupExpiredSessions,
     // Users
     findUser,
     createUser,
