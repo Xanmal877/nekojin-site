@@ -86,12 +86,12 @@ Major redesign of games showcase. Core features complete, polish remaining.
 **Date:** 2026-07-11
 
 Stripped homepage down to essentials:
-- Removed "Featured Products" / "Featured" sections (only have 4 books, 1 game)
-- Removed "Solo Indie Studio" tagline
+- Removed "Featured Products" / "Featured" sections
 - Updated CTAs: "Check Out Our Books!" / "Explore Our Games!"
 - Added Saki/Tama character icons to CTA buttons
 - Styled navigation tabs — bigger, boxed, with hover effects
-- Improved text contrast against particle background
+- **Simplified text** — punchy descriptions instead of wordy paragraphs
+- **Light/Dark mode** — sun/moon toggle, light default, saves preference
 
 **New homepage flow:** Hero → Newsletter → Footer
 
@@ -246,6 +246,17 @@ Complete redesign of the games showcase page for Autumn's Dungeoneering.
 ---
 
 ## Phase 3: Technical Improvements
+
+### 3.1 Dark/Light Mode Toggle ✅ COMPLETE
+**Date:** 2026-07-11
+
+- Sun/Moon toggle button in navigation
+- Light mode as default
+- CSS custom properties for theme switching
+- Preference persisted in localStorage
+- Applies site-wide
+
+---
 
 ### 3.1 Image Optimization Pipeline
 **Priority:** Medium  
