@@ -428,10 +428,39 @@ class ContentDB {
         gameData.title = gameData.title || row.title;
 
         // Load related data
-        gameData.screenshots = await this.SelectGameScreenshots();
-        gameData.devlog = await this.SelectDevlog();
+        gameData.screenshots = await this.SelectGameScreenshots(row.id);
+        gameData.devlog = await this.SelectDevlog(row.id);
 
         return gameData;
+    }
+
+    async SelectGames() {
+        const rows = await this._all('SELECT * FROM game ORDER BY created_at DESC');
+        if (!rows || rows.length === 0) return [];
+
+        const games = [];
+        for (const row of rows) {
+            let gameData = {};
+            if (row.data) {
+                try {
+                    gameData = JSON.parse(row.data);
+                } catch {
+                    gameData = {};
+                }
+            }
+
+            // Ensure fields are present
+            gameData.id = row.id;
+            gameData.title = gameData.title || row.title;
+
+            // Load related data for this game
+            gameData.screenshots = await this.SelectGameScreenshots(row.id);
+            gameData.devlog = await this.SelectDevlog(row.id);
+
+            games.push(gameData);
+        }
+
+        return games;
     }
 
     // ============================================================
@@ -452,15 +481,15 @@ class ContentDB {
         return { id: result.lastID };
     }
 
-    async SelectGameScreenshots() {
+    async SelectGameScreenshots(gameId = 'main') {
         return await this._all(
             'SELECT * FROM game_screenshots WHERE game_id = ? ORDER BY sort_order',
-            ['main']
+            [gameId]
         );
     }
 
-    async DeleteGameScreenshots() {
-        const result = await this._run('DELETE FROM game_screenshots WHERE game_id = ?', ['main']);
+    async DeleteGameScreenshots(gameId = 'main') {
+        const result = await this._run('DELETE FROM game_screenshots WHERE game_id = ?', [gameId]);
         return { changes: result.changes };
     }
 
@@ -483,9 +512,9 @@ class ContentDB {
         return { id: result.lastID };
     }
 
-    async SelectDevlog(visibleOnly = true) {
+    async SelectDevlog(gameId = 'main', visibleOnly = true) {
         let sql = 'SELECT * FROM devlog WHERE game_id = ? ORDER BY date DESC';
-        const params = ['main'];
+        const params = [gameId];
         if (visibleOnly) {
             sql = 'SELECT * FROM devlog WHERE game_id = ? AND visible = 1 ORDER BY date DESC';
         }
@@ -535,23 +564,23 @@ class ContentDB {
     // ============================================================
 
     async GetAllContent() {
-        const [series, books, game, about] = await Promise.all([
+        const [series, books, games, about] = await Promise.all([
             this.SelectSeries(),
             this.SelectBooks(),
-            this.SelectGame(),
+            this.SelectGames(),
             this.SelectAbout()
         ]);
 
         return {
             series: series || [],
             books: books || [],
-            game: game || {},
+            game: games || [],
             about: about || {}
         };
     }
 
     async SaveAllContent(data) {
-        const { series = [], books = [], game = {}, about = {} } = data;
+        const { series = [], books = [], game = [], about = {} } = data;
 
         // Clear existing data
         await this._run('DELETE FROM book_platforms');
@@ -598,32 +627,39 @@ class ContentDB {
             });
         }
 
-        // Insert game - store full JSON
-        if (game && Object.keys(game).length > 0) {
-            await this.InsertGame(game);
-
-            // Screenshots
-            const screenshots = game.screenshots || [];
-            for (let i = 0; i < screenshots.length; i++) {
-                const ss = screenshots[i];
-                await this.InsertGameScreenshot({
-                    game_id: 'main',
-                    path: typeof ss === 'string' ? ss : ss.path,
-                    caption: typeof ss === 'string' ? '' : (ss.caption || ''),
-                    sort_order: i
+        // Insert games - support array
+        const games = Array.isArray(game) ? game : (game ? [game] : []);
+        for (const g of games) {
+            if (g && Object.keys(g).length > 0) {
+                const gameId = g.id || g.slug || 'main';
+                await this.InsertGame({
+                    ...g,
+                    id: gameId
                 });
-            }
 
-            // Devlog
-            const devlog = game.devlog || [];
-            for (const d of devlog) {
-                await this.InsertDevlog({
-                    game_id: 'main',
-                    title: d.title,
-                    content: d.content || '',
-                    date: d.date || d.created_at,
-                    visible: d.visible !== false
-                });
+                // Screenshots
+                const screenshots = g.screenshots || [];
+                for (let i = 0; i < screenshots.length; i++) {
+                    const ss = screenshots[i];
+                    await this.InsertGameScreenshot({
+                        game_id: gameId,
+                        path: typeof ss === 'string' ? ss : ss.path,
+                        caption: typeof ss === 'string' ? '' : (ss.caption || ''),
+                        sort_order: i
+                    });
+                }
+
+                // Devlog
+                const devlog = g.devlog || [];
+                for (const d of devlog) {
+                    await this.InsertDevlog({
+                        game_id: gameId,
+                        title: d.title,
+                        content: d.content || '',
+                        date: d.date || d.created_at,
+                        visible: d.visible !== false
+                    });
+                }
             }
         }
 
