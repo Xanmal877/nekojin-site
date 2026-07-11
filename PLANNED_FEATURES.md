@@ -109,11 +109,10 @@ Better chapter/reader experience:
 Complete redesign of the games showcase page for Autumn's Dungeoneering.
 
 #### Visual/Layout
-- [ ] **Hero Section Enhancement**
+- [x] **Hero Section Enhancement** ✅ COMPLETE
   - Bigger hero with parallax scrolling effect
-  - Optional: video background (ambient gameplay trailer)
-  - Animated gradient or particle effects
-  - Scroll indicator animation
+  - Particle system with constellation lines
+  - Animated gradient with scroll indicator
 
 - [ ] **Screenshot Gallery**
   - Side-by-side image gallery with lightbox
@@ -121,11 +120,10 @@ Complete redesign of the games showcase page for Autumn's Dungeoneering.
   - Thumbnail navigation
   - Full-screen mode on click
 
-- [ ] **Atmospheric Color Scheme**
-  - Darker, more immersive theme
-  - Dynamic accent colors based on game screenshots
-  - Gradient overlays on images
-  - Animated borders/glows
+- [x] **Atmospheric Color Scheme** ✅ COMPLETE
+  - Darker, more immersive theme with glass-morphism
+  - Cinematic gradient overlays and glows
+  - Animated borders on hover
 
 - [ ] **Feature Cards Animation**
   - Hover effects (lift, glow, scale)
@@ -155,11 +153,11 @@ Complete redesign of the games showcase page for Autumn's Dungeoneering.
   - Developer bio and contact
   - Link to press inquiries
 
-- [ ] **Social Media Integration**
-  - Twitter/X feed embed (latest dev updates)
-  - Discord server invite widget
-  - Steam community link
-  - Share buttons for social platforms
+- [x] **Multi-Platform Wishlist** ✅ COMPLETE
+  - Steam, Itch.io, GOG Galaxy, Epic Games Store
+  - Platform-specific branded buttons with icons
+  - Support for custom platforms via `platforms` object
+  - Graceful "Coming Soon" fallback
 
 #### Interactive Elements
 - [ ] **Screenshot Lightbox**
