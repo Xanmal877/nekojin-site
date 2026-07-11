@@ -66,11 +66,12 @@ Improve data integrity:
 Major redesign of games showcase. Core features complete, polish remaining.
 
 #### Completed ✅
-- **Hero moved to homepage** with particles/parallax
-- **Multi-game support** — Admin can add/manage multiple games
-- **Multi-platform wishlist** — Steam, Itch, GOG, Epic with smart labels
-- **Demo support** — Try Demo buttons for all platforms
-- **Atmospheric cards** — Glass-morphism, hover effects, animations
+- **Hero moved to homepage** with particles/parallax  
+- **Multi-game support** — Admin can add/manage multiple games  
+- **Multi-platform wishlist** — Steam, Itch, GOG, Epic with smart labels  
+- **Demo support** — Try Demo buttons for all platforms  
+- **Atmospheric cards** — Glass-morphism, hover effects, animations  
+- **Homepage simplification** — Removed featured sections (flow: Hero → Newsletter → Footer)
 
 #### Still To Do
 - Screenshot gallery with lightbox
@@ -81,13 +82,18 @@ Major redesign of games showcase. Core features complete, polish remaining.
 
 ---
 
-### 2.5 Homepage Polish ✅ COMPLETE
+### 2.5 Homepage Simplification ✅ COMPLETE
 **Date:** 2026-07-11
 
+Stripped homepage down to essentials:
+- Removed "Featured Products" / "Featured" sections (only have 4 books, 1 game)
 - Removed "Solo Indie Studio" tagline
 - Updated CTAs: "Check Out Our Books!" / "Explore Our Games!"
+- Added Saki/Tama character icons to CTA buttons
 - Styled navigation tabs — bigger, boxed, with hover effects
 - Improved text contrast against particle background
+
+**New homepage flow:** Hero → Newsletter → Footer
 
 ---
 
