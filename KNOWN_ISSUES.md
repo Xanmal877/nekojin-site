@@ -111,13 +111,23 @@
 
 ---
 
-### 9. No API Rate Limiting
-**Status:** Open  
-**Impact:** Security/performance
+### 9. ✅ No API Rate Limiting — FIXED
+**Status:** Fixed 2026-07-11
+**Commit:** `dae723c`
 
-- `/content` could be hammered
-- `/newsletter` could be spammed
-- No protection against brute force on `/login`
+Rate limiting implemented:
+
+| Endpoint | Limit | Window |
+|----------|-------|--------|
+| `/login` | 5 attempts | 15 minutes |
+| `/register` | 3 attempts | 1 hour |
+| `/newsletter` | 10 signups | 1 hour |
+| `/api/users` | 20 requests | 15 minutes |
+| default | 100 requests | 1 minute |
+
+- Returns 429 with Retry-After header
+- Automatic cleanup every 10 minutes
+- In-memory tracking (no external dependencies)
 
 ---
 
@@ -125,6 +135,7 @@
 
 | Issue | Date Fixed | Commit |
 |-------|------------|--------|
+| No API rate limiting | 2026-07-11 | `feat: add rate limiting to protect endpoints` |
 | No account management in admin panel | 2026-07-11 | `feat: admin user management panel` |
 | Homepage typography imbalanced (title too big, text too small) | 2026-07-11 | `fix: better font sizing ratio, compact layout` |
 | Homepage scroll required to see newsletter | 2026-07-11 | (same) |
