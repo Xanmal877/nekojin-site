@@ -41,6 +41,28 @@
       z-index: 0;
     }
 
+    /* ── PARTICLE CANVAS ── */
+    #hero-particles {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* ── PARALLAX LAYERS ── */
+    .hero-parallax-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .hero-parallax-layer--1 {
+      background: radial-gradient(circle at 30% 70%, rgba(124,58,237,0.08) 0%, transparent 50%);
+    }
+    .hero-parallax-layer--2 {
+      background: radial-gradient(circle at 70% 30%, rgba(167,139,250,0.06) 0%, transparent 40%);
+    }
+
     /* ── HERO ── */
     .hero {
       min-height: 100vh;
@@ -752,6 +774,13 @@
 <!-- ── HERO ── -->
 <header class="hero" id="hero">
   <div class="hero-bg-mesh"></div>
+  <!-- Particle Canvas -->
+  <canvas id="hero-particles"></canvas>
+  
+  <!-- Parallax Layers -->
+  <div class="hero-parallax-layer hero-parallax-layer--1"></div>
+  <div class="hero-parallax-layer hero-parallax-layer--2"></div>
+  
   <div class="hero-geo hero-geo-1"></div>
   <div class="hero-geo hero-geo-2"></div>
   <div class="hero-geo hero-geo-3"></div>
@@ -760,12 +789,14 @@
     <span class="accent">Nekojin</span> Interactive
   </h1>
   <p class="hero-sub">
-    Crafting interconnected fiction and games within a single universe,
-    where billions of uploaded souls believe they've reincarnated into a fantasy world.
+    I create stories and games inside the Xanrea universe, a world where characters act with real autonomy and follow their own goals instead of waiting for instructions. My work combines character-driven fantasy, and worlds that grow through the choices of the people inside them.
+  </p>
+  <p class="hero-sub" style="font-size: 0.9rem; color: rgba(200,185,240,0.55); margin-top: -1.5rem;">
+    Everything I work on aims toward one core idea: characters should feel alive. Solo creator building a universe one system and one story at a time.
   </p>
   <div class="hero-cta">
-    <a href="/books" class="btn-hero-primary">📖 Start Reading</a>
-    <a href="/games" class="btn-hero-outline">🎮 Explore the Game</a>
+    <a href="/books" class="btn-hero-primary">📖 Read the Books</a>
+    <a href="/games" class="btn-hero-outline">🎮 Play the Game</a>
   </div>
   <div class="scroll-hint">
     <span class="scroll-hint-text">Scroll to explore</span>
@@ -1080,6 +1111,134 @@ document.addEventListener('DOMContentLoaded', function() {
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
+
+// ── HERO PARTICLE SYSTEM ───────────────────────────────
+(function initHeroParticles() {
+  const canvas = document.getElementById('hero-particles');
+  if (!canvas) return;
+  
+  const ctx = canvas.getContext('2d');
+  let particles = [];
+  let animationId;
+  let isActive = true;
+  
+  function resize() {
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+  }
+  
+  function createParticle() {
+    return {
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      size: Math.random() * 2 + 0.5,
+      speedX: (Math.random() - 0.5) * 0.3,
+      speedY: (Math.random() - 0.5) * 0.3,
+      opacity: Math.random() * 0.5 + 0.2,
+      pulse: Math.random() * Math.PI * 2
+    };
+  }
+  
+  function init() {
+    resize();
+    particles = [];
+    const particleCount = Math.min(100, Math.floor((canvas.width * canvas.height) / 8000));
+    for (let i = 0; i < particleCount; i++) {
+      particles.push(createParticle());
+    }
+  }
+  
+  function draw() {
+    if (!isActive) return;
+    
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    particles.forEach((p, i) => {
+      // Update position
+      p.x += p.speedX;
+      p.y += p.speedY;
+      p.pulse += 0.02;
+      
+      // Wrap around edges
+      if (p.x < 0) p.x = canvas.width;
+      if (p.x > canvas.width) p.x = 0;
+      if (p.y < 0) p.y = canvas.height;
+      if (p.y > canvas.height) p.y = 0;
+      
+      // Draw particle with pulse
+      const pulseOpacity = p.opacity * (0.7 + 0.3 * Math.sin(p.pulse));
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(196, 181, 253, ${pulseOpacity})`;
+      ctx.fill();
+      
+      // Draw connections to nearby particles
+      particles.slice(i + 1).forEach(p2 => {
+        const dx = p.x - p2.x;
+        const dy = p.y - p2.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        if (dist < 100) {
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.strokeStyle = `rgba(124, 58, 237, ${0.1 * (1 - dist / 100)})`;
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+        }
+      });
+    });
+    
+    animationId = requestAnimationFrame(draw);
+  }
+  
+  // Handle resize
+  window.addEventListener('resize', resize);
+  
+  // Pause when tab is hidden
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      isActive = false;
+      cancelAnimationFrame(animationId);
+    } else {
+      isActive = true;
+      draw();
+    }
+  });
+  
+  init();
+  draw();
+})();
+
+// ── PARALLAX EFFECT ──────────────────────────────────
+(function initParallax() {
+  const layers = document.querySelectorAll('.hero-parallax-layer');
+  if (!layers.length) return;
+  
+  let ticking = false;
+  
+  function updateParallax() {
+    const scrolled = window.scrollY;
+    const heroHeight = document.querySelector('.hero')?.offsetHeight || window.innerHeight;
+    
+    if (scrolled < heroHeight) {
+      layers.forEach((layer, index) => {
+        const speed = (index + 1) * 0.15;
+        const yPos = scrolled * speed;
+        layer.style.transform = `translateY(${yPos}px)`;
+      });
+    }
+    
+    ticking = false;
+  }
+  
+  window.addEventListener('scroll', () => {
+    if (!ticking) {
+      requestAnimationFrame(updateParallax);
+      ticking = true;
+    }
+  });
+})();
 </script>
 </body>
 </html>
