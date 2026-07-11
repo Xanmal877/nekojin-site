@@ -1416,15 +1416,18 @@
     
     <!-- Hero Content -->
     <div class="games-hero-content">
-      <p class="games-hero-eyebrow">Nekojin Interactive</p>
-      <h1 class="games-hero-title" id="games-hero-title">Games</h1>
+      <p class="games-hero-eyebrow">Game Studio</p>
+      <h1 class="games-hero-title" id="games-hero-title">Nekojin Interactive LLC</h1>
       <p class="games-hero-tagline" id="games-hero-tagline">
-        Interactive laboratories built in Godot. Proving grounds for emergent AI, systemic design, and player-driven stories.
+        I create stories and games inside the Xanrea universe, a world where characters act with real autonomy and follow their own goals instead of waiting for instructions. My work combines character-driven fantasy, and worlds that grow through the choices of the people inside them.
+      </p>
+      <p class="games-hero-subline" style="font-size: 0.9rem; color: rgba(212,200,240,0.6); max-width: 700px; margin: 1.5rem auto 0; line-height: 1.7;">
+        Everything I work on aims toward one core idea: characters should feel alive. Solo creator building a universe one system and one story at a time. I write ongoing fantasy series on Royal Road, ScribbleHub, and Amazon. I also am a Game Dev and working on Autumn's Dungeoneering.
       </p>
       <div class="games-hero-meta" id="games-hero-meta">
         <span class="hero-meta-item">🎮 Godot 4</span>
+        <span class="hero-meta-item">📚 Fantasy Writer</span>
         <span class="hero-meta-item">🤖 Emergent AI</span>
-        <span class="hero-meta-item">🍂 Cozy Vibes</span>
       </div>
     </div>
     
@@ -1664,17 +1667,9 @@ async function loadGame() {
     const g = data.game;
     if (!g) return;
 
-    // Hero — populate with game data (first game if array)
+    // Hero — keep the studio branding (don't override with game data)
+    // The hero now shows Nekojin Interactive LLC with your bio
     const firstGame = Array.isArray(g) ? g[0] : g;
-    if (firstGame) {
-      if (firstGame.title) {
-        document.getElementById('games-hero-title').textContent = 'Games';
-      }
-      if (firstGame.tagline) {
-        document.getElementById('games-hero-tagline').textContent = 
-          'Interactive laboratories built in Godot. Proving grounds for emergent AI, systemic design, and player-driven stories.';
-      }
-    }
 
     // ── RENDER GAMES LIST (supports multiple games) ─────────
     const gamesContainer = document.getElementById('games-container');
