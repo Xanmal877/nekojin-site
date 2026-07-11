@@ -1,7 +1,7 @@
 # Planned Features — Nekojin Interactive Website
 
 > Roadmap and upcoming features.  
-> Last updated: 2026-07-11
+> Last updated: 2026-07-11 (Games page revamp planning)
 
 ---
 
@@ -96,6 +96,107 @@ Better chapter/reader experience:
 - [ ] "Last read" bookmarking
 - [ ] Reading progress indicator
 - [ ] Export chapter as markdown
+
+---
+
+---
+
+### 2.4 Games Page Revamp 🎮 NEW
+**Status:** Planning  
+**Priority:** High  
+**Estimated:** 2-3 sessions
+
+Complete redesign of the games showcase page for Autumn's Dungeoneering.
+
+#### Visual/Layout
+- [ ] **Hero Section Enhancement**
+  - Bigger hero with parallax scrolling effect
+  - Optional: video background (ambient gameplay trailer)
+  - Animated gradient or particle effects
+  - Scroll indicator animation
+
+- [ ] **Screenshot Gallery**
+  - Side-by-side image gallery with lightbox
+  - Image carousel with swipe support
+  - Thumbnail navigation
+  - Full-screen mode on click
+
+- [ ] **Atmospheric Color Scheme**
+  - Darker, more immersive theme
+  - Dynamic accent colors based on game screenshots
+  - Gradient overlays on images
+  - Animated borders/glows
+
+- [ ] **Feature Cards Animation**
+  - Hover effects (lift, glow, scale)
+  - Staggered reveal animations on scroll
+  - Icon animations (subtle pulse/bounce)
+  - Card tilt effect on mouse move
+
+#### Content Additions
+- [ ] **Gameplay Video Section**
+  - Embedded YouTube/Vimeo player
+  - Custom video thumbnail with play button overlay
+  - Trailer autoplay on scroll into view (muted)
+
+- [ ] **System Requirements Panel**
+  - Minimum/Recommended specs table
+  - OS compatibility icons (Windows, Linux, Steam Deck)
+  - Storage/RAM/Graphics card requirements
+
+- [ ] **Newsletter Signup**
+  - Game-specific email capture
+  - "Get notified on Early Access launch"
+  - Integration with existing newsletter system
+
+- [ ] **Press Kit Section**
+  - Downloadable assets (logos, screenshots, key art)
+  - Fact sheet with game details
+  - Developer bio and contact
+  - Link to press inquiries
+
+- [ ] **Social Media Integration**
+  - Twitter/X feed embed (latest dev updates)
+  - Discord server invite widget
+  - Steam community link
+  - Share buttons for social platforms
+
+#### Interactive Elements
+- [ ] **Screenshot Lightbox**
+  - Click to expand images
+  - Keyboard navigation (arrow keys, Escape)
+  - Caption display
+  - Swipe on mobile
+
+- [ ] **Tabbed Interface**
+  - Tabs: Overview | Features | Media | Devlog | Press
+  - Smooth transitions between tabs
+  - URL hash updates for direct linking
+
+- [ ] **Development Progress Bar**
+  - Visual progress indicator (% complete)
+  - Milestone markers (Alpha → Beta → Early Access)
+  - Estimated timeline tooltips
+
+- [ ] **Interactive Feature Demo**
+  - Hover to see feature explanations
+  - Optional: mini interactive demo (if feasible)
+  - GIF/video previews on hover
+
+#### Technical
+- [ ] **Performance Optimization**
+  - Lazy loading for images below fold
+  - WebP format with JPG fallback
+  - Responsive image srcsets
+  - Minimize layout shift
+
+- [ ] **SEO Enhancements**
+  - Game schema markup (Schema.org)
+  - Open Graph tags for social sharing
+  - Meta description optimization
+  - Sitemap entry
+
+**Inspiration:** Steam store pages, Hades website, Hollow Knight site, modern indie game marketing pages
 
 ---
 
