@@ -15,8 +15,9 @@ const { spawn } = require('child_process');
 const os = require('os');
 const mammoth = require('mammoth');
 
-// Import accounts module
+// Import modules
 const accounts = require('./accounts.js');
+const contentDB = require('./database.js');
 
 // ── CONFIG ────────────────────────────────────────────────
 const PORT = 7771;
@@ -33,11 +34,13 @@ const MANUSCRIPTS_DIR = path.join(__dirname, 'manuscripts');
 if (!fs.existsSync(MANUSCRIPTS_DIR)) fs.mkdirSync(MANUSCRIPTS_DIR, { recursive: true });
 if (!fs.existsSync(COVERS_DIR)) fs.mkdirSync(COVERS_DIR, { recursive: true });
 
-if (!fs.existsSync(CONTENT_FILE)) {
-    const dataDir = path.dirname(CONTENT_FILE);
-    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
-    fs.writeFileSync(CONTENT_FILE, JSON.stringify({ series: [], books: [], game: {}, about: {} }, null, 2));
-}
+// Open database connection (async)
+contentDB.Open().then(() => {
+    console.log('Database connection opened');
+}).catch(err => {
+    console.error('Failed to open database:', err);
+    process.exit(1);
+});
 
 let scrapeRunning = false;
 
@@ -330,14 +333,16 @@ const server = http.createServer(async (req, res) => {
         url.endsWith('.ico') || url.endsWith('.svg') || url.endsWith('.webp')
     )) return serveFile(res, path.join(PUBLIC_DIR, url));
 
-    // Public content API
+    // Public content API - now from database
     if (req.method === 'GET' && url === '/content') {
         try {
+            const data = await contentDB.GetAllContent();
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(fs.readFileSync(CONTENT_FILE, 'utf8'));
-        } catch {
+            return res.end(JSON.stringify(data));
+        } catch (err) {
+            console.error('Database error:', err);
             res.writeHead(500);
-            return res.end('{}');
+            return res.end('{"error":"Failed to load content"}');
         }
     }
 
@@ -502,16 +507,20 @@ const server = http.createServer(async (req, res) => {
         return serveFile(res, ADMIN_FILE);
     }
 
-    // Save site content (admin only)
+    // Save site content (admin only) - now to database
     if (req.method === 'POST' && url === '/save-content') {
         if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
         try {
             const body = await readRawBody(req);
             const data = JSON.parse(body.toString());
-            fs.writeFileSync(CONTENT_FILE, JSON.stringify(data, null, 2));
+            await contentDB.SaveAllContent(data);
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end('{"ok":true}');
-        } catch (e) { res.writeHead(400); return res.end(e.message); }
+        } catch (e) {
+            console.error('Save content error:', e);
+            res.writeHead(500);
+            return res.end(JSON.stringify({ error: e.message }));
+        }
     }
 
     // Cover image upload (admin only)
@@ -636,6 +645,19 @@ server.on('error', err => {
         console.error(`Port ${PORT} in use.`);
         process.exit(1);
     } else throw err;
+});
+
+// Graceful shutdown - close database
+process.on('SIGTERM', async () => {
+    console.log('\nSIGTERM received, closing database...');
+    await contentDB.Close();
+    process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+    console.log('\nSIGINT received, closing database...');
+    await contentDB.Close();
+    process.exit(0);
 });
 
 server.listen(PORT, '0.0.0.0', () => {

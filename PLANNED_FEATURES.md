@@ -7,20 +7,21 @@
 
 ## Phase 1: Foundation (Current)
 
-### 1.1 SQLite Migration ⬅️ IN PROGRESS
+### 1.1 SQLite Migration ✅ COMPLETE
+**Date:** 2026-07-11  
 **Priority:** Critical  
 **Estimated:** 1-2 sessions
 
 Move from JSON file storage to SQLite database:
 
-- [ ] Migration script (`migrate-json-to-sqlite.js`)
+- [x] Migration script (`migrate-json-to-sqlite.js`)
   - Read existing `site-content.json`
   - Populate SQLite tables
   - Verify data integrity
-- [ ] Update `/content` endpoint to query database
-- [ ] Update `/save-content` endpoint to use transactions
+- [x] Update `/content` endpoint to query database
+- [x] Update `/save-content` endpoint to use transactions
 - [ ] Add database backup on save (`.db.backup`)
-- [ ] Test with existing data
+- [x] Test with existing data
 - [ ] Update `generate-meta.js` to use DB (optional)
 
 **Technical:** See `database.js` — already has schema and methods.
