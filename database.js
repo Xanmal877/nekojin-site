@@ -10,7 +10,7 @@ const fs = require('fs');
 const os = require('os');
 
 // Database location - single file like your Godot project
-const DB_DIR = path.join(os.homedir(), 'Documents', 'nekojin-data');
+const DB_DIR = path.join(__dirname, 'data');
 const DB_PATH = path.join(DB_DIR, 'nekojin.db');
 
 /**

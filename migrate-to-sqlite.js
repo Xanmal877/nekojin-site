@@ -12,8 +12,8 @@ const os = require('os');
 // Import the database module
 const contentDB = require('./database.js');
 
-const CONTENT_FILE = path.join(os.homedir(), 'Documents', 'nekojin-data', 'site-content.json');
-const BACKUP_FILE = path.join(os.homedir(), 'Documents', 'nekojin-data', 'site-content.json.backup');
+const CONTENT_FILE = path.join(__dirname, 'data', 'site-content.json');
+const BACKUP_FILE = path.join(__dirname, 'data', 'site-content.json.backup');
 
 async function migrate() {
     console.log('🗄️  Nekojin Content Migration: JSON → SQLite\n');
