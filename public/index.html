@@ -985,18 +985,8 @@
   </div>
 </footer>
 
+<script src="/common.js"></script>
 <script>
-function esc(str) {
-  if (!str) return '';
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-function fmtNum(n) {
-  if (n >= 1000000) return (n / 1000000).toFixed(1).replace(/\.0$/,'') + 'M';
-  if (n >= 1000)    return (n / 1000).toFixed(1).replace(/\.0$/,'') + 'k';
-  return String(n);
-}
-
 // ── SCROLL REVEAL ────────────────────────────────────────
 const revealObs = new IntersectionObserver((entries) => {
   entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); revealObs.unobserve(e.target); } });
