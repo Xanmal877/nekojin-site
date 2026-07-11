@@ -632,6 +632,74 @@ const server = http.createServer(async (req, res) => {
         } catch (e) { res.writeHead(500); return res.end(e.message); }
     }
 
+    // ── USER MANAGEMENT API ───────────────────────────────
+    // List all users (admin only)
+    if (req.method === 'GET' && url === '/api/users') {
+        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        try {
+            const users = accounts.listAllUsers();
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify(users));
+        } catch (e) { res.writeHead(500); return res.end(e.message); }
+    }
+
+    // Create new user (admin only)
+    if (req.method === 'POST' && url === '/api/users') {
+        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        try {
+            const body = await readRawBody(req);
+            const { username, password, role } = JSON.parse(body.toString());
+            if (!username || !password) { res.writeHead(400); return res.end('Missing username or password'); }
+            const success = accounts.createUser(username, password, role || 'user');
+            if (!success) { res.writeHead(409); return res.end('Username already exists'); }
+            res.writeHead(201, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ ok: true, username }));
+        } catch (e) { res.writeHead(500); return res.end(e.message); }
+    }
+
+    // Delete user (admin only)
+    if (req.method === 'DELETE' && url.startsWith('/api/users/')) {
+        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        try {
+            const username = decodeURIComponent(url.slice(11)); // Remove '/api/users/'
+            if (!username) { res.writeHead(400); return res.end('Missing username'); }
+            const success = accounts.deleteUser(username);
+            if (!success) { res.writeHead(404); return res.end('User not found'); }
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ ok: true }));
+        } catch (e) { res.writeHead(500); return res.end(e.message); }
+    }
+
+    // Reset user password (admin only)
+    if (req.method === 'POST' && url.match(/^\/api\/users\/[^\/]+\/reset-password$/)) {
+        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        try {
+            const username = decodeURIComponent(url.match(/^\/api\/users\/([^\/]+)/)[1]);
+            const body = await readRawBody(req);
+            const { password } = JSON.parse(body.toString());
+            if (!password) { res.writeHead(400); return res.end('Missing new password'); }
+            const success = accounts.resetPassword(username, password);
+            if (!success) { res.writeHead(404); return res.end('User not found'); }
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ ok: true }));
+        } catch (e) { res.writeHead(500); return res.end(e.message); }
+    }
+
+    // Change user role (admin only)
+    if (req.method === 'POST' && url.match(/^\/api\/users\/[^\/]+\/role$/)) {
+        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        try {
+            const username = decodeURIComponent(url.match(/^\/api\/users\/([^\/]+)/)[1]);
+            const body = await readRawBody(req);
+            const { role } = JSON.parse(body.toString());
+            if (!role || !['admin', 'user'].includes(role)) { res.writeHead(400); return res.end('Invalid role'); }
+            const success = accounts.setUserRole(username, role);
+            if (!success) { res.writeHead(404); return res.end('User not found'); }
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ ok: true }));
+        } catch (e) { res.writeHead(500); return res.end(e.message); }
+    }
+
     // ── 404 ────────────────────────────────────────────────
     res.writeHead(404);
     res.end('Not found');
