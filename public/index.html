@@ -776,44 +776,6 @@
   </div>
 </header>
 
-<main>
-
-  <!-- ── FEATURED BOOKS ── -->
-  <section class="books-section">
-    <div class="section-inner">
-      <div class="reveal">
-        <span class="section-label">Featured Products</span>
-        <h2 class="section-headline">Featured Books</h2>
-        <p class="section-subtext">Read free across multiple platforms!</p>
-      </div>
-
-      <div class="books-grid" id="featured-books">
-        <!-- skeleton -->
-        <div class="skel skel-card reveal reveal-delay-1"></div>
-        <div class="skel skel-card reveal reveal-delay-2"></div>
-        <div class="skel skel-card reveal reveal-delay-3"></div>
-      </div>
-
-      <div class="view-all-wrap reveal">
-        <a href="/books" class="btn-view-all">View All Books <span>→</span></a>
-      </div>
-    </div>
-  </section>
-
-
-  <!-- ── GAME TEASER ── -->
-  <section class="game-section-new">
-    <div class="section-inner">
-      <div class="reveal">
-        <h2 class="section-headline">Featured Games</h2>
-        <p class="section-subtext">Where lives are Simulated</p>
-      </div>
-      <div id="game-section-inner"></div>
-    </div>
-  </section>
-
-</main>
-
 <!-- NEWSLETTER -->
 <div class="nl-banner">
   <div class="nl-banner-inner">
@@ -867,76 +829,6 @@ async function loadHome() {
     const res = await fetch('/content');
     data = await res.json();
   } catch(e) { return; }
-
-  // ── BOOKS ────────────────────────────────────────────
-  const grid = document.getElementById('featured-books');
-  const standaloneBooks = (data.books || []).filter(b => b.visible !== false);
-  const seriesBooks = (data.series || []).filter(s => s.visible !== false).flatMap(s => (s.books || []).filter(b => b.visible !== false));
-  const allBooks = [...standaloneBooks, ...seriesBooks];
-
-  const featured = allBooks.slice(0, 3);
-  if (featured.length) {
-    grid.innerHTML = featured.map((book, i) => `
-      <div class="book-card-new reveal reveal-delay-${i+1}" onclick="location.href='/book?id=${encodeURIComponent(book.id)}'" style="cursor:pointer;">
-        <div class="book-cover-wrap">
-          ${book.cover
-            ? `<img src="${esc(book.cover)}" alt="${esc(book.title)} cover" loading="lazy">`
-            : `<div class="book-cover-placeholder-new"><span style="position:relative;z-index:1;">📖</span></div>`
-          }
-        </div>
-        <div class="book-body-new">
-          ${book.volume ? `<div class="book-vol-new">${esc(book.volume)}</div>` : ''}
-          <h3 class="book-title-new">${esc(book.title)}</h3>
-          <p class="book-desc-new">${esc(book.blurb || book.description)}</p>
-          <div class="book-footer-new">
-            ${(book.platforms || []).map(p => `
-              <a href="${esc(p.url)}" target="_blank" rel="noopener" class="plat-pill ${esc(p.type)}" onclick="event.stopPropagation()">${
-                p.type === 'rr' ? 'Royal Road' : p.type === 'sh' ? 'ScribbleHub' : p.type === 'kdp' ? 'Kindle' : esc(p.name)
-              }</a>
-            `).join('')}
-          </div>
-        </div>
-      </div>
-    `).join('');
-    // re-observe new elements
-    grid.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
-  } else {
-    grid.innerHTML = '<p style="color:rgba(200,185,240,0.6);text-align:center;padding:3rem;">No books available yet.</p>';
-  }
-
-  // ── GAME ─────────────────────────────────────────────
-  const g = data.game;
-  if (g) {
-    const steamBtn = g.steamUrl
-      ? `<a href="${esc(g.steamUrl)}" target="_blank" rel="noopener" class="btn-game-steam">🎮 Wishlist on Steam</a>`
-      : `<a class="btn-game-steam disabled">🎮 Wishlist Soon</a>`;
-
-    const artHtml = g.coverImage
-      ? `<img src="${esc(g.coverImage)}" alt="${esc(g.title)} cover">`
-      : `<div class="game-art-placeholder-new">
-           <span class="game-art-icon-new">🍂</span>
-           <span class="game-art-label-new">Key Art in Progress</span>
-         </div>`;
-
-    document.getElementById('game-section-inner').innerHTML = `
-      <div class="game-card-new reveal">
-        <div class="game-info-new">
-          <div class="game-status-new">
-            <span class="status-dot-new"></span>
-            ${esc(g.status || 'In Development')}
-          </div>
-          <h3 class="game-title-new">${esc(g.title)}</h3>
-          <p class="game-tagline-new">${esc(g.tagline)}</p>
-          <div class="game-cta-row">
-            <a href="/games" class="btn-game-learn">Learn More</a>
-            ${steamBtn}
-          </div>
-        </div>
-        <div class="game-art-new">${artHtml}</div>
-      </div>
-    `;
-    document.querySelectorAll('#game-section-inner .reveal').forEach(el => revealObs.observe(el));
-  }
 
   // ── FOOTER ───────────────────────────────────────────
   if (data.about && data.about.tagline) {
