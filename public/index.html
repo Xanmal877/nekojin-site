@@ -707,40 +707,6 @@
     .reveal-delay-2 { transition-delay: 0.2s; }
     .reveal-delay-3 { transition-delay: 0.3s; }
 
-    .universe-section {
-      padding: 6.5rem 2rem 3rem;
-      background: linear-gradient(180deg, rgba(10,6,20,0.95) 0%, rgba(18,10,38,0.8) 100%);
-      position: relative;
-      text-align: center;
-    }
-    .universe-section::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(124,58,237,0.3), transparent);
-    }
-    .universe-inner {
-      max-width: 700px;
-      margin: 0 auto;
-    }
-    .universe-quote {
-      font-family: var(--font-display);
-      font-size: clamp(1.15rem, 2.5vw, 1.5rem);
-      color: rgba(233,213,255,0.75);
-      line-height: 1.55;
-      margin-top: 1.5rem;
-      position: relative;
-    }
-    .universe-quote::before {
-      content: '"';
-      display: block;
-      font-size: 4rem;
-      line-height: 0.6;
-      color: rgba(124,58,237,0.25);
-      margin-bottom: 0.6rem;
-    }
-
     @keyframes fadeup {
       from { opacity: 0; transform: translateY(20px); }
       to   { opacity: 1; transform: translateY(0); }
@@ -810,22 +776,6 @@
     <div class="scroll-hint-line"></div>
   </div>
 </header>
-
-<!-- ── UNIVERSE BLURB ── -->
-<section class="universe-section">
-  <div class="universe-inner">
-    <div class="reveal">
-      <div class="section-label">The Setting</div>
-      <h2 class="section-headline">What is Xanrea?</h2>
-      <blockquote class="universe-quote" id="universe-quote">
-        Loading…
-      </blockquote>
-      <a href="/about" class="btn-hero-outline" style="margin-top:1rem;">
-        Learn More →
-      </a>
-    </div>
-  </div>
-</section>
 
 <main>
 
@@ -990,9 +940,6 @@ async function loadHome() {
   }
 
   // ── FOOTER ───────────────────────────────────────────
-  if (data.about && data.about.universeBlurb) {
-    document.getElementById('universe-quote').textContent = data.about.universeBlurb;
-  }
   if (data.about && data.about.tagline) {
     document.getElementById('footer-tagline').textContent = data.about.tagline;
   }
