@@ -596,6 +596,457 @@
       }
     }
 
+    /* ── GAMES LIST (Multi-game support, premium design) ── */
+    .games-list {
+      padding: 4rem 2rem 8rem;
+      background: linear-gradient(180deg, var(--void) 0%, rgba(16,10,44,0.3) 50%, var(--void) 100%);
+    }
+
+    .games-list-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 5rem;
+    }
+
+    /* Featured Game Card - Cinematic */
+    .game-card.featured {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      min-height: 600px;
+      background: linear-gradient(145deg, rgba(16,10,44,0.98), rgba(12,7,32,0.98));
+      border: 1px solid rgba(124,58,237,0.2);
+      border-radius: 32px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 
+        0 40px 100px rgba(0,0,0,0.6),
+        0 0 0 1px rgba(124,58,237,0.1),
+        inset 0 1px 0 rgba(255,255,255,0.05);
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .game-card.featured::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: 
+        radial-gradient(ellipse 80% 50% at 20% 80%, rgba(124,58,237,0.15), transparent 70%),
+        radial-gradient(ellipse 60% 40% at 80% 20%, rgba(167,139,250,0.1), transparent 60%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .game-card.featured::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(196,181,253,0.4), transparent);
+    }
+
+    .game-card.featured:hover {
+      transform: translateY(-8px);
+      box-shadow: 
+        0 60px 120px rgba(0,0,0,0.7),
+        0 0 0 1px rgba(124,58,237,0.3),
+        0 0 60px rgba(124,58,237,0.15),
+        inset 0 1px 0 rgba(255,255,255,0.08);
+    }
+
+    /* Compact Game Card */
+    .game-card.compact {
+      display: grid;
+      grid-template-columns: 400px 1fr;
+      min-height: 280px;
+      background: linear-gradient(145deg, rgba(20,14,52,0.95), rgba(14,9,36,0.95));
+      border: 1px solid rgba(124,58,237,0.12);
+      border-radius: 24px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+      transition: all 0.3s ease;
+    }
+
+    .game-card.compact:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 30px 80px rgba(0,0,0,0.5), 0 0 40px rgba(124,58,237,0.1);
+      border-color: rgba(124,58,237,0.25);
+    }
+
+    /* Game Info Section */
+    .game-card-info {
+      padding: 3.5rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      position: relative;
+      z-index: 2;
+    }
+
+    .game-card.compact .game-card-info {
+      padding: 2.5rem;
+    }
+
+    /* Status Badge - Premium */
+    .game-card-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 0.5rem 1.2rem;
+      border-radius: 100px;
+      width: fit-content;
+      margin-bottom: 1.5rem;
+      border: 1px solid;
+      backdrop-filter: blur(10px);
+    }
+
+    .game-card-status.in-development {
+      background: rgba(74,222,128,0.08);
+      color: #4ade80;
+      border-color: rgba(74,222,128,0.3);
+      box-shadow: 0 0 20px rgba(74,222,128,0.1);
+    }
+
+    .game-card-status.released {
+      background: rgba(96,165,250,0.1);
+      color: #60a5fa;
+      border-color: rgba(96,165,250,0.4);
+      box-shadow: 0 0 20px rgba(96,165,250,0.15);
+    }
+
+    .game-card-status.early-access {
+      background: rgba(251,191,36,0.1);
+      color: #fbbf24;
+      border-color: rgba(251,191,36,0.4);
+      box-shadow: 0 0 20px rgba(251,191,36,0.15);
+    }
+
+    .status-pulse {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      animation: statusPulse 2s ease-in-out infinite;
+    }
+
+    .in-development .status-pulse { background: #4ade80; box-shadow: 0 0 10px #4ade80; }
+    .released .status-pulse { background: #60a5fa; box-shadow: 0 0 10px #60a5fa; animation: none; }
+    .early-access .status-pulse { background: #fbbf24; box-shadow: 0 0 10px #fbbf24; }
+
+    @keyframes statusPulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(1.1); }
+    }
+
+    /* Typography - Bold & Cinematic */
+    .game-card-title {
+      font-family: var(--font-display);
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.05;
+      margin-bottom: 1rem;
+      background: linear-gradient(180deg, #fff 0%, #e9d5ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-shadow: 0 2px 30px rgba(124,58,237,0.2);
+    }
+
+    .game-card.compact .game-card-title {
+      font-size: clamp(1.5rem, 3vw, 2rem);
+    }
+
+    .game-card-tagline {
+      font-size: 1.1rem;
+      font-weight: 300;
+      color: rgba(212,200,240,0.75);
+      line-height: 1.7;
+      margin-bottom: 1.5rem;
+      max-width: 90%;
+    }
+
+    .game-card.compact .game-card-tagline {
+      font-size: 0.95rem;
+      max-width: 100%;
+    }
+
+    /* Meta Info */
+    .game-card-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .game-card-meta-item {
+      font-size: 0.85rem;
+      color: rgba(196,181,253,0.6);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 1rem;
+      background: rgba(124,58,237,0.06);
+      border: 1px solid rgba(124,58,237,0.12);
+      border-radius: 100px;
+    }
+
+    .game-card-meta-item strong {
+      color: rgba(196,181,253,0.9);
+      font-weight: 500;
+    }
+
+    /* Platform Buttons - Multi-platform Support */
+    .game-card-platforms {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin-top: auto;
+    }
+
+    .platform-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    /* Primary CTA */
+    .btn-wishlist-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1rem 2rem;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      text-decoration: none;
+      transition: all 0.25s ease;
+      border: none;
+      cursor: pointer;
+    }
+
+    /* Steam */
+    .btn-steam {
+      background: linear-gradient(135deg, #1b2838 0%, #2a475e 100%);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(27,40,56,0.5);
+    }
+    .btn-steam:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(27,40,56,0.7);
+    }
+
+    /* Itch.io */
+    .btn-itch {
+      background: linear-gradient(135deg, #fa5c5c 0%, #ff8c8c 100%);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(250,92,92,0.4);
+    }
+    .btn-itch:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(250,92,92,0.6);
+    }
+
+    /* GOG */
+    .btn-gog {
+      background: linear-gradient(135deg, #8659cd 0%, #b388ff 100%);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(134,89,205,0.4);
+    }
+    .btn-gog:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(134,89,205,0.6);
+    }
+
+    /* Epic */
+    .btn-epic {
+      background: linear-gradient(135deg, #2a2a2a 0%, #404040 100%);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    .btn-epic:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.7);
+    }
+
+    /* Generic Platform */
+    .btn-platform {
+      background: linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(124,58,237,0.4);
+    }
+    .btn-platform:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(124,58,237,0.6);
+    }
+
+    /* Disabled/Coming Soon */
+    .btn-wishlist-primary:disabled,
+    .btn-wishlist-primary.disabled {
+      background: rgba(255,255,255,0.05);
+      color: rgba(255,255,255,0.3);
+      cursor: not-allowed;
+      transform: none !important;
+      box-shadow: none;
+    }
+
+    /* Secondary Actions */
+    .btn-game-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 1rem 1.75rem;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.04);
+      color: rgba(196,181,253,0.8);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.9rem;
+      border: 1px solid rgba(124,58,237,0.2);
+      transition: all 0.25s ease;
+    }
+
+    .btn-game-secondary:hover {
+      background: rgba(124,58,237,0.12);
+      border-color: rgba(124,58,237,0.4);
+      color: #e9d5ff;
+      transform: translateY(-2px);
+    }
+
+    /* Art Section - Cinematic */
+    .game-card-art {
+      position: relative;
+      min-height: 400px;
+      overflow: hidden;
+    }
+
+    .game-card.featured .game-card-art {
+      min-height: 100%;
+    }
+
+    .game-card-art::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, rgba(16,10,44,0.95) 0%, transparent 30%, transparent 70%, rgba(16,10,44,0.3) 100%);
+      pointer-events: none;
+    }
+
+    .game-card-art img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .game-card:hover .game-card-art img {
+      transform: scale(1.05);
+    }
+
+    /* Placeholder Art */
+    .game-card-art-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(160deg, rgba(45,16,101,0.3), rgba(30,27,75,0.6));
+      gap: 1.5rem;
+    }
+
+    .art-placeholder-icon {
+      font-size: 6rem;
+      opacity: 0.3;
+      animation: floatIcon 6s ease-in-out infinite;
+    }
+
+    @keyframes floatIcon {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    .art-placeholder-text {
+      font-size: 1rem;
+      font-weight: 300;
+      color: rgba(196,181,253,0.4);
+      letter-spacing: 0.05em;
+    }
+
+    /* Loading Placeholder */
+    .game-card-placeholder {
+      background: linear-gradient(135deg, rgba(16,10,44,0.5), rgba(20,14,52,0.5));
+      border: 2px dashed rgba(124,58,237,0.2);
+      border-radius: 32px;
+      padding: 8rem 2rem;
+      text-align: center;
+    }
+
+    .placeholder-art {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+      color: rgba(196,181,253,0.25);
+    }
+
+    .placeholder-icon {
+      font-size: 6rem;
+      opacity: 0.4;
+    }
+
+    .placeholder-label {
+      font-size: 1.1rem;
+      font-weight: 300;
+    }
+
+    /* Responsive */
+    @media (max-width: 1100px) {
+      .game-card.featured {
+        grid-template-columns: 1fr;
+      }
+      .game-card.featured .game-card-art {
+        min-height: 300px;
+        order: -1;
+      }
+      .game-card.featured .game-card-art::after {
+        background: linear-gradient(180deg, rgba(16,10,44,0.8) 0%, transparent 50%);
+      }
+    }
+
+    @media (max-width: 700px) {
+      .games-list {
+        padding: 2rem 1rem 4rem;
+      }
+      .game-card-info {
+        padding: 2rem !important;
+      }
+      .game-card-title {
+        font-size: 2rem;
+      }
+      .platform-buttons {
+        flex-direction: column;
+      }
+      .btn-wishlist-primary,
+      .btn-game-secondary {
+        justify-content: center;
+      }
+      .game-card.compact {
+        grid-template-columns: 1fr;
+      }
+      .game-card.compact .game-card-art {
+        min-height: 200px;
+        order: -1;
+      }
+    }
+
     /* ── MAIN GAME CARD ── */
     .game-showcase {
       padding: 3rem 2rem 4rem;
@@ -1253,12 +1704,69 @@ async function loadGame() {
             game.platform && `<span class="game-card-meta-item">${esc(game.platform)}</span>`
           ].filter(Boolean).join('');
           
-          // Buttons
-          const primaryBtn = game.steamUrl
-            ? `<a href="${esc(game.steamUrl)}" target="_blank" rel="noopener" class="btn-game-primary">🎮 Wishlist on Steam</a>`
-            : `<button class="btn-game-primary disabled" disabled>🎮 Coming Soon</button>`;
+          // Platform buttons - support multiple platforms
+          const platformButtons = [];
           
-          const learnMoreBtn = `<a href="/game?id=${esc(game.id || game.slug || 'main')}" class="btn-game-secondary">Learn More</a>`;
+          // Steam
+          if (game.steamUrl || game.platforms?.steam) {
+            const url = game.steamUrl || game.platforms?.steam;
+            platformButtons.push(`<a href="${esc(url)}" target="_blank" rel="noopener" class="btn-wishlist-primary btn-steam">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15h-2v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3l-.5 3H13v6.95c5.05-.5 9-4.76 9-9.95 0-5.52-4.48-10-10-10z"/></svg>
+              Wishlist on Steam
+            </a>`);
+          }
+          
+          // Itch.io
+          if (game.itchUrl || game.platforms?.itch) {
+            const url = game.itchUrl || game.platforms?.itch;
+            platformButtons.push(`<a href="${esc(url)}" target="_blank" rel="noopener" class="btn-wishlist-primary btn-itch">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M4 2h16c1.1 0 2 .9 2 2v16c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2zm8 4c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"/></svg>
+              Get on Itch.io
+            </a>`);
+          }
+          
+          // GOG
+          if (game.gogUrl || game.platforms?.gog) {
+            const url = game.gogUrl || game.platforms?.gog;
+            platformButtons.push(`<a href="${esc(url)}" target="_blank" rel="noopener" class="btn-wishlist-primary btn-gog">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+              GOG Galaxy
+            </a>`);
+          }
+          
+          // Epic Games Store
+          if (game.epicUrl || game.platforms?.epic) {
+            const url = game.epicUrl || game.platforms?.epic;
+            platformButtons.push(`<a href="${esc(url)}" target="_blank" rel="noopener" class="btn-wishlist-primary btn-epic">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
+              Epic Games
+            </a>`);
+          }
+          
+          // Generic/custom platform
+          if (game.platforms) {
+            Object.entries(game.platforms).forEach(([name, url]) => {
+              if (['steam', 'itch', 'gog', 'epic'].includes(name)) return;
+              if (typeof url === 'string') {
+                platformButtons.push(`<a href="${esc(url)}" target="_blank" rel="noopener" class="btn-wishlist-primary btn-platform">
+                  ${esc(name.charAt(0).toUpperCase() + name.slice(1))}
+                </a>`);
+              }
+            });
+          }
+          
+          // If no platforms, show Coming Soon
+          if (platformButtons.length === 0) {
+            platformButtons.push(`<button class="btn-wishlist-primary disabled" disabled>
+              🎮 Coming Soon
+            </button>`);
+          }
+          
+          const platformsHtml = platformButtons.join('');
+          
+          const learnMoreBtn = isFeatured 
+            ? `<a href="/game?id=${esc(game.id || game.slug || 'main')}" class="btn-game-secondary">Learn More →</a>`
+            : '';
           
           return `
             <article class="game-card ${cardClass}" data-game-id="${esc(game.id || game.slug || 'main')}">
@@ -1270,8 +1778,10 @@ async function loadGame() {
                 <h2 class="game-card-title">${esc(game.title)}</h2>
                 <p class="game-card-tagline">${esc(game.tagline || game.subtitle || '')}</p>
                 <div class="game-card-meta">${metaItems}</div>
-                <div class="game-card-cta">
-                  ${primaryBtn}
+                <div class="game-card-platforms">
+                  <div class="platform-buttons">
+                    ${platformsHtml}
+                  </div>
                   ${learnMoreBtn}
                 </div>
               </div>
