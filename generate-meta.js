@@ -28,7 +28,6 @@ function generateRobots() {
 Allow: /
 Disallow: /admin
 Disallow: /dashboard
-Disallow: /aichat.html
 Disallow: /login
 Disallow: /logout
 

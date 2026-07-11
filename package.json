@@ -14,7 +14,6 @@
   "dependencies": {
     "adm-zip": "^0.5.17",
     "bcryptjs": "^3.0.3",
-    "mammoth": "^1.12.0",
-    "ws": "^8.18.1"
+    "mammoth": "^1.12.0"
   }
 }

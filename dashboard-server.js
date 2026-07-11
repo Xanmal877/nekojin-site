@@ -1,50 +1,38 @@
 #!/usr/bin/env node
 /**
  * Nekojin Interactive - Server
- * - Public site at /  (served from ./public/)
- * - Admin panel at /admin  (login required)
- * - AI Chat at /aichat.html and /chat WS (login required, persistent per-user)
+ * - Public site at / (served from ./public/)
+ * - Admin panel at /admin (login required)
  * - /content        GET   → site-content.json (public, for dynamic pages)
  * - /save-content   POST  → write site-content.json (auth required)
  * - /upload-cover   POST  → save image to public/covers/ (auth required)
- * - /data /scrape /events → scraper API (auth required)
  */
 
-const http        = require('http');
-const fs          = require('fs');
-const path        = require('path');
-const bcrypt      = require('bcryptjs');
-const crypto      = require('crypto');
-const { spawn }   = require('child_process');
-const WebSocket   = require('ws');
-const os          = require('os');
-const https       = require('https');
-const httpReq     = require('http');
-const mammoth     = require('mammoth');
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
+const { spawn } = require('child_process');
+const os = require('os');
+const mammoth = require('mammoth');
+
+// Import accounts module
+const accounts = require('./accounts.js');
 
 // ── CONFIG ────────────────────────────────────────────────
-const SESSION_TTL    = 1000 * 60 * 60 * 24 * 7; // 7 days
-const PI_GRACE_MS    = 1000 * 60 * 5; // 5 minutes
-const SALT_ROUNDS    = 10;
-
-const PORT           = 7771;
-const METRICS_FILE   = path.join(__dirname, 'story-metrics.json');
-const SCRAPER_FILE   = path.join(__dirname, 'BookStatScraper.js');
-const ADMIN_FILE     = path.join(__dirname, 'admin.html');
-const PUBLIC_DIR     = path.join(__dirname, 'public');
-const COVERS_DIR     = path.join(PUBLIC_DIR, 'covers');
+const PORT = 7771;
+const METRICS_FILE = path.join(__dirname, 'story-metrics.json');
+const SCRAPER_FILE = path.join(__dirname, 'scraper', 'BookStatScraper.js');
+const ADMIN_FILE = path.join(__dirname, 'admin.html');
+const PUBLIC_DIR = path.join(__dirname, 'public');
+const COVERS_DIR = path.join(PUBLIC_DIR, 'covers');
 const NEWSLETTER_FILE = path.join(__dirname, 'newsletter-subscribers.json');
-const CONTENT_FILE     = path.join(os.homedir(), 'Documents', 'nekojin-data', 'site-content.json');
-const WEBCHAT_ROOT     = path.join(os.homedir(), '.pi', 'agent', 'webchat-sessions');
-const USERS_FILE     = path.join(__dirname, 'users.json');
-const USER_KEYS_FILE = path.join(__dirname, 'user-keys.json');
-const SESSIONS_FILE  = path.join(__dirname, 'sessions.json');
+const CONTENT_FILE = path.join(os.homedir(), 'Documents', 'nekojin-data', 'site-content.json');
 const MANUSCRIPTS_DIR = path.join(__dirname, 'manuscripts');
 
+// Ensure directories exist
 if (!fs.existsSync(MANUSCRIPTS_DIR)) fs.mkdirSync(MANUSCRIPTS_DIR, { recursive: true });
+if (!fs.existsSync(COVERS_DIR)) fs.mkdirSync(COVERS_DIR, { recursive: true });
 
-if (!fs.existsSync(WEBCHAT_ROOT)) fs.mkdirSync(WEBCHAT_ROOT, { recursive: true });
-if (!fs.existsSync(SESSIONS_FILE)) fs.writeFileSync(SESSIONS_FILE, '{}');
 if (!fs.existsSync(CONTENT_FILE)) {
     const dataDir = path.dirname(CONTENT_FILE);
     if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
@@ -52,116 +40,9 @@ if (!fs.existsSync(CONTENT_FILE)) {
 }
 
 let scrapeRunning = false;
-if (!fs.existsSync(COVERS_DIR)) fs.mkdirSync(COVERS_DIR, { recursive: true });
 
-function loadSessions() {
-    try {
-        const raw = JSON.parse(fs.readFileSync(SESSIONS_FILE, 'utf8'));
-        const now = Date.now();
-        for (const [id, s] of Object.entries(raw)) {
-            if (now - s.createdAt < SESSION_TTL) sessions.set(id, s);
-        }
-    } catch {}
-}
-function saveSessions() {
-    try { fs.writeFileSync(SESSIONS_FILE, JSON.stringify(Object.fromEntries(sessions), null, 2)); }
-    catch {}
-}
-
-// ── HTTP SESSIONS ─────────────────────────────────────────
-const sessions = new Map(); // sessionId → { createdAt, username }
-loadSessions();
-
-function createSession(username) {
-    const id = crypto.randomBytes(32).toString('hex');
-    sessions.set(id, { createdAt: Date.now(), username });
-    saveSessions();
-    return id;
-}
-function isValidSession(id) {
-    const s = sessions.get(id);
-    if (!s) return false;
-    if (Date.now() - s.createdAt > SESSION_TTL) { sessions.delete(id); saveSessions(); return false; }
-    return true;
-}
-function getSessionUser(id) {
-    const s = sessions.get(id);
-    return s ? s.username : null;
-}
-function deleteSession(id) { sessions.delete(id); saveSessions(); }
-
-// ── USER DATABASE ───────────────────────────────────────
-function loadUsers() {
-    try { return JSON.parse(fs.readFileSync(USERS_FILE, 'utf8')); }
-    catch { return { users: {} }; }
-}
-function saveUsers(users) {
-    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
-    try { fs.chmodSync(USERS_FILE, 0o600); } catch {}
-}
-function findUser(username) {
-    const db = loadUsers();
-    return db.users[username] || null;
-}
-function createUser(username, password) {
-    const db = loadUsers();
-    if (db.users[username]) return false;
-    db.users[username] = { passwordHash: bcrypt.hashSync(password, SALT_ROUNDS), role: 'user', createdAt: Date.now() };
-    saveUsers(db);
-    return true;
-}
-function verifyUser(username, password) {
-    const user = findUser(username);
-    if (!user) return false;
-    return bcrypt.compareSync(password, user.passwordHash);
-}
-function getUserRole(req) {
-    const username = getUsername(req);
-    if (!username) return null;
-    const user = findUser(username);
-    return user ? (user.role || 'user') : null;
-}
-function isAdmin(req) {
-    return getUserRole(req) === 'admin';
-}
-// Auto-create admin on first boot + migrate existing users
-function ensureAdminUser() {
-    const db = loadUsers();
-    let migrated = false;
-    for (const [name, u] of Object.entries(db.users)) {
-        if (!u.role) { u.role = (name === 'xanmal') ? 'admin' : 'user'; migrated = true; }
-    }
-    if (!db.users['xanmal']) {
-        db.users['xanmal'] = { passwordHash: bcrypt.hashSync('nekojin2026', SALT_ROUNDS), role: 'admin', createdAt: Date.now() };
-        migrated = true;
-        console.log('Created default admin user: xanmal');
-    }
-    if (migrated) saveUsers(db);
-}
-ensureAdminUser();
-
-// ── USER KEYS ───────────────────────────────────────────
-function loadUserKeys() {
-    try { return JSON.parse(fs.readFileSync(USER_KEYS_FILE, 'utf8')); }
-    catch { return {}; }
-}
-function saveUserKeys(data) {
-    fs.writeFileSync(USER_KEYS_FILE, JSON.stringify(data, null, 2));
-    try { fs.chmodSync(USER_KEYS_FILE, 0o600); } catch {}
-}
-function getUserKeys(username) {
-    const all = loadUserKeys();
-    return all[username] || {};
-}
-function setUserKey(username, provider, key) {
-    const all = loadUserKeys();
-    if (!all[username]) all[username] = {};
-    all[username][provider] = key;
-    saveUserKeys(all);
-}
-
-// ── MANUSCRIPT PARSING (.docx → chapters) ───────────────
-const MANUSCRIPT_CACHE = new Map(); // slug → {mtime, chapters}
+// ── MANUSCRIPT PARSING (.docx → chapters) ──────────────────
+const MANUSCRIPT_CACHE = new Map();
 
 async function parseManuscript(slug) {
     const filePath = path.join(MANUSCRIPTS_DIR, slug + '.docx');
@@ -184,7 +65,6 @@ async function parseManuscript(slug) {
 }
 
 function splitHtmlIntoChapters(html) {
-    // Any h1/h2/h3 can be a chapter boundary if we have enough text between them
     const chapterRegex = /<(h1|h2|h3)[^>]*>(.*?)<\/\1>/gi;
     const chapters = [];
     let lastIndex = 0;
@@ -198,7 +78,6 @@ function splitHtmlIntoChapters(html) {
         const isChapterHeading = /chapter|prologue|epilogue|preface|introduction|part\s+\d+/i.test(headingText);
 
         if (!isChapterHeading && isFirst && textBefore.length < 200) {
-            // Very little text before first non-chapter heading — skip it as front matter
             lastIndex = match.index + match[0].length;
             continue;
         }
@@ -207,11 +86,7 @@ function splitHtmlIntoChapters(html) {
             chapters[chapters.length - 1].content = html.slice(lastIndex, match.index);
         }
         chapterNum++;
-        chapters.push({
-            num: chapterNum,
-            title: headingText,
-            content: ''
-        });
+        chapters.push({ num: chapterNum, title: headingText, content: '' });
         lastIndex = match.index + match[0].length;
     }
 
@@ -228,33 +103,12 @@ function splitHtmlIntoChapters(html) {
 function listManuscripts() {
     try {
         return fs.readdirSync(MANUSCRIPTS_DIR)
-            .filter(f => f.endsWith('.docx'))
-            .map(f => f.replace(/\.docx$/i, ''));
-    } catch { return []; }
-}
-
-function listManuscripts() {
-    try {
-        return fs.readdirSync(MANUSCRIPTS_DIR)
             .filter(f => f.endsWith('.docx') || f.endsWith('.epub'))
             .map(f => f.replace(/\.(docx|epub)$/i, ''));
     } catch { return []; }
 }
 
-function parseCookies(h) {
-    const c = {};
-    if (!h) return c;
-    h.split(';').forEach(p => {
-        const [k, ...v] = p.trim().split('=');
-        if (k) c[k.trim()] = decodeURIComponent(v.join('=').trim());
-    });
-    return c;
-}
-function getSessionId(req) { return parseCookies(req.headers['cookie'])['nki_session'] || null; }
-function isAuthenticated(req) { const sid = getSessionId(req); return sid && isValidSession(sid); }
-function getUsername(req) { const sid = getSessionId(req); return getSessionUser(sid); }
-
-// ── BODY ──────────────────────────────────────────────────
+// ── BODY PARSING ─────────────────────────────────────────
 function readRawBody(req) {
     return new Promise(resolve => {
         const chunks = [];
@@ -262,16 +116,17 @@ function readRawBody(req) {
         req.on('end', () => resolve(Buffer.concat(chunks)));
     });
 }
+
 function parseFormBody(body) {
     const p = {};
     String(body).split('&').forEach(part => {
         const [k, v] = part.split('=');
-        if (k) p[decodeURIComponent(k)] = decodeURIComponent((v||'').replace(/\+/g,' '));
+        if (k) p[decodeURIComponent(k)] = decodeURIComponent((v || '').replace(/\+/g, ' '));
     });
     return p;
 }
 
-// ── MULTIPART (cover uploads) ─────────────────────────────
+// ── MULTIPART (cover uploads) ────────────────────────────
 function parseMultipart(buffer, boundary) {
     const results = {};
     const sep = Buffer.from('--' + boundary);
@@ -285,7 +140,7 @@ function parseMultipart(buffer, boundary) {
         const hEnd = part.indexOf('\r\n\r\n');
         if (hEnd === -1) continue;
         const headers = part.slice(0, hEnd).toString();
-        const body    = part.slice(hEnd + 4);
+        const body = part.slice(hEnd + 4);
         const nm = headers.match(/name="([^"]+)"/);
         const fm = headers.match(/filename="([^"]+)"/);
         if (!nm) continue;
@@ -295,23 +150,34 @@ function parseMultipart(buffer, boundary) {
     return results;
 }
 
-// ── MIME ──────────────────────────────────────────────────
+// ── MIME TYPES ───────────────────────────────────────────
 const MIME = {
-    '.html':'text/html', '.css':'text/css', '.js':'application/javascript',
-    '.json':'application/json', '.png':'image/png', '.jpg':'image/jpeg',
-    '.jpeg':'image/jpeg', '.svg':'image/svg+xml', '.ico':'image/x-icon',
-    '.woff2':'font/woff2', '.webp':'image/webp',
+    '.html': 'text/html',
+    '.css': 'text/css',
+    '.js': 'application/javascript',
+    '.json': 'application/json',
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.svg': 'image/svg+xml',
+    '.ico': 'image/x-icon',
+    '.woff2': 'font/woff2',
+    '.webp': 'image/webp',
 };
+
 function serveFile(res, filePath) {
     try {
         const data = fs.readFileSync(filePath);
-        const ext  = path.extname(filePath).toLowerCase();
+        const ext = path.extname(filePath).toLowerCase();
         res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
         res.end(data);
-    } catch { res.writeHead(404); res.end('Not found'); }
+    } catch {
+        res.writeHead(404);
+        res.end('Not found');
+    }
 }
 
-// ── LOGIN PAGE ────────────────────────────────────────────
+// ── LOGIN/REGISTER PAGES ─────────────────────────────────
 function loginPage(nextUrl = '/admin', error = '') {
     const safeNext = (nextUrl && nextUrl.startsWith('/')) ? nextUrl : '/admin';
     return `<!DOCTYPE html>
@@ -347,7 +213,7 @@ function loginPage(nextUrl = '/admin', error = '') {
     <div class="sub">✦ Sign In ✦</div>
     ${error ? `<div class="error">${error}</div>` : ''}
     <form method="POST" action="/login">
-      <input type="hidden" name="next" value="${safeNext.replace(/"/g,'&quot;')}">
+      <input type="hidden" name="next" value="${safeNext.replace(/"/g, '&quot;')}">
       <label>Username</label>
       <input type="text" name="username" autocomplete="username" required>
       <label>Password</label>
@@ -411,12 +277,14 @@ function registerPage(error = '', success = '') {
 // ── SSE ───────────────────────────────────────────────────
 const sseClients = new Set();
 let notifyTimer = null;
+
 function notifyClients() {
     clearTimeout(notifyTimer);
     notifyTimer = setTimeout(() => {
         for (const r of sseClients) r.write('data: update\n\n');
     }, 300);
 }
+
 try { fs.watch(METRICS_FILE, notifyClients); } catch {}
 let lastMtime = 0;
 try { lastMtime = fs.statSync(METRICS_FILE).mtimeMs; } catch {}
@@ -429,333 +297,13 @@ setInterval(() => {
 
 // ── PUBLIC ROUTES ─────────────────────────────────────────
 const PUBLIC_ROUTES = {
-    '/':                      path.join(PUBLIC_DIR, 'index.html'),
-    '/books':                 path.join(PUBLIC_DIR, 'books.html'),
-    '/book':                  path.join(PUBLIC_DIR, 'book.html'),
-    '/read':                  path.join(PUBLIC_DIR, 'read.html'),
-    '/games':                 path.join(PUBLIC_DIR, 'games.html'),
-    '/about':                 path.join(PUBLIC_DIR, 'about.html'),
-    '/action_registry.html':  path.join(PUBLIC_DIR, 'action_registry.html'),
+    '/': path.join(PUBLIC_DIR, 'index.html'),
+    '/books': path.join(PUBLIC_DIR, 'books.html'),
+    '/book': path.join(PUBLIC_DIR, 'book.html'),
+    '/read': path.join(PUBLIC_DIR, 'read.html'),
+    '/games': path.join(PUBLIC_DIR, 'games.html'),
+    '/about': path.join(PUBLIC_DIR, 'about.html'),
 };
-
-// ── CHAT SESSION MANAGEMENT ─────────────────────────────
-function getUserDir(username) {
-    return path.join(WEBCHAT_ROOT, username);
-}
-
-function ensureUserDir(username) {
-    const dir = getUserDir(username);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    return dir;
-}
-
-function getMetaFile(username) {
-    return path.join(getUserDir(username), '.meta.json');
-}
-
-function getSystemPromptFile(username) {
-    return path.join(getUserDir(username), '.system-prompt.txt');
-}
-
-function getDefaultSystemPrompt(username) {
-    return `You are the AI assistant for ${username} on the Nekojin Interactive site (aichat.worldofxanrea.com). You operate inside the Nekojin workspace at /home/xanmal. You are NOT "pi", "π", a "coding agent", or a "sidekick". Pi is merely the chat harness - you are the actual LLM model currently running. When asked who you are, state your model name directly.
-
-Workspace & projects:
-- Godot RPG with soul mechanics, pets, skills, and progression.
-- Nekojin Interactive website and tools.
-- Indie game dev, writing, and creative coding.
-
-Tool capabilities:
-- read: View file contents (text, images).
-- edit: Make precise text replacements in files.
-- write: Create new files entirely.
-- bash: Execute shell commands on the local machine.
-- web_search: Search the web for real-time info.
-- web_fetch: Fetch and read web pages.
-
-When editing code, always read the relevant file first, then apply precise changes. Show diffs or clearly mark edits.
-
-Image generation is available via xAI Grok models (grok-imagine-image, grok-imagine-image-pro, grok-imagine-video). Grok 4.x models support vision - they can see images attached to prompts. Ollama is local, free, and supports vision in fresh chats.
-
-Tone: warm, direct, creative, occasionally witty. You are conversational, not robotic. Skip filler intros. When the user pastes code or uploads files, jump straight into analysis, fixes, or features. Get to the point.`;
-}
-
-function getSystemPrompt(username) {
-    const file = getSystemPromptFile(username);
-    if (fs.existsSync(file)) {
-        try {
-            const text = fs.readFileSync(file, 'utf8');
-            if (text.trim().length > 0) return text;
-        } catch {}
-    }
-    return null;
-}
-
-function saveSystemPrompt(username, prompt) {
-    ensureUserDir(username);
-    fs.writeFileSync(getSystemPromptFile(username), prompt);
-}
-
-function loadMeta(username) {
-    const p = getMetaFile(username);
-    if (fs.existsSync(p)) {
-        try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch {}
-    }
-    return { sessions: {} };
-}
-
-function saveMeta(username, meta) {
-    fs.writeFileSync(getMetaFile(username), JSON.stringify(meta, null, 2));
-}
-
-function migrateLegacySession(username) {
-    const legacy = path.join(WEBCHAT_ROOT, `${username}.jsonl`);
-    const dir = ensureUserDir(username);
-    const migrated = path.join(dir, 'default.jsonl');
-    if (fs.existsSync(legacy) && !fs.existsSync(migrated)) {
-        fs.renameSync(legacy, migrated);
-        const meta = loadMeta(username);
-        meta.sessions['default'] = { name: 'Chat 1', createdAt: Date.now() };
-        saveMeta(username, meta);
-    }
-}
-
-function listUserSessions(username) {
-    migrateLegacySession(username);
-    const dir = getUserDir(username);
-    if (!fs.existsSync(dir)) return [];
-    const meta = loadMeta(username);
-    const files = fs.readdirSync(dir).filter(f => f.endsWith('.jsonl'));
-    return files.map(f => {
-        const id = f.slice(0, -6); // remove .jsonl
-        const m = meta.sessions[id] || {};
-        const stat = fs.statSync(path.join(dir, f));
-        let title = m.name;
-        if (!title) {
-            // Try to extract first user message
-            try {
-                const lines = fs.readFileSync(path.join(dir, f), 'utf8').split('\n').filter(Boolean);
-                for (const line of lines) {
-                    const entry = JSON.parse(line);
-                    if (entry.type === 'message' && entry.message?.role === 'user') {
-                        const text = extractTextFromContent(entry.message.content);
-                        title = text.length > 40 ? text.slice(0, 40) + '…' : text;
-                        break;
-                    }
-                }
-            } catch {}
-        }
-        if (!title) title = 'New Chat';
-        return { id, name: title, updatedAt: stat.mtimeMs, createdAt: m.createdAt || stat.birthtimeMs };
-    }).sort((a, b) => b.updatedAt - a.updatedAt);
-}
-
-function extractTextFromContent(content) {
-    if (!content) return '';
-    if (typeof content === 'string') return content;
-    if (Array.isArray(content)) {
-        return content.filter(b => b.type === 'text').map(b => b.text).join('');
-    }
-    return String(content);
-}
-
-function getNextSessionId(username) {
-    const dir = getUserDir(username);
-    const existing = new Set(fs.readdirSync(dir).filter(f => f.endsWith('.jsonl')).map(f => f.slice(0, -6)));
-    let n = 1;
-    while (existing.has(`chat-${n}`)) n++;
-    return `chat-${n}`;
-}
-
-// ── WEBCHAT - PER-USER PERSISTENT PI SESSIONS ───────────
-const userSessions = new Map(); // username → UserSession
-
-function killUserSession(username) {
-    const s = userSessions.get(username);
-    if (!s) return;
-    if (s.graceTimer) { clearTimeout(s.graceTimer); s.graceTimer = null; }
-    try { s.piProc.stdin.end(); } catch {}
-    try { s.piProc.kill('SIGTERM'); } catch {}
-    setTimeout(() => { try { s.piProc.kill('SIGKILL'); } catch {} }, 3000);
-    for (const ws of s.websockets) { try { ws.close(); } catch {} }
-    userSessions.delete(username);
-}
-
-function broadcastToUser(username, line) {
-    const s = userSessions.get(username);
-    if (!s) return false;
-    let sent = false;
-    for (const ws of s.websockets) {
-        if (ws.readyState === 1) { ws.send(line); sent = true; }
-    }
-    return sent;
-}
-
-function sendToWS(ws, obj) {
-    if (ws.readyState === 1) ws.send(JSON.stringify(obj));
-}
-
-function spawnUserPi(username, sessionFile) {
-    const exists = fs.existsSync(sessionFile);
-
-    const customPrompt = getSystemPrompt(username);
-    const systemPrompt = customPrompt !== null ? customPrompt.trim() : getDefaultSystemPrompt(username);
-
-    const piProc = spawn('/home/xanmal/.npm-global/bin/pi', [
-        '--mode', 'rpc',
-        '--session', sessionFile,
-        '--system-prompt',
-        systemPrompt,
-    ], {
-        cwd: process.cwd(),
-        env: { ...process.env, FORCE_COLOR: '0', NO_COLOR: '1' },
-        stdio: ['pipe', 'pipe', 'pipe'],
-    });
-
-    const session = {
-        piProc,
-        websockets: new Set(),
-        stdoutBuf: '',
-        requestCounter: 0,
-        pendingRequests: new Map(), // id → ws
-        pendingSwitches: new Map(), // id → { ws, targetSessionId }
-        graceTimer: null,
-        currentSessionFile: sessionFile,
-    };
-
-    piProc.stdout.on('data', (chunk) => {
-        session.stdoutBuf += chunk;
-        let idx;
-        while ((idx = session.stdoutBuf.indexOf('\n')) !== -1) {
-            let line = session.stdoutBuf.slice(0, idx);
-            session.stdoutBuf = session.stdoutBuf.slice(idx + 1);
-            if (line.endsWith('\r')) line = line.slice(0, -1);
-            if (!line.trim()) continue;
-
-            try {
-                const data = JSON.parse(line);
-
-                // Route switch_session responses
-                if (data.type === 'response' && data.id && session.pendingSwitches.has(data.id)) {
-                    const sw = session.pendingSwitches.get(data.id);
-                    session.pendingSwitches.delete(data.id);
-                    if (sw.ws.readyState === 1) sw.ws.send(line);
-                    if (data.success && data.data && !data.data.cancelled) {
-                        session.currentSessionFile = sw.targetSessionFile;
-                        // Now request messages from the new session
-                        const reqId = `msgs-${Date.now()}-${++session.requestCounter}`;
-                        session.pendingRequests.set(reqId, sw.ws);
-                        session.piProc.stdin.write(JSON.stringify({ type: 'get_messages', id: reqId }) + '\n');
-                    }
-                    continue;
-                }
-
-                // Route responses with IDs back to requesting WS only
-                if (data.type === 'response' && data.id && session.pendingRequests.has(data.id)) {
-                    const targetWs = session.pendingRequests.get(data.id);
-                    session.pendingRequests.delete(data.id);
-                    if (targetWs.readyState === 1) {
-                        // Filter model list: hide old Grok versions (grok-2, grok-3, grok-beta, etc.)
-                        if (data.command === 'get_available_models' && data.success && data.data && data.data.models) {
-                            data.data.models = data.data.models.filter(m => {
-                                if (m.provider === 'ollama') return true;
-                                if (m.provider === 'xai') {
-                                    const id = m.id;
-                                    if (id.startsWith('grok-2')) return false;
-                                    if (id.startsWith('grok-3')) return false;
-                                    if (id === 'grok-beta') return false;
-                                    if (id === 'grok-vision-beta') return false;
-                                    if (id.startsWith('grok-code')) return false;
-                                    return true; // keep grok-4.x and future versions
-                                }
-                                return true;
-                            });
-                            targetWs.send(JSON.stringify(data));
-                        } else {
-                            targetWs.send(line);
-                        }
-                    }
-
-                    // After get_messages, broadcast history to ALL clients
-                    if (data.command === 'get_messages' && data.success && data.data && data.data.messages) {
-                        const history = simplifyMessages(data.data.messages);
-                        for (const ws of session.websockets) {
-                            if (ws.readyState === 1) {
-                                ws.send(JSON.stringify({ type: 'history', messages: history, fresh: history.length === 0 }));
-                            }
-                        }
-                    }
-                    continue;
-                }
-
-                // Broadcast events to all connected clients
-                broadcastToUser(username, line);
-            } catch {
-                broadcastToUser(username, line);
-            }
-        }
-    });
-
-    piProc.stderr.on('data', (chunk) => {
-        const text = String(chunk).trim();
-        if (text) broadcastToUser(username, JSON.stringify({ type: 'response', command: 'stderr', success: false, error: text }));
-    });
-
-    piProc.on('close', () => {
-        broadcastToUser(username, JSON.stringify({ type: 'response', command: 'exit', success: true }));
-        killUserSession(username);
-    });
-
-    piProc.on('error', (err) => {
-        broadcastToUser(username, JSON.stringify({ type: 'response', command: 'spawn', success: false, error: err.message }));
-        killUserSession(username);
-    });
-
-    userSessions.set(username, session);
-    return session;
-}
-
-function simplifyMessages(agentMessages) {
-    const result = [];
-    for (const msg of agentMessages) {
-        if (msg.role === 'user') {
-            result.push({ role: 'user', content: extractTextFromContent(msg.content) });
-        } else if (msg.role === 'assistant') {
-            let text = '';
-            let tools = [];
-            for (const block of (msg.content || [])) {
-                if (block.type === 'text') text += block.text;
-                else if (block.type === 'thinking') { /* skip thinking blocks */ }
-                else if (block.type === 'toolCall') tools.push({ name: block.name, args: block.arguments });
-            }
-            if (text.trim()) result.push({ role: 'assistant', content: text.trim() });
-            for (const t of tools) result.push({ role: 'tool', toolName: t.name, content: '…', isError: false });
-        } else if (msg.role === 'toolResult') {
-            const text = extractTextFromContent(msg.content);
-            result.push({ role: 'tool', toolName: msg.toolName, content: text, isError: !!msg.isError });
-        } else if (msg.role === 'bashExecution') {
-            result.push({ role: 'tool', toolName: 'bash', content: msg.output || '', isError: (msg.exitCode || 0) !== 0 });
-        }
-    }
-    return result;
-}
-
-function getOrCreateUserSession(username) {
-    const existing = userSessions.get(username);
-    if (existing) {
-        if (existing.piProc && !existing.piProc.killed) {
-            if (existing.graceTimer) { clearTimeout(existing.graceTimer); existing.graceTimer = null; }
-            return existing;
-        }
-        userSessions.delete(username);
-    }
-    // Default to latest session or create default
-    migrateLegacySession(username);
-    const sessions = listUserSessions(username);
-    const sessionId = sessions[0]?.id || 'default';
-    const sessionFile = path.join(getUserDir(username), `${sessionId}.jsonl`);
-    return spawnUserPi(username, sessionFile);
-}
 
 // ── SERVER ────────────────────────────────────────────────
 const server = http.createServer(async (req, res) => {
@@ -774,7 +322,7 @@ const server = http.createServer(async (req, res) => {
         return serveFile(res, PUBLIC_ROUTES[url]);
 
     // Static assets
-    if (req.method === 'GET' && url !== '/aichat.html' && (
+    if (req.method === 'GET' && (
         url.endsWith('.html') || url.endsWith('.css') || url.endsWith('.js') ||
         url.endsWith('.xml') || url.endsWith('.txt') || url.endsWith('.json') ||
         url.startsWith('/covers/') || url.startsWith('/assets/') ||
@@ -784,8 +332,13 @@ const server = http.createServer(async (req, res) => {
 
     // Public content API
     if (req.method === 'GET' && url === '/content') {
-        try { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(fs.readFileSync(CONTENT_FILE, 'utf8')); }
-        catch { res.writeHead(500); return res.end('{}'); }
+        try {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(fs.readFileSync(CONTENT_FILE, 'utf8'));
+        } catch {
+            res.writeHead(500);
+            return res.end('{}');
+        }
     }
 
     // ── MANUSCRIPT API (public read) ──────────────────────
@@ -830,94 +383,66 @@ const server = http.createServer(async (req, res) => {
         }));
     }
 
-    // Login
+    // ── LOGIN / LOGOUT / REGISTER ─────────────────────────
     if (req.method === 'GET' && url === '/login') {
-        if (isAuthenticated(req)) {
-            const target = isAdmin(req) ? '/admin' : '/aichat.html';
-            res.writeHead(302,{Location:target}); return res.end();
+        if (accounts.isAuthenticated(req)) {
+            res.writeHead(302, { Location: '/admin' });
+            return res.end();
         }
-        res.writeHead(200,{'Content-Type':'text/html'});
+        res.writeHead(200, { 'Content-Type': 'text/html' });
         return res.end(loginPage(query.get('next') || '/admin'));
     }
+
     if (req.method === 'POST' && url === '/login') {
-        const body   = await readRawBody(req);
+        const body = await readRawBody(req);
         const params = parseFormBody(body);
-        if (verifyUser(params.username, params.password)) {
-            const sid  = createSession(params.username);
-            const isUserAdmin = findUser(params.username)?.role === 'admin';
-            const next = (params.next && params.next.startsWith('/')) ? params.next : (isUserAdmin ? '/admin' : '/aichat.html');
+        if (accounts.verifyUser(params.username, params.password)) {
+            const sid = accounts.createSession(params.username);
+            const next = (params.next && params.next.startsWith('/')) ? params.next : '/admin';
             res.writeHead(302, {
                 Location: next,
-                'Set-Cookie': `nki_session=${sid}; HttpOnly; SameSite=Strict; Max-Age=${SESSION_TTL/1000}; Path=/`,
+                'Set-Cookie': `nki_session=${sid}; HttpOnly; SameSite=Strict; Max-Age=${accounts.SESSION_TTL / 1000}; Path=/`,
             });
             return res.end();
         }
-        res.writeHead(200,{'Content-Type':'text/html'});
+        res.writeHead(200, { 'Content-Type': 'text/html' });
         return res.end(loginPage(params.next || '/admin', 'Incorrect username or password.'));
     }
 
-    // Register page
     if (req.method === 'GET' && url === '/register') {
-        res.writeHead(200,{'Content-Type':'text/html'});
+        res.writeHead(200, { 'Content-Type': 'text/html' });
         return res.end(registerPage());
     }
 
-    // Register handler
     if (req.method === 'POST' && url === '/register') {
-        const body   = await readRawBody(req);
+        const body = await readRawBody(req);
         const params = parseFormBody(body);
         const username = (params.username || '').trim().toLowerCase();
         const password = params.password || '';
-        const confirm  = params.confirm || '';
+        const confirm = params.confirm || '';
         if (!/^[a-z0-9_]{3,32}$/.test(username)) {
-            res.writeHead(200,{'Content-Type':'text/html'});
+            res.writeHead(200, { 'Content-Type': 'text/html' });
             return res.end(registerPage('Username must be 3-32 characters: letters, numbers, underscores.'));
         }
         if (password.length < 6) {
-            res.writeHead(200,{'Content-Type':'text/html'});
+            res.writeHead(200, { 'Content-Type': 'text/html' });
             return res.end(registerPage('Password must be at least 6 characters.'));
         }
         if (password !== confirm) {
-            res.writeHead(200,{'Content-Type':'text/html'});
+            res.writeHead(200, { 'Content-Type': 'text/html' });
             return res.end(registerPage('Passwords do not match.'));
         }
-        if (!createUser(username, password)) {
-            res.writeHead(200,{'Content-Type':'text/html'});
+        if (!accounts.createUser(username, password)) {
+            res.writeHead(200, { 'Content-Type': 'text/html' });
             return res.end(registerPage('Username already taken.'));
         }
-        res.writeHead(200,{'Content-Type':'text/html'});
+        res.writeHead(200, { 'Content-Type': 'text/html' });
         return res.end(registerPage('', 'Account created. You can now log in.'));
     }
 
-    // API Keys (read / write)
-    if (url === '/api/keys') {
-        if (!isAuthenticated(req)) { res.writeHead(401, {'Content-Type':'application/json'}); return res.end(JSON.stringify({error:'Unauthorized'})); }
-        const user = getUsername(req);
-        if (req.method === 'GET') {
-            res.writeHead(200, {'Content-Type':'application/json'});
-            return res.end(JSON.stringify(getUserKeys(user)));
-        }
-        if (req.method === 'POST') {
-            try {
-                const body = await readRawBody(req);
-                const data = JSON.parse(body.toString('utf8'));
-                for (const [provider, key] of Object.entries(data)) {
-                    setUserKey(user, provider, key || '');
-                }
-                res.writeHead(200, {'Content-Type':'application/json'});
-                return res.end('{"ok":true}');
-            } catch(e) { res.writeHead(400); return res.end(e.message); }
-        }
-    }
-
-    // Logout
     if (req.method === 'GET' && url === '/logout') {
-        const sid = getSessionId(req);
-        if (sid) {
-            const user = getSessionUser(sid);
-            if (user) killUserSession(user);
-            deleteSession(sid);
-        }
+        const sid = accounts.getSessionId(req);
+        if (sid) accounts.deleteSession(sid);
         res.writeHead(302, { Location: '/login', 'Set-Cookie': 'nki_session=; HttpOnly; SameSite=Strict; Max-Age=0; Path=/' });
         return res.end();
     }
@@ -929,322 +454,96 @@ const server = http.createServer(async (req, res) => {
             const { email } = JSON.parse(body.toString());
             if (!email || !email.includes('@')) { res.writeHead(400); return res.end('Invalid email'); }
             let subs = [];
-            try { subs = JSON.parse(fs.readFileSync(NEWSLETTER_FILE, 'utf8')); } catch {}
+            try { subs = JSON.parse(fs.readFileSync(NEWSLETTER_FILE, 'utf8')); } catch { }
             if (!subs.find(s => s.email === email)) {
                 subs.push({ email, subscribedAt: Date.now() });
                 fs.writeFileSync(NEWSLETTER_FILE, JSON.stringify(subs, null, 2));
             }
-            res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end('{"ok":true}');
-        } catch(e) { res.writeHead(500); return res.end(e.message); }
-    }
-
-
-    // ── AUTH GATE ─────────────────────────────────────────
-    if (!isAuthenticated(req)) {
-        if (req.method === 'GET') { res.writeHead(302,{Location:'/login?next='+encodeURIComponent(req.url)}); return res.end(); }
-        res.writeHead(401); return res.end('Unauthorized');
-    }
-
-    const username = getUsername(req);
-
-    // ── CHAT API ──────────────────────────────────────────
-    if (url === '/chat-sessions' && req.method === 'GET') {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ sessions: listUserSessions(username) }));
-    }
-
-    if (url === '/chat-session' && req.method === 'POST') {
-        // Create new session
-        const body = JSON.parse((await readRawBody(req)).toString() || '{}');
-        const id = getNextSessionId(username);
-        const name = body.name || 'New Chat';
-        const dir = ensureUserDir(username);
-        const sessionFile = path.join(dir, `${id}.jsonl`);
-        fs.writeFileSync(sessionFile, '');
-        const meta = loadMeta(username);
-        meta.sessions[id] = { name, createdAt: Date.now() };
-        saveMeta(username, meta);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ id, name }));
-    }
-
-    if (url === '/chat-session/rename' && req.method === 'POST') {
-        const body = JSON.parse((await readRawBody(req)).toString() || '{}');
-        const meta = loadMeta(username);
-        if (!meta.sessions[body.id]) meta.sessions[body.id] = {};
-        meta.sessions[body.id].name = body.name;
-        saveMeta(username, meta);
-        // Also try to name in pi
-        const session = userSessions.get(username);
-        if (session && session.piProc && session.piProc.stdin.writable) {
-            session.piProc.stdin.write(JSON.stringify({ type: 'set_session_name', name: body.name }) + '\n');
-        }
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        return res.end('{"ok":true}');
-    }
-
-    if (url === '/chat-session/delete' && req.method === 'POST') {
-        const body = JSON.parse((await readRawBody(req)).toString() || '{}');
-        const dir = getUserDir(username);
-        const file = path.join(dir, `${body.id}.jsonl`);
-        if (fs.existsSync(file)) fs.unlinkSync(file);
-        const meta = loadMeta(username);
-        delete meta.sessions[body.id];
-        saveMeta(username, meta);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        return res.end('{"ok":true}');
-    }
-
-    if (url === '/system-prompt' && req.method === 'GET') {
-        const prompt = getSystemPrompt(username);
-        const defaultPrompt = getDefaultSystemPrompt(username);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ prompt: prompt !== null ? prompt : defaultPrompt, defaultPrompt, isCustom: prompt !== null }));
-    }
-
-    if (url === '/system-prompt' && req.method === 'POST') {
-        const body = JSON.parse((await readRawBody(req)).toString() || '{}');
-        saveSystemPrompt(username, body.prompt || '');
-        // Restart AI process so the new prompt actually takes effect
-        killUserSession(username);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        return res.end('{"ok":true}');
-    }
-
-    if (url === '/chat-session/switch' && req.method === 'POST') {
-        const body = JSON.parse((await readRawBody(req)).toString() || '{}');
-        const session = userSessions.get(username);
-        const dir = getUserDir(username);
-        const sessionFile = path.join(dir, `${body.id}.jsonl`);
-        if (!fs.existsSync(sessionFile)) {
-            res.writeHead(404); return res.end('Session not found');
-        }
-        // Update meta last accessed
-        const meta = loadMeta(username);
-        if (meta.sessions[body.id]) meta.sessions[body.id].accessedAt = Date.now();
-        saveMeta(username, meta);
-
-        if (session && session.piProc && session.piProc.stdin.writable) {
-            // Use switch_session to change pi's active session
-            const reqId = `sw-${Date.now()}-${++session.requestCounter}`;
-            session.pendingSwitches.set(reqId, { ws: { send: ()=>({}), readyState: 1 }, targetSessionId: body.id, targetSessionFile: sessionFile });
-            session.piProc.stdin.write(JSON.stringify({ type: 'switch_session', sessionPath: sessionFile, id: reqId }) + '\n');
-            session.currentSessionFile = sessionFile;
-        } else {
-            // No active session, spawn one
-            spawnUserPi(username, sessionFile);
-        }
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        return res.end('{"ok":true}');
-    }
-
-    // Upload file for AI analysis (text/code/docs)
-    if (req.method === 'POST' && url === '/upload-chat-file') {
-        try {
-            const body = await readRawBody(req);
-            const ct   = req.headers['content-type'] || '';
-            const bm   = ct.match(/boundary=([^\s;]+)/);
-            if (!bm) { res.writeHead(400); return res.end('No boundary'); }
-            const parts = parseMultipart(body, bm[1]);
-            const file  = parts['file'];
-            if (!file || !file.data) { res.writeHead(400); return res.end('No file'); }
-            const safeUsername = (username || 'unknown').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 64);
-            const uploadDir = path.join('/tmp', 'pi-uploads', safeUsername);
-            if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-            // Sanitize filename
-            const safeName = (file.filename || 'upload').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 100);
-            const fname  = `${Date.now()}-${safeName}`;
-            const filePath = path.join(uploadDir, fname);
-            fs.writeFileSync(filePath, file.data);
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ path: filePath, name: safeName, size: file.data.length }));
-        } catch(e) { res.writeHead(500); return res.end(e.message); }
-    }
-
-    // Save current chat transcript to ~/.pi/agent/previous-chats/
-    if (req.method === 'POST' && url === '/api/chat-export') {
-        try {
-            const body = JSON.parse((await readRawBody(req)).toString() || '{}');
-            const topicRaw = (body.topic || 'chat-export').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
-            const date = new Date().toISOString().slice(0, 10);
-            const filename = `${date}_${topicRaw || 'chat-export'}.txt`;
-            const archiveDir = path.join(os.homedir(), '.pi', 'agent', 'previous-chats');
-            if (!fs.existsSync(archiveDir)) fs.mkdirSync(archiveDir, { recursive: true });
-            const outPath = path.join(archiveDir, filename);
-            const content = `${body.header || ''}\n\n${body.content || ''}`;
-            fs.writeFileSync(outPath, content);
-            // Append to index.md if it exists
-            const indexPath = path.join(archiveDir, 'index.md');
-            if (fs.existsSync(indexPath)) {
-                const line = `| ${date} | \`${filename}\` | ${topicRaw.replace(/-/g, ' ') || 'chat export'} |\n`;
-                fs.appendFileSync(indexPath, line);
-            }
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ filename, saved: true }));
+            return res.end('{"ok":true}');
         } catch (e) { res.writeHead(500); return res.end(e.message); }
     }
 
-    // Serve agent context files for injection into external API sessions
-    if (req.method === 'GET' && url === '/api/agent-context') {
-        const agentDir = path.join(os.homedir(), '.pi', 'agent');
-        const files = ['README.md', 'MEMORY.md', 'TASKS.md'];
-        const data = {};
-        for (const fn of files) {
-            const fp = path.join(agentDir, fn);
-            try { data[fn.replace('.md', '')] = fs.readFileSync(fp, 'utf8'); } catch { data[fn.replace('.md', '')] = ''; }
+    // ── AUTH GATE ─────────────────────────────────────────
+    if (!accounts.isAuthenticated(req)) {
+        if (req.method === 'GET') {
+            res.writeHead(302, { Location: '/login?next=' + encodeURIComponent(req.url) });
+            return res.end();
         }
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify(data));
+        res.writeHead(401);
+        return res.end('Unauthorized');
     }
 
-    // Serve agent context files for injection into external API sessions
-    if (req.method === 'GET' && url === '/api/agent-context') {
-        const agentDir = path.join(os.homedir(), '.pi', 'agent');
-        const files = ['README.md', 'MEMORY.md', 'TASKS.md'];
-        const data = {};
-        for (const fn of files) {
-            const fp = path.join(agentDir, fn);
-            try { data[fn.replace('.md', '')] = fs.readFileSync(fp, 'utf8'); } catch { data[fn.replace('.md', '')] = ''; }
-        }
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify(data));
-    }
+    // ── AUTHENTICATED ROUTES ──────────────────────────────
+    const username = accounts.getUsername(req);
 
-    // Quick health endpoint: disk usage
-    if (req.method === 'GET' && url === '/api/health') {
-        try {
-            const stats = fs.statSync('/');
-            const { execSync } = require('child_process');
-            const df = execSync('df -h / | tail -n 1').toString().trim();
-            const parts = df.split(/\s+/);
-            const usage = parts[4]; // e.g. "76%"
-            const percent = parseInt(usage, 10);
-            let status = 'ok';
-            if (percent >= 90) status = 'crit';
-            else if (percent >= 80) status = 'warn';
+    // API Keys (read / write) - kept for potential future use
+    if (url === '/api/keys') {
+        if (req.method === 'GET') {
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ disk: usage, percent, status }));
-        } catch (e) {
-            res.writeHead(500, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ error: e.message }));
+            return res.end(JSON.stringify(accounts.getUserKeys(username)));
         }
-    }
-
-    // List session templates from ~/.pi/agent/templates/
-    if (req.method === 'GET' && url === '/api/templates') {
-        const templatesDir = path.join(os.homedir(), '.pi', 'agent', 'templates');
-        const out = [];
-        try {
-            const files = fs.readdirSync(templatesDir);
-            for (const fn of files) {
-                if (!fn.endsWith('.md')) continue;
-                const fp = path.join(templatesDir, fn);
-                const content = fs.readFileSync(fp, 'utf8');
-                out.push({ name: fn.replace('.md', ''), content });
-            }
-        } catch { /* ignore missing dir */ }
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ templates: out }));
-    }
-
-    // Proxy Ollama /api/tags to avoid CORS
-    if (req.method === 'GET' && url === '/api/ollama-models') {
-        try {
-            const targetBaseUrl = (query.get('baseUrl') || 'http://localhost:11434').replace(/\/$/, '');
-            const target = new URL(targetBaseUrl);
-            const proto = target.protocol === 'https:' ? https : httpReq;
-            const port = target.port || (target.protocol === 'https:' ? 443 : 80);
-            const proxyOpts = { hostname: target.hostname, port, path: '/api/tags', method: 'GET', headers: { 'Accept': 'application/json' } };
-            const proxyReq = proto.request(proxyOpts, (proxyRes) => {
-                let raw = '';
-                proxyRes.on('data', c => raw += c);
-                proxyRes.on('end', () => {
-                    res.writeHead(200, { 'Content-Type': 'application/json' });
-                    res.end(raw);
-                });
-            });
-            proxyReq.on('error', () => {
+        if (req.method === 'POST') {
+            try {
+                const body = await readRawBody(req);
+                const data = JSON.parse(body.toString('utf8'));
+                for (const [provider, key] of Object.entries(data)) {
+                    accounts.setUserKey(username, provider, key || '');
+                }
                 res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ models: [] }));
-            });
-            proxyReq.end();
-        } catch {
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ models: [] }));
+                return res.end('{"ok":true}');
+            } catch (e) { res.writeHead(400); return res.end(e.message); }
         }
-        return;
     }
 
-    // Audio transcription via local whisper.cpp server
-    if (req.method === 'POST' && url === '/api/transcribe') {
+    // Admin page (admin only)
+    if (req.method === 'GET' && (url === '/admin' || url === '/dashboard')) {
+        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        return serveFile(res, ADMIN_FILE);
+    }
+
+    // Save site content (admin only)
+    if (req.method === 'POST' && url === '/save-content') {
+        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
         try {
-            console.log('[transcribe] request received');
+            const body = await readRawBody(req);
+            const data = JSON.parse(body.toString());
+            fs.writeFileSync(CONTENT_FILE, JSON.stringify(data, null, 2));
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end('{"ok":true}');
+        } catch (e) { res.writeHead(400); return res.end(e.message); }
+    }
+
+    // Cover image upload (admin only)
+    if (req.method === 'POST' && url === '/upload-cover') {
+        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        try {
             const body = await readRawBody(req);
             const ct = req.headers['content-type'] || '';
-            console.log('[transcribe] content-type', ct);
             const bm = ct.match(/boundary=([^\s;]+)/);
-            if (!bm) { console.error('[transcribe] no boundary'); res.writeHead(400); return res.end('No boundary'); }
+            if (!bm) { res.writeHead(400); return res.end('No boundary'); }
             const parts = parseMultipart(body, bm[1]);
-            const file = parts['file'];
-            if (!file || !file.data) { console.error('[transcribe] no file in multipart'); res.writeHead(400); return res.end('No file'); }
-            console.log('[transcribe] file size', file.data.length);
-
-            // Write to temp file
-            const tmpName = `whisper-${Date.now()}-${Math.random().toString(36).slice(2,8)}.webm`;
-            const tmpPath = path.join('/tmp', tmpName);
-            fs.writeFileSync(tmpPath, file.data);
-            console.log('[transcribe] temp written to', tmpPath);
-
-            // Forward to whisper-server
-            const form = new FormData();
-            // Reconstruct multipart body manually for whisper-server
-            const boundary = '----FormBoundary' + Math.random().toString(36).slice(2, 14);
-            const multipartBody = Buffer.concat([
-                Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${tmpName}"\r\nContent-Type: application/octet-stream\r\n\r\n`),
-                file.data,
-                Buffer.from(`\r\n--${boundary}--\r\n`)
-            ]);
-            const whisperReq = httpReq.request({ hostname: '127.0.0.1', port: 9000, path: '/inference', method: 'POST', headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}`, 'Content-Length': multipartBody.length } }, (whisperRes) => {
-                let raw = '';
-                whisperRes.on('data', c => raw += c);
-                whisperRes.on('end', () => {
-                    console.log('[transcribe] whisper response', raw.slice(0, 200));
-                    try {
-                        const d = JSON.parse(raw);
-                        res.writeHead(200, { 'Content-Type': 'application/json' });
-                        res.end(JSON.stringify({ text: (d.text || '').trim() }));
-                    } catch {
-                        res.writeHead(200, { 'Content-Type': 'application/json' });
-                        res.end(JSON.stringify({ text: raw.trim() }));
-                    }
-                    fs.unlinkSync(tmpPath);
-                });
-            });
-            whisperReq.on('error', (e) => {
-                console.error('[transcribe] whisper request error', e.message);
-                res.writeHead(503, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ error: 'Whisper server unavailable' }));
-                fs.unlinkSync(tmpPath);
-            });
-            whisperReq.write(multipartBody);
-            whisperReq.end();
-        } catch (e) {
-            res.writeHead(500, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: e.message }));
-        }
-        return;
+            const file = parts['cover'];
+            if (!file || !file.data) { res.writeHead(400); return res.end('No file'); }
+            const bookId = parts['bookId'] || 'cover';
+            const ext = path.extname(file.filename).toLowerCase() || '.jpg';
+            const fname = `${bookId}-${Date.now()}${ext}`;
+            fs.writeFileSync(path.join(COVERS_DIR, fname), file.data);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ path: `/covers/${fname}` }));
+        } catch (e) { res.writeHead(500); return res.end(e.message); }
     }
 
     // Upload manuscript .docx (admin only)
     if (req.method === 'POST' && url === '/upload-manuscript') {
-        if (!isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
         try {
             const body = await readRawBody(req);
-            const ct   = req.headers['content-type'] || '';
-            const bm   = ct.match(/boundary=([^\s;]+)/);
+            const ct = req.headers['content-type'] || '';
+            const bm = ct.match(/boundary=([^\s;]+)/);
             if (!bm) { res.writeHead(400); return res.end('No boundary'); }
             const parts = parseMultipart(body, bm[1]);
-            const file  = parts['file'];
+            const file = parts['file'];
             if (!file || !file.data) { res.writeHead(400); return res.end('No file'); }
             if (!/\.docx$/i.test(file.filename || '')) { res.writeHead(400); return res.end('Only .docx files supported'); }
             const formSlug = (parts['slug'] || '').trim();
@@ -1256,78 +555,17 @@ const server = http.createServer(async (req, res) => {
             MANUSCRIPT_CACHE.delete(slug);
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ slug, name: slug + '.docx', size: file.data.length }));
-        } catch(e) { res.writeHead(500); return res.end(e.message); }
-    }
-
-    // Admin page (admin only)
-    if (req.method === 'GET' && (url === '/admin' || url === '/dashboard')) {
-        if (!isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
-        return serveFile(res, ADMIN_FILE);
-    }
-
-    // AI Chat proxy endpoint for external providers (Claude, OpenAI, xAI, Ollama)
-    if (req.method === 'POST' && url === '/api/proxy/chat') {
-        if (!isAuthenticated(req)) {
-            res.writeHead(401, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ error: 'Unauthorized' }));
-        }
-        try {
-            const bodyBuf = await readRawBody(req);
-            const body = JSON.parse(bodyBuf.toString('utf8'));
-            const { provider, apiKey, baseUrl, model, messages, system, stream, temperature, topP, maxTokens } = body;
-            if (!provider || !model || !messages) {
-                res.writeHead(400, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify({ error: 'Missing provider, model, or messages' }));
-            }
-            return proxyProviderChat(res, provider, apiKey, baseUrl, model, messages, system, stream, temperature, topP, maxTokens);
-        } catch(e) {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ error: e.message }));
-        }
-    }
-
-    // AI Chat page (authenticated only)
-    if (req.method === 'GET' && url === '/aichat.html')
-        return serveFile(res, path.join(PUBLIC_DIR, 'aichat.html'));
-
-    // Save site content (admin only)
-    if (req.method === 'POST' && url === '/save-content') {
-        if (!isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
-        try {
-            const body = await readRawBody(req);
-            const data = JSON.parse(body.toString());
-            fs.writeFileSync(CONTENT_FILE, JSON.stringify(data, null, 2));
-            res.writeHead(200,{'Content-Type':'application/json'});
-            return res.end('{"ok":true}');
-        } catch(e) { res.writeHead(400); return res.end(e.message); }
-    }
-
-    // Cover image upload (admin only)
-    if (req.method === 'POST' && url === '/upload-cover') {
-        if (!isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
-        try {
-            const body = await readRawBody(req);
-            const ct   = req.headers['content-type'] || '';
-            const bm   = ct.match(/boundary=([^\s;]+)/);
-            if (!bm) { res.writeHead(400); return res.end('No boundary'); }
-            const parts = parseMultipart(body, bm[1]);
-            const file  = parts['cover'];
-            if (!file || !file.data) { res.writeHead(400); return res.end('No file'); }
-            const bookId = parts['bookId'] || 'cover';
-            const ext    = path.extname(file.filename).toLowerCase() || '.jpg';
-            const fname  = `${bookId}-${Date.now()}${ext}`;
-            fs.writeFileSync(path.join(COVERS_DIR, fname), file.data);
-            res.writeHead(200,{'Content-Type':'application/json'});
-            return res.end(JSON.stringify({ path: `/covers/${fname}` }));
-        } catch(e) { res.writeHead(500); return res.end(e.message); }
+        } catch (e) { res.writeHead(500); return res.end(e.message); }
     }
 
     // SSE (admin only)
     if (url === '/events') {
-        if (!isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
         res.writeHead(200, {
-            'Content-Type':'text/event-stream','Cache-Control':'no-cache',
-            'Connection':'keep-alive','Access-Control-Allow-Origin':'*',
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'Access-Control-Allow-Origin': '*',
         });
         res.write(':ok\n\n');
         sseClients.add(res);
@@ -1337,30 +575,44 @@ const server = http.createServer(async (req, res) => {
 
     // Metrics data (admin only)
     if (url === '/data') {
-        if (!isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
-        try { res.writeHead(200,{'Content-Type':'application/json'}); return res.end(fs.readFileSync(METRICS_FILE,'utf8')); }
-        catch { res.writeHead(500); return res.end('{}'); }
+        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        try {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(fs.readFileSync(METRICS_FILE, 'utf8'));
+        } catch {
+            res.writeHead(500);
+            return res.end('{}');
+        }
     }
 
     // Scrape now (admin only)
     if (req.method === 'POST' && url === '/scrape') {
-        if (!isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
         if (scrapeRunning) { res.writeHead(409); return res.end('Scrape already running'); }
         scrapeRunning = true;
         let stderr = '';
-        const child = spawn(process.execPath, [SCRAPER_FILE], { cwd: __dirname, env: process.env, stdio: ['ignore','inherit','pipe'] });
+        const child = spawn(process.execPath, [SCRAPER_FILE], { cwd: __dirname, env: process.env, stdio: ['ignore', 'inherit', 'pipe'] });
         child.stderr.on('data', d => { stderr += d; process.stderr.write(d); });
         child.on('close', code => {
             scrapeRunning = false;
-            if (!res.headersSent) { res.writeHead(code===0?200:500,{'Content-Type':'text/plain'}); res.end(code===0 ? 'ok' : `exit ${code}\n${stderr.slice(0,2000)}`); }
+            if (!res.headersSent) {
+                res.writeHead(code === 0 ? 200 : 500, { 'Content-Type': 'text/plain' });
+                res.end(code === 0 ? 'ok' : `exit ${code}\n${stderr.slice(0, 2000)}`);
+            }
         });
-        child.on('error', err => { scrapeRunning = false; if (!res.headersSent) { res.writeHead(500); res.end('spawn failed: '+err.message); } });
+        child.on('error', err => {
+            scrapeRunning = false;
+            if (!res.headersSent) {
+                res.writeHead(500);
+                res.end('spawn failed: ' + err.message);
+            }
+        });
         return;
     }
 
     // Delete metrics date (admin only)
     if (req.method === 'POST' && url === '/delete-metrics-date') {
-        if (!isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
         try {
             const body = await readRawBody(req);
             const { date } = JSON.parse(body.toString());
@@ -1369,366 +621,26 @@ const server = http.createServer(async (req, res) => {
             for (const story of Object.values(data.stories)) story.history = (story.history || []).filter(e => e.date !== date);
             data.lastUpdated = new Date().toISOString();
             fs.writeFileSync(METRICS_FILE, JSON.stringify(data, null, 2));
-            res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end('{"ok":true}');
-        } catch(e) { res.writeHead(500); return res.end(e.message); }
-    }
-    });
-
-// ── EXTERNAL PROVIDER PROXY ─────────────────────────────
-async function proxyProviderChat(res, provider, apiKey, baseUrl, model, messages, system, stream, temperature, topP, maxTokens) {
-    // Resolve smart provider before branching
-    if (provider === 'smart') {
-        const smartBase = (baseUrl || 'http://192.168.1.23:11434').replace(/\/$/, '');
-        const smartUrl = new URL(smartBase);
-        const desktopOnline = await new Promise((resolve) => {
-            const check = httpReq.request({ hostname: smartUrl.hostname, port: smartUrl.port || 11434, path: '/api/tags', timeout: 2000 },
-                (r) => resolve(r.statusCode === 200));
-            check.on('error', () => resolve(false));
-            check.on('timeout', () => { check.destroy(); resolve(false); });
-            check.end();
-        });
-        if (desktopOnline) {
-            console.log('[Smart] Desktop ON - using Ollama');
-            baseUrl = smartBase;
-            provider = 'ollama';
-            if (!model || model === 'auto') model = 'llama3.1:8b';
-        } else {
-            console.log('[Smart] Desktop OFF - using Kimi');
-            provider = 'kimi';
-            apiKey = apiKey || process.env.KIMI_API_KEY;
-            if (!apiKey) {
-                res.writeHead(503, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify({ error: 'Desktop offline, no Kimi key. Add KIMI_API_KEY.' }));
-            }
-            if (!model || model === 'auto') model = 'kimi-k2-6';
-        }
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end('{"ok":true}');
+        } catch (e) { res.writeHead(500); return res.end(e.message); }
     }
 
-    // Validate required API key for non-local providers
-    if (provider !== 'ollama' && !apiKey) {
-        res.writeHead(401, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ error: `Missing API key for ${provider}. Add it in Settings.` }));
-    }
-
-    const isStream = stream !== false;
-    const headers = { 'Content-Type': 'application/json' };
-    let hostname, pathReq, method = 'POST';
-    let body;
-    const streamMode = isStream ? 'stream' : '';
-
-    if (provider === 'claude') {
-        headers['x-api-key'] = apiKey;
-        headers['anthropic-version'] = '2023-06-01';
-        hostname = 'api.anthropic.com';
-        pathReq = '/v1/messages';
-        const msgs = [];
-        if (system) msgs.push({ role: 'user', content: `System: ${system}` });
-        for (const m of messages) {
-            if (m.role === 'system') continue;
-            msgs.push({ role: m.role, content: m.content });
-        }
-        body = JSON.stringify({ model, messages: msgs, max_tokens: maxTokens || 4096, stream: isStream });
-    } else if (provider === 'openai') {
-        headers['Authorization'] = `Bearer ${apiKey}`;
-        hostname = 'api.openai.com';
-        pathReq = '/v1/chat/completions';
-        const msgs = system ? [{ role: 'system', content: system }] : [];
-        for (const m of messages) msgs.push({ role: m.role, content: m.content });
-        body = JSON.stringify({ model, messages: msgs, max_tokens: maxTokens || 4096, stream: isStream, temperature: temperature ?? 0.7, top_p: topP ?? 1 });
-    } else if (provider === 'xai') {
-        headers['Authorization'] = `Bearer ${apiKey}`;
-        hostname = 'api.x.ai';
-        pathReq = '/v1/chat/completions';
-        const msgs = system ? [{ role: 'system', content: system }] : [];
-        for (const m of messages) msgs.push({ role: m.role, content: m.content });
-        body = JSON.stringify({ model, messages: msgs, max_tokens: maxTokens || 4096, stream: isStream, temperature: temperature ?? 0.7, top_p: topP ?? 1 });
-    } else if (provider === 'kimi') {
-        const kimiHeaders = { ...headers, 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' };
-        const kimiMsgs = [];
-        if (system) kimiMsgs.push({ role: 'system', content: system });
-        for (const m of messages) { if (m.role !== 'system') kimiMsgs.push({ role: m.role, content: m.content }); }
-        const kimiBody = JSON.stringify({ model: model, messages: kimiMsgs, stream: isStream, temperature: temperature ?? 0.7, top_p: topP ?? 1, max_tokens: maxTokens || 4096 });
-        return proxyViaRequest(res, https, 'api.moonshot.cn', 443, '/v1/chat/completions', kimiHeaders, kimiBody, 'kimi', isStream);
-    } else if (provider === 'ollama') {
-        const ollamaBase = (baseUrl || 'http://localhost:11434').replace(/\/$/, '');
-        const target = new URL(ollamaBase);
-        hostname = target.hostname;
-        const port = target.port || (target.protocol === 'https:' ? 443 : 80);
-        const proto = target.protocol === 'https:' ? https : httpReq;
-        pathReq = '/api/chat';
-        const msgs = [];
-        if (system) msgs.push({ role: 'system', content: system });
-        for (const m of messages) {
-            if (m.role === 'system') continue;
-            msgs.push({ role: m.role, content: m.content });
-        }
-        const reqBody = JSON.stringify({ model, messages: msgs, stream: isStream, options: { temperature: temperature ?? 0.7, top_p: topP ?? 1, num_predict: maxTokens || 4096 } });
-        return proxyViaRequest(res, proto, hostname, port, pathReq, headers, reqBody, provider, isStream);
-    } else {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ error: 'Unknown provider' }));
-    }
-
-    return proxyViaRequest(res, https, hostname, 443, pathReq, headers, body, provider, isStream);
-}
-
-function proxyViaRequest(res, protoModule, hostname, port, pathReq, headers, body, provider, isStream) {
-    const requestOpts = { hostname, port, path: pathReq, method: 'POST', headers };
-    const proxyReq = protoModule.request(requestOpts, (proxyRes) => {
-        // Handle upstream HTTP errors
-        if (proxyRes.statusCode >= 400) {
-            let raw = '';
-            proxyRes.on('data', c => raw += c);
-            proxyRes.on('end', () => {
-                let err = `Provider returned ${proxyRes.statusCode}`;
-                try {
-                    const d = JSON.parse(raw);
-                    err = d.error?.message || d.error || err;
-                } catch {}
-                if (isStream) {
-                    res.writeHead(200, { 'Content-Type': 'application/x-ndjson', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
-                    res.write(`{"type":"error","error":${JSON.stringify(err)}}\n`);
-                    res.end();
-                } else {
-                    res.writeHead(proxyRes.statusCode, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({ error: err }));
-                }
-            });
-            proxyRes.on('error', () => {
-                res.writeHead(502, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ error: 'Proxy stream error' }));
-            });
-            return;
-        }
-
-        if (!isStream) {
-            let raw = '';
-            proxyRes.on('data', c => raw += c);
-            proxyRes.on('end', () => {
-                if (provider === 'claude') {
-                    try {
-                        const d = JSON.parse(raw);
-                        const text = d.content?.map(c => c.type === 'text' ? c.text : '').join('') || '';
-                        res.writeHead(200, { 'Content-Type': 'application/x-ndjson' });
-                        res.end(`{"type":"text","text":${JSON.stringify(text)}}\n{"type":"done"}\n`);
-                    } catch {
-                        res.writeHead(500, { 'Content-Type': 'application/json' });
-                        res.end(JSON.stringify({ error: 'Invalid response from provider' }));
-                    }
-                    return;
-                }
-                try {
-                    const d = JSON.parse(raw);
-                    const text = d.choices?.[0]?.message?.content || '';
-                    res.writeHead(200, { 'Content-Type': 'application/x-ndjson' });
-                    res.end(`{"type":"text","text":${JSON.stringify(text)}}\n{"type":"done"}\n`);
-                } catch {
-                    res.writeHead(500, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({ error: 'Invalid response from provider' }));
-                }
-            });
-            return;
-        }
-
-        // Streaming mode: parse SSE
-        res.writeHead(200, { 'Content-Type': 'application/x-ndjson', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
-        let buffer = '';
-        proxyRes.on('data', chunk => {
-            buffer += chunk;
-            let idx;
-            while ((idx = buffer.indexOf('\n')) !== -1) {
-                const line = buffer.slice(0, idx).trim();
-                buffer = buffer.slice(idx + 1);
-                if (!line || !line.startsWith('data: ')) continue;
-                const payload = line.slice(6);
-                if (payload === '[DONE]') {
-                    res.write(`{"type":"done"}\n`);
-                    continue;
-                }
-                try {
-                    const data = JSON.parse(payload);
-                    if (provider === 'claude') {
-                        if (data.type === 'content_block_delta' && data.delta?.type === 'text_delta') {
-                            res.write(`{"type":"text","text":${JSON.stringify(data.delta.text)}}\n`);
-                        } else if (data.type === 'message_delta' && data.usage) {
-                            res.write(`{"type":"usage","input_tokens":${data.usage.input_tokens || 0},"output_tokens":${data.usage.output_tokens || 0}}\n`);
-                        }
-                    } else if (provider === 'ollama') {
-                        if (data.message?.content) {
-                            res.write(`{"type":"text","text":${JSON.stringify(data.message.content)}}\n`);
-                        }
-                        if (data.done) {
-                            res.write(`{"type":"done"}\n`);
-                        }
-                    } else {
-                        // openai / xai
-                        const delta = data.choices?.[0]?.delta;
-                        if (delta?.content) {
-                            res.write(`{"type":"text","text":${JSON.stringify(delta.content)}}\n`);
-                        }
-                        if (data.usage) {
-                            res.write(`{"type":"usage","input_tokens":${data.usage.prompt_tokens || 0},"output_tokens":${data.usage.completion_tokens || 0}}\n`);
-                        }
-                    }
-                } catch (e) {
-                    // skip malformed JSON in SSE stream
-                }
-            }
-        });
-        proxyRes.on('end', () => {
-            res.write(`{"type":"done"}\n`);
-            res.end();
-        });
-        proxyRes.on('error', () => {
-            res.write(`{"type":"error","error":"Provider stream error"}\n`);
-            res.end();
-        });
-    });
-    proxyReq.on('error', (err) => {
-        res.writeHead(502, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: err.message || 'Proxy request failed' }));
-    });
-    proxyReq.write(body);
-    proxyReq.end();
-}
-
-// ── WEBSOCKET /chat - PER-USER PERSISTENT SESSIONS ──────
-const wss = new WebSocket.Server({ server, path: '/chat' });
-
-wss.on('connection', (ws, req) => {
-    const username = getUsername(req);
-    if (!username) {
-        ws.send(JSON.stringify({ type: 'error', message: 'Not authenticated' }));
-        ws.close(4001, 'Unauthorized');
-        return;
-    }
-    if (!isAdmin(req)) {
-        ws.send(JSON.stringify({ type: 'error', message: 'Admin access required for pi Agent' }));
-        ws.close(4003, 'Forbidden');
-        return;
-    }
-
-    const session = getOrCreateUserSession(username);
-    session.websockets.add(ws);
-
-    // Send session list on connect
-    refreshSessionList(username, ws);
-
-    // Request history for current session after brief delay
-    setTimeout(() => {
-        if (!session || !session.websockets.has(ws)) return;
-        const reqId = `hist-${Date.now()}-${++session.requestCounter}`;
-        session.pendingRequests.set(reqId, ws);
-        if (session.piProc && session.piProc.stdin.writable) {
-            session.piProc.stdin.write(JSON.stringify({ type: 'get_messages', id: reqId }) + '\n');
-        }
-    }, 600);
-
-    ws.on('message', (data) => {
-        try {
-            const msg = JSON.parse(data);
-            if (!msg || !msg.type) return;
-
-            // Handle switch_session
-            if (msg.type === 'switch_session') {
-                const dir = getUserDir(username);
-                const sessionFile = path.join(dir, `${msg.sessionId}.jsonl`);
-                if (session.piProc && session.piProc.stdin.writable) {
-                    const swId = `sw-${Date.now()}-${++session.requestCounter}`;
-                    session.pendingSwitches.set(swId, { ws, targetSessionId: msg.sessionId, targetSessionFile: sessionFile });
-                    session.piProc.stdin.write(JSON.stringify({ type: 'switch_session', sessionPath: sessionFile, id: swId }) + '\n');
-                    session.currentSessionFile = sessionFile;
-                }
-                return;
-            }
-
-            // Handle new_session from client
-            if (msg.type === 'new_session') {
-                const id = getNextSessionId(username);
-                const name = msg.name || 'New Chat';
-                const dir = ensureUserDir(username);
-                const sessionFile = path.join(dir, `${id}.jsonl`);
-                fs.writeFileSync(sessionFile, '');
-                const meta = loadMeta(username);
-                meta.sessions[id] = { name, createdAt: Date.now() };
-                saveMeta(username, meta);
-
-                if (session.piProc && session.piProc.stdin.writable) {
-                    const swId = `sw-${Date.now()}-${++session.requestCounter}`;
-                    session.pendingSwitches.set(swId, { ws, targetSessionId: id, targetSessionFile: sessionFile });
-                    session.piProc.stdin.write(JSON.stringify({ type: 'switch_session', sessionPath: sessionFile, id: swId }) + '\n');
-                    session.currentSessionFile = sessionFile;
-                }
-                refreshSessionList(username);
-                return;
-            }
-
-
-            // Standard RPC commands
-            if (msg.type === 'prompt' || msg.type === 'steer' || msg.type === 'follow_up' ||
-                msg.type === 'abort' || msg.type === 'compact' ||
-                msg.type === 'set_model' || msg.type === 'cycle_model' || msg.type === 'set_thinking_level' ||
-                msg.type === 'get_state' || msg.type === 'get_messages' || msg.type === 'fork' || msg.type === 'clone' ||
-                msg.type === 'export_html' || msg.type === 'set_session_name' || msg.type === 'get_commands' ||
-                msg.type === 'set_steering_mode' || msg.type === 'set_follow_up_mode' ||
-                msg.type === 'set_auto_compaction' || msg.type === 'set_auto_retry' ||
-                msg.type === 'bash' || msg.type === 'abort_bash' ||
-                msg.type === 'get_session_stats' || msg.type === 'get_fork_messages' ||
-                msg.type === 'get_last_assistant_text' || msg.type === 'cycle_thinking_level') {
-                if (msg.id) session.pendingRequests.set(msg.id, ws);
-                session.piProc.stdin.write(JSON.stringify(msg) + '\n');
-                return;
-            }
-
-            if (msg.type === 'extension_ui_response') {
-                session.piProc.stdin.write(JSON.stringify(msg) + '\n');
-                return;
-            }
-
-            // Unknown - forward anyway
-            session.piProc.stdin.write(JSON.stringify(msg) + '\n');
-        } catch {
-            session.piProc.stdin.write(String(data) + '\n');
-        }
-    });
-
-    ws.on('close', () => {
-        session.websockets.delete(ws);
-        for (const [id, targetWs] of session.pendingRequests) { if (targetWs === ws) session.pendingRequests.delete(id); }
-        for (const [id, sw] of session.pendingSwitches) { if (sw.ws === ws) session.pendingSwitches.delete(id); }
-        if (session.websockets.size === 0) {
-            if (session.graceTimer) clearTimeout(session.graceTimer);
-            session.graceTimer = setTimeout(() => killUserSession(username), PI_GRACE_MS);
-        }
-    });
-
-    ws.on('error', () => {
-        session.websockets.delete(ws);
-    });
+    // ── 404 ────────────────────────────────────────────────
+    res.writeHead(404);
+    res.end('Not found');
 });
 
-function refreshSessionList(username, specificWs) {
-    const list = listUserSessions(username);
-    const payload = JSON.stringify({ type: 'session_list', sessions: list });
-    const session = userSessions.get(username);
-    if (specificWs && specificWs.readyState === 1) {
-        specificWs.send(payload);
-    } else if (session) {
-        for (const ws of session.websockets) {
-            if (ws.readyState === 1) ws.send(payload);
-        }
-    }
-}
-
 server.on('error', err => {
-    if (err.code === 'EADDRINUSE') { console.error(`Port ${PORT} in use.`); process.exit(1); }
-    else throw err;
+    if (err.code === 'EADDRINUSE') {
+        console.error(`Port ${PORT} in use.`);
+        process.exit(1);
+    } else throw err;
 });
 
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`\n🐾 Nekojin Interactive`);
     console.log(`   Public site:  http://0.0.0.0:${PORT}/`);
-    console.log(`   AI Chat:      http://0.0.0.0:${PORT}/aichat.html  (login required)`);
     console.log(`   Login:        http://0.0.0.0:${PORT}/login`);
-    console.log(`   pi Chat WS:   ws://0.0.0.0:${PORT}/chat\n`);
+    console.log(`   Admin:        http://0.0.0.0:${PORT}/admin\n`);
 });
