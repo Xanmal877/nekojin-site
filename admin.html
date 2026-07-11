@@ -317,6 +317,63 @@
     .opacity-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
     .opacity-row input[type=range] { flex: 1; accent-color: var(--royal); margin-bottom: 0; }
     .opacity-val { font-family: var(--mono); font-size: 0.82rem; color: var(--muted); width: 3ch; text-align: right; flex-shrink: 0; }
+
+    /* ── GAMES LIST ── */
+    .games-grid { display: grid; gap: 1rem; }
+    .game-list-item {
+      display: flex; align-items: center; gap: 1rem;
+      padding: 1rem; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 12px; cursor: pointer; transition: all 0.2s;
+    }
+    .game-list-item:hover { border-color: var(--royal); background: var(--surface3); }
+    .game-list-thumb {
+      width: 80px; height: 60px; border-radius: 8px; object-fit: cover;
+      background: var(--surface3); flex-shrink: 0;
+    }
+    .game-list-info { flex: 1; }
+    .game-list-title { font-weight: 600; color: var(--text); margin-bottom: 0.25rem; }
+    .game-list-status { font-size: 0.75rem; color: var(--muted); }
+    .game-list-actions { display: flex; gap: 0.5rem; }
+    .game-list-item .btn-sm { opacity: 0; transition: opacity 0.2s; }
+    .game-list-item:hover .btn-sm { opacity: 1; }
+
+    /* ── MODAL ── */
+    .modal {
+      position: fixed; inset: 0; z-index: 1000;
+      background: rgba(0,0,0,0.8); backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center;
+      padding: 1rem;
+    }
+    .modal-content {
+      background: var(--surface); border: 1px solid var(--border2);
+      border-radius: 16px; width: 100%; max-width: 500px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    .modal-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.25rem; border-bottom: 1px solid var(--border);
+    }
+    .modal-header h3 { margin: 0; font-size: 1.1rem; }
+    .modal-close {
+      background: none; border: none; color: var(--muted);
+      font-size: 1.5rem; cursor: pointer; transition: color 0.2s;
+    }
+    .modal-close:hover { color: var(--text); }
+    .modal-body { padding: 1.25rem; }
+    .modal-body label { margin-bottom: 0.5rem; display: block; }
+    .modal-body input { margin-bottom: 1rem; }
+    .modal-footer {
+      display: flex; justify-content: flex-end; gap: 0.75rem;
+      padding: 1rem 1.25rem; border-top: 1px solid var(--border);
+    }
+
+    /* ── PLATFORM INPUTS ── */
+    .platform-inputs { display: grid; gap: 0.75rem; }
+    .platform-row {
+      display: grid; grid-template-columns: 100px 1fr auto;
+      gap: 0.5rem; align-items: center;
+    }
+    .platform-row label { margin: 0; font-size: 0.85rem; color: var(--muted); }
   </style>
 </head>
 <body>
@@ -338,8 +395,8 @@
     <div class="sidebar-item active" data-panel="books" onclick="switchPanel('books')">
       <span class="sidebar-icon">📚</span> Books & Series
     </div>
-    <div class="sidebar-item" data-panel="game" onclick="switchPanel('game')">
-      <span class="sidebar-icon">🎮</span> Game
+    <div class="sidebar-item" data-panel="games" onclick="switchPanel('games')">
+      <span class="sidebar-icon">🎮</span> Games
     </div>
     <div class="sidebar-item" data-panel="about" onclick="switchPanel('about')">
       <span class="sidebar-icon">🏛️</span> About Page
@@ -371,12 +428,50 @@
       <div id="books-editor"><p style="color:var(--muted);">Loading content...</p></div>
     </div>
 
-    <!-- GAME PANEL -->
-    <div class="panel" id="panel-game">
-      <h1 class="panel-title">🎮 Game</h1>
-      <p class="panel-sub">Update the game listing details shown on the Games page.</p>
-      <div class="card" id="game-editor"><p style="color:var(--muted);">Loading...</p></div>
-      <button class="btn btn-primary" onclick="saveContent()">💾 Save Game Info</button>
+    <!-- GAMES MANAGEMENT PANEL -->
+    <div class="panel" id="panel-games">
+      <h1 class="panel-title">🎮 Games</h1>
+      <p class="panel-sub">Manage your game portfolio. Add, edit, and organize game listings.</p>
+      
+      <div id="games-list-container">
+        <div class="card" id="games-list">
+          <p style="color:var(--muted);">Loading games...</p>
+        </div>
+        <button class="btn btn-primary" onclick="showAddGameModal()" style="margin-top:1rem;">
+          + Add New Game
+        </button>
+      </div>
+      
+      <div id="game-edit-container" style="display:none;">
+        <button class="btn btn-ghost btn-sm" onclick="backToGamesList()" style="margin-bottom:1rem;">
+          ← Back to Games List
+        </button>
+        <div class="card" id="game-editor"><p style="color:var(--muted);">Loading...</p></div>
+        <div style="display:flex;gap:1rem;margin-top:1rem;">
+          <button class="btn btn-primary" onclick="saveCurrentGame()">💾 Save Game</button>
+          <button class="btn btn-danger" onclick="deleteCurrentGame()">🗑️ Delete Game</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add Game Modal -->
+    <div id="add-game-modal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Add New Game</h3>
+          <button class="modal-close" onclick="closeAddGameModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <label>Game Title</label>
+          <input type="text" id="new-game-title" placeholder="Enter game title...">
+          <label>Slug (URL-friendly ID)</label>
+          <input type="text" id="new-game-slug" placeholder="e.g., autumns-dungeoneering">
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" onclick="closeAddGameModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="createNewGame()">Create Game</button>
+        </div>
+      </div>
     </div>
 
     <!-- ABOUT PANEL -->
@@ -464,7 +559,7 @@ async function init() {
   try {
     await loadContent();
     renderBooksPanel();
-    renderGamePanel();
+    renderGamesPanel();
     renderAboutPanel();
     renderVisibilityPanel();
   } catch(e) {
@@ -526,7 +621,7 @@ async function discardChanges() {
   document.getElementById('save-banner').classList.remove('visible');
   await loadContent();
   renderBooksPanel();
-  renderGamePanel();
+  renderGamesPanel();
   renderAboutPanel();
   renderVisibilityPanel();
   showToast('Changes discarded.');
@@ -1066,17 +1161,90 @@ function moveBook(si, bi, dir) {
 }
 
 // ── RENDER: GAME ──────────────────────────────────────────
-function renderGamePanel() {
-  if (!siteContent?.game) return;
-  const g = siteContent.game;
+// ── MULTI-GAME MANAGEMENT ─────────────────────────────────
+
+let currentEditingGameIndex = -1;
+
+function ensureGamesArray() {
+  if (!siteContent) siteContent = {};
+  if (!siteContent.game) siteContent.game = [];
+  if (!Array.isArray(siteContent.game)) {
+    // Convert single game object to array
+    const game = siteContent.game;
+    siteContent.game = [{
+      ...game,
+      id: game.id || game.slug || 'main',
+      slug: game.slug || 'main'
+    }];
+  }
+}
+
+function renderGamesPanel() {
+  ensureGamesArray();
+  const games = siteContent.game;
+  
+  if (games.length === 0) {
+    document.getElementById('games-list').innerHTML = `
+      <div style="text-align:center;padding:3rem;color:var(--muted);">
+        <div style="font-size:3rem;margin-bottom:1rem;">🎮</div>
+        <p>No games yet. Click "Add New Game" to get started!</p>
+      </div>
+    `;
+  } else {
+    document.getElementById('games-list').innerHTML = `
+      <div class="games-grid">
+        ${games.map((g, i) => `
+          <div class="game-list-item" onclick="editGame(${i})">
+            <img class="game-list-thumb" src="${esc(g.coverImage || '')}" alt="" 
+              onerror="this.style.display='none'">
+            <div class="game-list-info">
+              <div class="game-list-title">${esc(g.title || 'Untitled Game')}</div>
+              <div class="game-list-status">${esc(g.status || 'In Development')}</div>
+            </div>
+            <div class="game-list-actions" onclick="event.stopPropagation()">
+              <button class="btn btn-ghost btn-sm" onclick="editGame(${i})" title="Edit">✏️</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteGame(${i})" title="Delete">🗑️</button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+}
+
+function editGame(index) {
+  currentEditingGameIndex = index;
+  document.getElementById('games-list-container').style.display = 'none';
+  document.getElementById('game-edit-container').style.display = 'block';
+  renderGameEditor();
+}
+
+function backToGamesList() {
+  currentEditingGameIndex = -1;
+  document.getElementById('games-list-container').style.display = 'block';
+  document.getElementById('game-edit-container').style.display = 'none';
+  renderGamesPanel();
+}
+
+function renderGameEditor() {
+  ensureGamesArray();
+  const g = siteContent.game[currentEditingGameIndex];
+  if (!g) return backToGamesList();
+  
   document.getElementById('game-editor').innerHTML = `
-    <div class="card-title">🎮 ${esc(g.title)}</div>
+    <div class="card-title">🎮 ${esc(g.title || 'Edit Game')}</div>
+    <input type="hidden" id="game-index" value="${currentEditingGameIndex}">
+    
+    <label>Game ID / Slug</label>
+    <input type="text" id="game-slug" value="${esc(g.slug || g.id || '')}" 
+      oninput="updateGameField('slug', this.value)" placeholder="autumns-dungeoneering">
+    
     <label>Game Cover Image</label>
     <div style="display:flex;gap:1.5rem;align-items:flex-start;margin-bottom:1rem;">
       <div class="cover-upload-area" style="width:160px;flex-shrink:0;" onclick="triggerGameCoverUpload()">
         ${g.coverImage
           ? `<img id="game-cover-preview" class="cover-preview" src="${esc(g.coverImage)}" alt="Game cover" style="width:140px;height:auto;">`
-          : `<div id="game-cover-preview" style="font-size:2.5rem;margin-bottom:0.5rem;">🍂</div>`
+          : `<div id="game-cover-preview" style="font-size:2.5rem;margin-bottom:0.5rem;">🎮</div>`
         }
         <div class="upload-hint">Click to upload</div>
         <input type="file" accept="image/*" id="game-cover-input" onchange="handleGameCoverUpload(event)">
@@ -1084,52 +1252,184 @@ function renderGamePanel() {
       <div style="flex:1;">
         <label>Cover Image URL</label>
         <input type="text" id="game-cover-url" value="${esc(g.coverImage||'')}" placeholder="/covers/game-cover.jpg"
-          oninput="siteContent.game.coverImage=this.value; markDirty(); document.getElementById('game-cover-preview').src=this.value;">
+          oninput="updateGameField('coverImage', this.value); document.getElementById('game-cover-preview').src=this.value;">
       </div>
     </div>
+    
     <div class="form-row">
-      <div><label>Game Title</label><input type="text" value="${esc(g.title)}" oninput="siteContent.game.title=this.value; markDirty()"></div>
-      <div><label>Status</label><input type="text" value="${esc(g.status)}" oninput="siteContent.game.status=this.value; markDirty()"></div>
+      <div><label>Game Title *</label><input type="text" id="game-title" value="${esc(g.title||'')}" 
+        oninput="updateGameField('title', this.value)" required></div>
+      <div><label>Status</label>
+        <select id="game-status" onchange="updateGameField('status', this.value)">
+          <option value="In Development" ${g.status === 'In Development' ? 'selected' : ''}>In Development</option>
+          <option value="Early Access" ${g.status === 'Early Access' ? 'selected' : ''}>Early Access</option>
+          <option value="Released" ${g.status === 'Released' ? 'selected' : ''}>Released</option>
+          <option value="Coming Soon" ${g.status === 'Coming Soon' ? 'selected' : ''}>Coming Soon</option>
+        </select>
+      </div>
     </div>
+    
     <label>Tagline</label>
-    <input type="text" value="${esc(g.tagline)}" oninput="siteContent.game.tagline=this.value; markDirty()">
+    <input type="text" id="game-tagline" value="${esc(g.tagline||'')}" 
+      oninput="updateGameField('tagline', this.value)" placeholder="Short subtitle">
+    
     <label>Description</label>
-    <textarea oninput="siteContent.game.description=this.value; markDirty()">${esc(g.description)}</textarea>
-    <div class="form-row-3">
-      <div><label>Steam Next Fest</label><input type="text" value="${esc(g.nextFest)}" oninput="siteContent.game.nextFest=this.value; markDirty()"></div>
-      <div><label>Early Access Date</label><input type="text" value="${esc(g.earlyAccess)}" oninput="siteContent.game.earlyAccess=this.value; markDirty()"></div>
-      <div><label>Steam URL</label><input type="url" value="${esc(g.steamUrl||'')}" placeholder="https://store.steampowered.com/..."
-        oninput="siteContent.game.steamUrl=this.value; markDirty()"></div>
-    </div>
-
+    <textarea id="game-description" rows="4" oninput="updateGameField('description', this.value)" 
+      placeholder="Full description...">${esc(g.description||'')}</textarea>
+    
     <div class="form-row">
-      <div><label>Engine</label><input type="text" value="${esc(g.engine||'')}" placeholder="Godot 4, Unity, Unreal..."
-        oninput="siteContent.game.engine=this.value; markDirty()"></div>
-      <div><label>Players</label><input type="text" value="${esc(g.players||'')}" placeholder="1, Up to 32, etc."
-        oninput="siteContent.game.players=this.value; markDirty()"></div>
+      <div><label>Engine</label><input type="text" value="${esc(g.engine||'')}" 
+        oninput="updateGameField('engine', this.value)" placeholder="Godot 4"></div>
+      <div><label>Players</label><input type="text" value="${esc(g.players||'')}" 
+        oninput="updateGameField('players', this.value)" placeholder="1"></div>
+    </div>
+    
+    <div style="margin-top:1.5rem;border-top:1px solid var(--border);padding-top:1rem;">
+      <div class="card-title" style="margin-bottom:0.75rem;">🎮 Platform Links</div>
+      <p style="font-size:0.78rem;color:var(--muted);margin-bottom:1rem;">Add links to stores and platforms.</p>
+      <div class="platform-inputs">
+        <div class="platform-row">
+          <label>Steam</label>
+          <input type="url" value="${esc(g.platforms?.steam || g.steamUrl || '')}" 
+            oninput="updatePlatform('steam', this.value)" placeholder="https://store.steampowered.com/...">
+        </div>
+        <div class="platform-row">
+          <label>Itch.io</label>
+          <input type="url" value="${esc(g.platforms?.itch || g.itchUrl || '')}" 
+            oninput="updatePlatform('itch', this.value)" placeholder="https://...itch.io/...">
+        </div>
+        <div class="platform-row">
+          <label>GOG</label>
+          <input type="url" value="${esc(g.platforms?.gog || g.gogUrl || '')}" 
+            oninput="updatePlatform('gog', this.value)" placeholder="https://www.gog.com/game/...">
+        </div>
+        <div class="platform-row">
+          <label>Epic</label>
+          <input type="url" value="${esc(g.platforms?.epic || g.epicUrl || '')}" 
+            oninput="updatePlatform('epic', this.value)" placeholder="https://store.epicgames.com/...">
+        </div>
+      </div>
     </div>
 
     <div style="margin-top:1.5rem;border-top:1px solid var(--border);padding-top:1rem;">
       <div class="card-title" style="margin-bottom:0.75rem;">✨ Features</div>
-      <p style="font-size:0.78rem;color:var(--muted);margin-bottom:1rem;">Icon, title, and short description for each feature card on the Games page.</p>
       <div id="game-features-editor">${renderGameFeatureRows(g.features || [])}</div>
       <button class="btn btn-ghost btn-sm" onclick="addGameFeature()">+ Add Feature</button>
     </div>
 
     <div style="margin-top:1.5rem;border-top:1px solid var(--border);padding-top:1rem;">
       <div class="card-title" style="margin-bottom:0.75rem;">📸 Screenshots</div>
-      <p style="font-size:0.78rem;color:var(--muted);margin-bottom:1rem;">Image URL and optional caption. Shown on the Games page gallery.</p>
       <div id="game-screenshots-editor">${renderScreenshotRows(g.screenshots || [])}</div>
       <button class="btn btn-ghost btn-sm" onclick="addScreenshot()">+ Add Screenshot</button>
     </div>
 
     <div style="margin-top:1.5rem;border-top:1px solid var(--border);padding-top:1rem;">
       <div class="card-title" style="margin-bottom:0.75rem;">📝 Devlog Entries</div>
-      <p style="font-size:0.78rem;color:var(--muted);margin-bottom:1rem;">Date, title, and body for each development update. Shown on Games page.</p>
       <div id="game-devlog-editor">${renderDevlogRows(g.devlog || [])}</div>
       <button class="btn btn-ghost btn-sm" onclick="addDevlogEntry()">+ Add Devlog Entry</button>
     </div>
   `;
+}
+
+function updateGameField(field, value) {
+  ensureGamesArray();
+  if (currentEditingGameIndex >= 0) {
+    siteContent.game[currentEditingGameIndex][field] = value;
+    markDirty();
+  }
+}
+
+function updatePlatform(platform, value) {
+  ensureGamesArray();
+  const game = siteContent.game[currentEditingGameIndex];
+  if (!game.platforms) game.platforms = {};
+  if (value) {
+    game.platforms[platform] = value;
+  } else {
+    delete game.platforms[platform];
+  }
+  markDirty();
+}
+
+function showAddGameModal() {
+  document.getElementById('add-game-modal').style.display = 'flex';
+  document.getElementById('new-game-title').focus();
+}
+
+function closeAddGameModal() {
+  document.getElementById('add-game-modal').style.display = 'none';
+  document.getElementById('new-game-title').value = '';
+  document.getElementById('new-game-slug').value = '';
+}
+
+function createNewGame() {
+  const title = document.getElementById('new-game-title').value.trim();
+  let slug = document.getElementById('new-game-slug').value.trim();
+  
+  if (!title) {
+    showToast('Please enter a game title', 'error');
+    return;
+  }
+  
+  if (!slug) {
+    slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  }
+  
+  ensureGamesArray();
+  
+  // Check for duplicate slug
+  if (siteContent.game.some(g => g.slug === slug)) {
+    showToast('A game with this slug already exists', 'error');
+    return;
+  }
+  
+  const newGame = {
+    id: slug,
+    slug: slug,
+    title: title,
+    status: 'In Development',
+    tagline: '',
+    description: '',
+    engine: 'Godot 4',
+    players: '1',
+    platforms: {},
+    features: [],
+    screenshots: [],
+    devlog: []
+  };
+  
+  siteContent.game.push(newGame);
+  markDirty();
+  closeAddGameModal();
+  renderGamesPanel();
+  showToast('New game created!');
+}
+
+function deleteGame(index) {
+  if (!confirm('Are you sure you want to delete this game? This cannot be undone.')) return;
+  
+  ensureGamesArray();
+  siteContent.game.splice(index, 1);
+  markDirty();
+  renderGamesPanel();
+  showToast('Game deleted');
+}
+
+function deleteCurrentGame() {
+  if (currentEditingGameIndex >= 0) {
+    deleteGame(currentEditingGameIndex);
+    backToGamesList();
+  }
+}
+
+function saveCurrentGame() {
+  // Validation
+  const title = document.getElementById('game-title')?.value.trim();
+  if (!title) {
+    showToast('Game title is required', 'error');
+    return;
+  }
+  saveContent();
 }
 
 function triggerGameCoverUpload() { document.getElementById('game-cover-input').click(); }
@@ -1139,12 +1439,12 @@ async function handleGameCoverUpload(event) {
   if (!file) return;
   const form = new FormData();
   form.append('cover', file);
-  form.append('bookId', 'game-cover');
+  const gameSlug = siteContent.game[currentEditingGameIndex]?.slug || 'game-cover';
+  form.append('bookId', `game-${gameSlug}`);
   try {
-    const res  = await fetch('/upload-cover', { method: 'POST', body: form });
+    const res = await fetch('/upload-cover', { method: 'POST', body: form });
     const data = await res.json();
-    siteContent.game.coverImage = data.path;
-    markDirty();
+    updateGameField('coverImage', data.path);
     const preview = document.getElementById('game-cover-preview');
     if (preview?.tagName === 'IMG') preview.src = data.path;
     else if (preview) preview.outerHTML = `<img id="game-cover-preview" class="cover-preview" src="${data.path}" style="width:140px;height:auto;">`;
@@ -1154,46 +1454,57 @@ async function handleGameCoverUpload(event) {
 }
 
 function renderGameFeatureRows(features) {
-  if (!features || !features.length) return '';
+  if (!features || !features.length) return '<p style="font-size:0.78rem;color:var(--muted);">No features yet.</p>';
   return features.map((f, i) => `
     <div class="platform-row" style="grid-template-columns:60px 1fr 1fr auto;" id="gf-${i}">
-      <input type="text" value="${esc(f.icon || '')}" placeholder="🎮" title="Emoji / icon"
-        oninput="siteContent.game.features[${i}].icon=this.value; markDirty()">
+      <input type="text" value="${esc(f.icon || '')}" placeholder="🎮"
+        oninput="updateGameArrayField('features', ${i}, 'icon', this.value)">
       <input type="text" value="${esc(f.title || '')}" placeholder="Feature title"
-        oninput="siteContent.game.features[${i}].title=this.value; markDirty()">
+        oninput="updateGameArrayField('features', ${i}, 'title', this.value)">
       <input type="text" value="${esc(f.desc || '')}" placeholder="Short description"
-        oninput="siteContent.game.features[${i}].desc=this.value; markDirty()">
+        oninput="updateGameArrayField('features', ${i}, 'desc', this.value)">
       <button class="btn btn-danger btn-sm" onclick="removeGameFeature(${i})">✕</button>
     </div>
   `).join('');
 }
 
+function updateGameArrayField(arrayName, index, field, value) {
+  ensureGamesArray();
+  if (currentEditingGameIndex >= 0) {
+    siteContent.game[currentEditingGameIndex][arrayName][index][field] = value;
+    markDirty();
+  }
+}
+
 function addGameFeature() {
-  if (!Array.isArray(siteContent.game.features)) siteContent.game.features = [];
-  siteContent.game.features.push({ icon: '', title: '', desc: '' });
+  ensureGamesArray();
+  const game = siteContent.game[currentEditingGameIndex];
+  if (!Array.isArray(game.features)) game.features = [];
+  game.features.push({ icon: '', title: '', desc: '' });
   markDirty();
-  document.getElementById('game-features-editor').innerHTML = renderGameFeatureRows(siteContent.game.features);
+  document.getElementById('game-features-editor').innerHTML = renderGameFeatureRows(game.features);
 }
 
 function removeGameFeature(index) {
-  if (!siteContent.game.features) return;
-  siteContent.game.features.splice(index, 1);
+  ensureGamesArray();
+  const game = siteContent.game[currentEditingGameIndex];
+  if (!game.features) return;
+  game.features.splice(index, 1);
   markDirty();
-  document.getElementById('game-features-editor').innerHTML = renderGameFeatureRows(siteContent.game.features);
+  document.getElementById('game-features-editor').innerHTML = renderGameFeatureRows(game.features);
 }
 
-// ── SCREENSHOTS ───────────────────────────────────────────
 function renderScreenshotRows(screenshots) {
   if (!screenshots || !screenshots.length) return '<p style="font-size:0.78rem;color:var(--muted);">No screenshots yet.</p>';
   return screenshots.map((s, i) => `
     <div class="form-row" style="margin-bottom:0.5rem;align-items:center;">
       <div style="flex:2">
-        <input type="url" value="${esc(s.url || '')}" placeholder="https://... or /screenshots/..."
-          oninput="siteContent.game.screenshots[${i}].url=this.value; markDirty()">
+        <input type="url" value="${esc(s.url || '')}" placeholder="https://..."
+          oninput="updateGameArrayField('screenshots', ${i}, 'url', this.value)">
       </div>
       <div style="flex:1">
-        <input type="text" value="${esc(s.caption || '')}" placeholder="Caption (optional)"
-          oninput="siteContent.game.screenshots[${i}].caption=this.value; markDirty()">
+        <input type="text" value="${esc(s.caption || '')}" placeholder="Caption"
+          oninput="updateGameArrayField('screenshots', ${i}, 'caption', this.value)">
       </div>
       <button class="btn btn-danger btn-sm" onclick="removeScreenshot(${i})">✕</button>
     </div>
@@ -1201,20 +1512,23 @@ function renderScreenshotRows(screenshots) {
 }
 
 function addScreenshot() {
-  if (!Array.isArray(siteContent.game.screenshots)) siteContent.game.screenshots = [];
-  siteContent.game.screenshots.push({ url: '', caption: '' });
+  ensureGamesArray();
+  const game = siteContent.game[currentEditingGameIndex];
+  if (!Array.isArray(game.screenshots)) game.screenshots = [];
+  game.screenshots.push({ url: '', caption: '' });
   markDirty();
-  document.getElementById('game-screenshots-editor').innerHTML = renderScreenshotRows(siteContent.game.screenshots);
+  document.getElementById('game-screenshots-editor').innerHTML = renderScreenshotRows(game.screenshots);
 }
 
 function removeScreenshot(index) {
-  if (!siteContent.game.screenshots) return;
-  siteContent.game.screenshots.splice(index, 1);
+  ensureGamesArray();
+  const game = siteContent.game[currentEditingGameIndex];
+  if (!game.screenshots) return;
+  game.screenshots.splice(index, 1);
   markDirty();
-  document.getElementById('game-screenshots-editor').innerHTML = renderScreenshotRows(siteContent.game.screenshots);
+  document.getElementById('game-screenshots-editor').innerHTML = renderScreenshotRows(game.screenshots);
 }
 
-// ── DEVLOG ────────────────────────────────────────────────
 function renderDevlogRows(devlog) {
   if (!devlog || !devlog.length) return '<p style="font-size:0.78rem;color:var(--muted);">No devlog entries yet.</p>';
   return devlog.map((d, i) => `
@@ -1223,32 +1537,36 @@ function renderDevlogRows(devlog) {
         <div style="flex:1">
           <label style="font-size:0.7rem;">Date</label>
           <input type="text" value="${esc(d.date || '')}" placeholder="April 2026"
-            oninput="siteContent.game.devlog[${i}].date=this.value; markDirty()">
+            oninput="updateGameArrayField('devlog', ${i}, 'date', this.value)">
         </div>
         <button class="btn btn-danger btn-sm" onclick="removeDevlogEntry(${i})" style="margin-top:1.1rem;">✕</button>
       </div>
       <label style="font-size:0.7rem;">Title</label>
       <input type="text" value="${esc(d.title || '')}" placeholder="Update title"
-        oninput="siteContent.game.devlog[${i}].title=this.value; markDirty()">
+        oninput="updateGameArrayField('devlog', ${i}, 'title', this.value)">
       <label style="font-size:0.7rem;margin-top:0.5rem;">Body</label>
       <textarea rows="3" placeholder="Description..."
-        oninput="siteContent.game.devlog[${i}].body=this.value; markDirty()">${esc(d.body || '')}</textarea>
+        oninput="updateGameArrayField('devlog', ${i}, 'body', this.value)">${esc(d.body || '')}</textarea>
     </div>
   `).join('');
 }
 
 function addDevlogEntry() {
-  if (!Array.isArray(siteContent.game.devlog)) siteContent.game.devlog = [];
-  siteContent.game.devlog.push({ date: '', title: '', body: '' });
+  ensureGamesArray();
+  const game = siteContent.game[currentEditingGameIndex];
+  if (!Array.isArray(game.devlog)) game.devlog = [];
+  game.devlog.push({ date: '', title: '', body: '' });
   markDirty();
-  document.getElementById('game-devlog-editor').innerHTML = renderDevlogRows(siteContent.game.devlog);
+  document.getElementById('game-devlog-editor').innerHTML = renderDevlogRows(game.devlog);
 }
 
 function removeDevlogEntry(index) {
-  if (!siteContent.game.devlog) return;
-  siteContent.game.devlog.splice(index, 1);
+  ensureGamesArray();
+  const game = siteContent.game[currentEditingGameIndex];
+  if (!game.devlog) return;
+  game.devlog.splice(index, 1);
   markDirty();
-  document.getElementById('game-devlog-editor').innerHTML = renderDevlogRows(siteContent.game.devlog);
+  document.getElementById('game-devlog-editor').innerHTML = renderDevlogRows(game.devlog);
 }
 
 // ── RENDER: ABOUT ─────────────────────────────────────────
