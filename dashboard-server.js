@@ -16,6 +16,7 @@ const sharp = require('sharp');
 // Import modules
 const accounts = require('./accounts.js');
 const contentDB = require('./database.js');
+const backup = require('./backup.js');
 
 // ── RATE LIMITING ─────────────────────────────────────────
 const rateLimits = new Map();
@@ -100,6 +101,15 @@ if (MANUSCRIPTS_ENABLED && !fs.existsSync(MANUSCRIPTS_DIR)) fs.mkdirSync(MANUSCR
 // Open database connection
 contentDB.Open();
 console.log('Database connection opened');
+
+// Start automatic backups (runs immediately, then daily)
+backup.createBackup();
+backup.cleanupOldBackups();
+setInterval(() => {
+    console.log(`[${new Date().toISOString()}] Running scheduled backup...`);
+    backup.createBackup();
+    backup.cleanupOldBackups();
+}, 24 * 60 * 60 * 1000); // 24 hours
 
 // ── MANUSCRIPT PARSING (.docx → chapters) ──────────────────
 const MANUSCRIPT_CACHE = new Map();
@@ -700,6 +710,44 @@ const server = http.createServer(async (req, res) => {
     if (!MANUSCRIPTS_ENABLED && req.method === 'POST' && url === '/upload-manuscript') {
         res.writeHead(503, { 'Content-Type': 'application/json' });
         return res.end(JSON.stringify({ error: 'Manuscript upload disabled (Option 1). Set MANUSCRIPTS_ENABLED=true to re-enable.' }));
+    }
+
+    // ── BACKUP API ───────────────────────────────────────────
+    // Create manual backup (admin only)
+    if (req.method === 'POST' && url === '/api/backup') {
+        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        try {
+            const success = backup.createBackup();
+            const cleaned = backup.cleanupOldBackups();
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ ok: success, cleaned }));
+        } catch (e) { res.writeHead(500); return res.end(e.message); }
+    }
+
+    // Get backup status (admin only)
+    if (url === '/api/backup/status') {
+        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        try {
+            const backupDir = path.join(__dirname, 'data', 'backups');
+            const files = fs.readdirSync(backupDir)
+                .filter(f => f.startsWith('nekojin-') && f.endsWith('.db'))
+                .map(f => {
+                    const stats = fs.statSync(path.join(backupDir, f));
+                    return {
+                        name: f,
+                        date: f.replace('nekojin-', '').replace('.db', ''),
+                        size: stats.size,
+                        created: stats.mtime
+                    };
+                })
+                .sort((a, b) => b.created - a.created);
+            
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ backups: files, count: files.length }));
+        } catch (e) { 
+            res.writeHead(500); 
+            return res.end(JSON.stringify({ error: e.message })); 
+        }
     }
 
     // ── USER MANAGEMENT API ───────────────────────────────
