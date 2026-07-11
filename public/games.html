@@ -255,6 +255,347 @@
       .hero-scroll-line { height: 40px; }
     }
 
+    /* ── GAMES LIST (Multi-game support) ── */
+    .games-list {
+      padding: 4rem 2rem 6rem;
+      background: linear-gradient(180deg, var(--void) 0%, rgba(16,10,44,0.5) 100%);
+    }
+
+    .games-list-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 4rem;
+    }
+
+    /* Individual Game Card */
+    .game-card {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 3rem;
+      background: linear-gradient(135deg, rgba(12,7,32,0.98), rgba(16,10,44,0.98));
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      overflow: hidden;
+      position: relative;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .game-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+    }
+
+    .game-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 75% 25%, rgba(124,58,237,0.08), transparent 55%);
+      pointer-events: none;
+    }
+
+    /* Featured game (first one) - full width showcase */
+    .game-card.featured {
+      grid-template-columns: 1fr 1fr;
+      min-height: 500px;
+    }
+
+    .game-card.featured .game-card-info {
+      padding: 3rem;
+    }
+
+    .game-card.featured .game-card-title {
+      font-size: clamp(2rem, 4vw, 3rem);
+    }
+
+    /* Compact cards for additional games */
+    .game-card.compact {
+      grid-template-columns: 300px 1fr;
+      min-height: auto;
+    }
+
+    .game-card.compact .game-card-art {
+      min-height: 200px;
+    }
+
+    .game-card-info {
+      padding: 2.5rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .game-card-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+      padding: 0.4rem 1rem;
+      border-radius: 100px;
+      width: fit-content;
+    }
+
+    .game-card-status.in-development {
+      background: rgba(74,222,128,0.08);
+      color: #4ade80;
+      border: 1px solid rgba(74,222,128,0.25);
+    }
+
+    .game-card-status.released {
+      background: rgba(96,165,250,0.08);
+      color: #60a5fa;
+      border: 1px solid rgba(96,165,250,0.25);
+    }
+
+    .game-card-status.early-access {
+      background: rgba(251,191,36,0.08);
+      color: #fbbf24;
+      border: 1px solid rgba(251,191,36,0.25);
+    }
+
+    .status-pulse {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      animation: pulse-status 2.5s ease-in-out infinite;
+    }
+
+    .in-development .status-pulse { background: #4ade80; box-shadow: 0 0 6px #4ade80; }
+    .released .status-pulse { background: #60a5fa; box-shadow: 0 0 6px #60a5fa; animation: none; }
+    .early-access .status-pulse { background: #fbbf24; box-shadow: 0 0 6px #fbbf24; }
+
+    @keyframes pulse-status {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.2); }
+    }
+
+    .game-card-title {
+      font-family: var(--font-display);
+      font-size: clamp(1.5rem, 3vw, 2.2rem);
+      color: var(--ink);
+      line-height: 1.1;
+      margin-bottom: 0.75rem;
+    }
+
+    .game-card-tagline {
+      font-size: 0.95rem;
+      font-weight: 300;
+      color: rgba(212,200,240,0.75);
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+    }
+
+    .game-card-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .game-card-meta-item {
+      font-size: 0.8rem;
+      color: rgba(212,200,240,0.55);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .game-card-meta-item strong {
+      color: rgba(212,200,240,0.85);
+      font-weight: 600;
+    }
+
+    .game-card-cta {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-top: auto;
+    }
+
+    .btn-game-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #7c3aed, #4c1d95);
+      color: white;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 0.85rem;
+      border: 1px solid rgba(124,58,237,0.45);
+      box-shadow: 0 4px 20px rgba(76,29,149,0.4);
+      transition: all 0.22s;
+    }
+
+    .btn-game-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(76,29,149,0.55);
+    }
+
+    .btn-game-primary:disabled,
+    .btn-game-primary.disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    .btn-game-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.04);
+      color: rgba(196,181,253,0.7);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.85rem;
+      border: 1px solid rgba(124,58,237,0.25);
+      transition: all 0.22s;
+    }
+
+    .btn-game-secondary:hover {
+      background: rgba(124,58,237,0.1);
+      border-color: rgba(124,58,237,0.45);
+      color: #e9d5ff;
+    }
+
+    .game-card-art {
+      position: relative;
+      min-height: 300px;
+      background: linear-gradient(160deg, rgba(45,16,101,0.5), rgba(30,27,75,0.8));
+      overflow: hidden;
+    }
+
+    .game-card-art img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.5s ease;
+    }
+
+    .game-card:hover .game-card-art img {
+      transform: scale(1.05);
+    }
+
+    .game-card-art-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: rgba(196,181,253,0.4);
+      gap: 1rem;
+    }
+
+    .art-placeholder-icon {
+      font-size: 4rem;
+      opacity: 0.5;
+    }
+
+    .art-placeholder-text {
+      font-size: 0.9rem;
+      font-weight: 300;
+    }
+
+    /* Loading placeholder */
+    .game-card-placeholder {
+      background: linear-gradient(135deg, rgba(12,7,32,0.5), rgba(16,10,44,0.5));
+      border: 2px dashed var(--border);
+      border-radius: 24px;
+      padding: 6rem 2rem;
+      text-align: center;
+    }
+
+    .placeholder-art {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+      color: rgba(196,181,253,0.3);
+    }
+
+    .placeholder-icon {
+      font-size: 5rem;
+      opacity: 0.4;
+    }
+
+    .placeholder-label {
+      font-size: 1rem;
+      font-weight: 300;
+    }
+
+    /* Section headers */
+    .games-section-title {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      color: var(--ink);
+      margin-bottom: 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .games-section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, var(--border), transparent);
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .game-card,
+      .game-card.featured {
+        grid-template-columns: 1fr;
+      }
+
+      .game-card.compact {
+        grid-template-columns: 1fr;
+      }
+
+      .game-card-art {
+        min-height: 200px !important;
+        order: -1;
+      }
+
+      .game-card-info {
+        padding: 2rem;
+      }
+
+      .game-card.featured .game-card-info {
+        padding: 2rem;
+      }
+    }
+
+    @media (max-width: 700px) {
+      .games-list {
+        padding: 2rem 1rem 4rem;
+      }
+
+      .game-card-info {
+        padding: 1.5rem;
+      }
+
+      .game-card-cta {
+        flex-direction: column;
+      }
+
+      .btn-game-primary,
+      .btn-game-secondary {
+        justify-content: center;
+      }
+    }
+
     /* ── MAIN GAME CARD ── */
     .game-showcase {
       padding: 3rem 2rem 4rem;
@@ -596,7 +937,7 @@
 <main>
 
   <!-- HERO -->
-  <!-- IMMERSIVE HERO -->
+  <!-- IMMERSIVE HERO (Studio Games Portfolio) -->
   <section class="games-hero" id="games-hero">
     <!-- Particle Canvas -->
     <canvas id="hero-particles"></canvas>
@@ -613,34 +954,33 @@
     
     <!-- Hero Content -->
     <div class="games-hero-content">
-      <p class="games-hero-eyebrow">In Development</p>
-      <h1 class="games-hero-title" id="games-hero-title">Autumn's Dungeoneering</h1>
-      <p class="games-hero-tagline" id="games-hero-tagline">A cozy tactical dungeon-crawling RPG with emergent AI</p>
+      <p class="games-hero-eyebrow">Nekojin Interactive</p>
+      <h1 class="games-hero-title" id="games-hero-title">Games</h1>
+      <p class="games-hero-tagline" id="games-hero-tagline">
+        Interactive laboratories built in Godot. Proving grounds for emergent AI, systemic design, and player-driven stories.
+      </p>
       <div class="games-hero-meta" id="games-hero-meta">
         <span class="hero-meta-item">🎮 Godot 4</span>
-        <span class="hero-meta-item">🍂 Cozy Vibes</span>
         <span class="hero-meta-item">🤖 Emergent AI</span>
+        <span class="hero-meta-item">🍂 Cozy Vibes</span>
       </div>
     </div>
     
     <!-- Scroll Indicator -->
-    <div class="hero-scroll-indicator" id="hero-scroll" onclick="document.getElementById('game-showcase').scrollIntoView({behavior:'smooth'})">
-      <span class="hero-scroll-text">Explore</span>
+    <div class="hero-scroll-indicator" id="hero-scroll" onclick="document.getElementById('games-list').scrollIntoView({behavior:'smooth'})">
+      <span class="hero-scroll-text">View Projects</span>
       <div class="hero-scroll-line"></div>
     </div>
   </section>
 
-  <!-- MAIN GAME CARD -->
-  <section class="game-showcase" id="game-showcase">
-    <div class="game-showcase-card reveal" id="game-card">
-      <!-- populated by JS -->
-      <div class="game-showcase-info">
-        <div style="color:var(--muted);font-size:0.88rem;">Loading...</div>
-      </div>
-      <div class="game-showcase-art">
-        <div class="game-art-placeholder">
-          <span class="art-icon-main">🍂</span>
-          <span class="art-label">Key Art in Progress</span>
+  <!-- GAMES LIST (Supports multiple games) -->
+  <section class="games-list" id="games-list">
+    <div class="games-list-container" id="games-container">
+      <!-- Games populated by JS -->
+      <div class="game-card-placeholder">
+        <div class="placeholder-art">
+          <span class="placeholder-icon">🎮</span>
+          <span class="placeholder-label">Loading games...</span>
         </div>
       </div>
     </div>
@@ -862,107 +1202,127 @@ async function loadGame() {
     const g = data.game;
     if (!g) return;
 
-    // Hero — populate with game data
-    if (g.title) {
-      document.getElementById('games-hero-title').textContent = g.title;
-    }
-    if (g.tagline) {
-      document.getElementById('games-hero-tagline').textContent = g.tagline;
-    }
-    
-    // Update hero meta with dynamic data
-    const heroMeta = document.getElementById('games-hero-meta');
-    if (heroMeta && g.engine) {
-      const metaItems = [
-        g.engine && `<span class="hero-meta-item">🎮 ${esc(g.engine)}</span>`,
-        g.players && `<span class="hero-meta-item">👥 ${esc(g.players)}</span>`,
-        `<span class="hero-meta-item">${esc(g.status || 'In Development')}</span>`
-      ].filter(Boolean).join('');
-      if (metaItems) heroMeta.innerHTML = metaItems;
+    // Hero — populate with game data (first game if array)
+    const firstGame = Array.isArray(g) ? g[0] : g;
+    if (firstGame) {
+      if (firstGame.title) {
+        document.getElementById('games-hero-title').textContent = 'Games';
+      }
+      if (firstGame.tagline) {
+        document.getElementById('games-hero-tagline').textContent = 
+          'Interactive laboratories built in Godot. Proving grounds for emergent AI, systemic design, and player-driven stories.';
+      }
     }
 
-    // Steam button
-    const steamBtn = g.steamUrl
-      ? `<a href="${esc(g.steamUrl)}" target="_blank" rel="noopener" class="btn-steam">🎮 Wishlist on Steam</a>`
-      : `<span class="btn-steam disabled">🎮 Wishlist on Steam</span>`;
-
-    // Art panel
-    const artHtml = g.coverImage
-      ? `<img src="${esc(g.coverImage)}" alt="${esc(g.title)} cover">`
-      : `<div class="game-art-placeholder">
-           <span class="art-icon-main">🍂</span>
-           <span class="art-label">Key Art in Progress</span>
-         </div>`;
-
-    // Meta items -- only show if value exists
-    const metaItems = [
-      g.engine      && `<div class="game-meta-item">🎮 <span><strong>Engine:</strong> ${esc(g.engine)}</span></div>`,
-      g.players     && `<div class="game-meta-item">👥 <span><strong>Players:</strong> ${esc(g.players)}</span></div>`,
-      g.nextFest    && `<div class="game-meta-item">🗓️ <span><strong>Next Fest:</strong> ${esc(g.nextFest)}</span></div>`,
-      g.earlyAccess && `<div class="game-meta-item">🚀 <span><strong>Early Access:</strong> ${esc(g.earlyAccess)}</span></div>`,
-      `<div class="game-meta-item">💻 <span><strong>Platform:</strong> PC (Steam)</span></div>`,
-    ].filter(Boolean).join('');
-
-    document.getElementById('game-card').innerHTML = `
-      <div class="game-showcase-info">
-        <div class="game-status-row">
-          <div class="game-status-badge">
-            <span class="status-dot"></span>
-            ${esc(g.status || 'In Development')}
+    // ── RENDER GAMES LIST (supports multiple games) ─────────
+    const gamesContainer = document.getElementById('games-container');
+    if (gamesContainer && g) {
+      // Support multiple games array or single game object
+      const games = Array.isArray(g) ? g : [g];
+      
+      if (games.length === 0) {
+        gamesContainer.innerHTML = `
+          <div class="game-card-placeholder">
+            <div class="placeholder-art">
+              <span class="placeholder-icon">🎮</span>
+              <span class="placeholder-label">No games announced yet</span>
+            </div>
           </div>
-          <span class="game-platform-badge">PC · Steam</span>
-        </div>
-        <h2 class="game-showcase-title">${esc(g.title)}</h2>
-        <p class="game-showcase-tagline">${esc(g.tagline)}</p>
-        <div class="game-meta-grid">${metaItems}</div>
-        <div class="game-cta-row">${steamBtn}</div>
-      </div>
-      <div class="game-showcase-art">${artHtml}</div>
-      <div class="game-showcase-description">${formatGameDesc(g.description, g.title)}</div>
-    `;
-
-    // Re-observe the newly rendered card
-    document.querySelectorAll('#game-card .reveal').forEach(el => revealObs.observe(el));
-
-    // ── FEATURES ──
-    const featGrid = document.getElementById('features-grid');
-    if (featGrid && Array.isArray(g.features) && g.features.length) {
-      featGrid.innerHTML = g.features.map((f,i) => `
-        <div class="feature-card reveal reveal-d${Math.min(i+1,6)}">
-          <div class="feature-icon">${esc(f.icon || '✨')}</div>
-          <div class="feature-title">${esc(f.title)}</div>
-          <div class="feature-desc">${esc(f.desc)}</div>
-        </div>
-      `).join('');
-      featGrid.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+        `;
+      } else {
+        gamesContainer.innerHTML = games.map((game, index) => {
+          const isFeatured = index === 0;
+          const cardClass = isFeatured ? 'featured' : 'compact';
+          
+          // Status badge
+          const statusClass = (game.status || 'in-development').toLowerCase().replace(/\s+/g, '-');
+          const statusPulse = statusClass === 'released' ? '' : '<span class="status-pulse"></span>';
+          
+          // Cover art
+          const artHtml = game.coverImage
+            ? `<img src="${esc(game.coverImage)}" alt="${esc(game.title)} cover" loading="lazy">`
+            : `<div class="game-card-art-placeholder">
+                 <span class="art-placeholder-icon">${game.icon || '🎮'}</span>
+                 <span class="art-placeholder-text">Key Art in Progress</span>
+               </div>`;
+          
+          // Meta items
+          const metaItems = [
+            game.engine && `<span class="game-card-meta-item"><strong>${esc(game.engine)}</strong></span>`,
+            game.players && `<span class="game-card-meta-item">${esc(game.players)}</span>`,
+            game.platform && `<span class="game-card-meta-item">${esc(game.platform)}</span>`
+          ].filter(Boolean).join('');
+          
+          // Buttons
+          const primaryBtn = game.steamUrl
+            ? `<a href="${esc(game.steamUrl)}" target="_blank" rel="noopener" class="btn-game-primary">🎮 Wishlist on Steam</a>`
+            : `<button class="btn-game-primary disabled" disabled>🎮 Coming Soon</button>`;
+          
+          const learnMoreBtn = `<a href="/game?id=${esc(game.id || game.slug || 'main')}" class="btn-game-secondary">Learn More</a>`;
+          
+          return `
+            <article class="game-card ${cardClass}" data-game-id="${esc(game.id || game.slug || 'main')}">
+              <div class="game-card-info">
+                <div class="game-card-status ${statusClass}">
+                  ${statusPulse}
+                  ${esc(game.status || 'In Development')}
+                </div>
+                <h2 class="game-card-title">${esc(game.title)}</h2>
+                <p class="game-card-tagline">${esc(game.tagline || game.subtitle || '')}</p>
+                <div class="game-card-meta">${metaItems}</div>
+                <div class="game-card-cta">
+                  ${primaryBtn}
+                  ${learnMoreBtn}
+                </div>
+              </div>
+              <div class="game-card-art">${artHtml}</div>
+            </article>
+          `;
+        }).join('');
+      }
     }
 
-    // ── SCREENSHOTS ──
-    const screenshotSection = document.getElementById('screenshots-section');
-    if (screenshotSection && Array.isArray(g.screenshots) && g.screenshots.length) {
-      screenshotSection.style.display = '';
-      document.getElementById('screenshots-grid').innerHTML = g.screenshots.map((s,i) => `
-        <div class="screenshot-card reveal reveal-d${Math.min(i+1,4)}">
-          <img src="${esc(s.url)}" alt="${esc(s.caption || '')}" loading="lazy">
-          ${s.caption ? `<div class="screenshot-caption">${esc(s.caption)}</div>` : ''}
-        </div>
-      `).join('');
-      screenshotSection.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
-    } else if (screenshotSection) {
-      screenshotSection.style.display = 'none';
-    }
+    // ── FEATURED GAME DETAILS (only for first game) ────────
+    if (firstGame) {
+      const featGrid = document.getElementById('features-grid');
+      if (featGrid && Array.isArray(firstGame.features) && firstGame.features.length) {
+        featGrid.innerHTML = firstGame.features.map((f,i) => `
+          <div class="feature-card reveal reveal-d${Math.min(i+1,6)}">
+            <div class="feature-icon">${esc(f.icon || '✨')}</div>
+            <div class="feature-title">${esc(f.title)}</div>
+            <div class="feature-desc">${esc(f.desc)}</div>
+          </div>
+        `).join('');
+        featGrid.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+      }
 
-    // ── DEVLOG ──
-    const devlogList = document.getElementById('devlog-list');
-    if (devlogList && Array.isArray(g.devlog) && g.devlog.length) {
-      devlogList.innerHTML = g.devlog.map((d,i) => `
-        <div class="devlog-entry reveal reveal-d${Math.min(i+1,4)}">
-          <div class="devlog-date">${esc(d.date)}</div>
-          <div class="devlog-title">${esc(d.title)}</div>
-          <div class="devlog-desc">${esc(d.body)}</div>
-        </div>
-      `).join('');
-      devlogList.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+      // ── SCREENSHOTS ──
+      const screenshotSection = document.getElementById('screenshots-section');
+      if (screenshotSection && Array.isArray(firstGame.screenshots) && firstGame.screenshots.length) {
+        screenshotSection.style.display = '';
+        document.getElementById('screenshots-grid').innerHTML = firstGame.screenshots.map((s,i) => `
+          <div class="screenshot-card reveal reveal-d${Math.min(i+1,4)}">
+            <img src="${esc(s.url)}" alt="${esc(s.caption || '')}" loading="lazy">
+            ${s.caption ? `<div class="screenshot-caption">${esc(s.caption)}</div>` : ''}
+          </div>
+        `).join('');
+        screenshotSection.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+      } else if (screenshotSection) {
+        screenshotSection.style.display = 'none';
+      }
+
+      // ── DEVLOG ──
+      const devlogList = document.getElementById('devlog-list');
+      if (devlogList && Array.isArray(firstGame.devlog) && firstGame.devlog.length) {
+        devlogList.innerHTML = firstGame.devlog.map((d,i) => `
+          <div class="devlog-entry reveal reveal-d${Math.min(i+1,4)}">
+            <div class="devlog-date">${esc(d.date)}</div>
+            <div class="devlog-title">${esc(d.title)}</div>
+            <div class="devlog-desc">${esc(d.body)}</div>
+          </div>
+        `).join('');
+        devlogList.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+      }
     }
 
     // Footer tagline
