@@ -125,13 +125,15 @@
       font-weight: 700;
       letter-spacing: 0.25em;
       text-transform: uppercase;
-      color: var(--royal-light, #a855f7);
+      color: #d8b4fe;
       margin-bottom: 1.5rem;
       animation: fadeup 0.7s 0.1s both;
       position: relative;
       display: inline-flex;
       align-items: center;
       gap: 0.75rem;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+      z-index: 2;
     }
     .hero-eyebrow::before,
     .hero-eyebrow::after {
@@ -147,11 +149,13 @@
       font-family: var(--font-display, 'Darumadrop One', cursive);
       font-size: clamp(3.5rem, 9vw, 7.5rem);
       line-height: 1.0;
-      color: #f0eaff;
+      color: #ffffff;
       margin-bottom: 1.75rem;
       animation: fadeup 0.7s 0.25s both;
       position: relative;
       letter-spacing: -0.01em;
+      text-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      z-index: 2;
     }
     .hero-title .accent {
       background: linear-gradient(135deg, #c084fc, #818cf8, #60a5fa);
@@ -168,12 +172,14 @@
 
     .hero-sub {
       font-size: clamp(1rem, 2vw, 1.2rem);
-      color: rgba(200,185,240,0.7);
+      color: rgba(230, 225, 255, 0.95);
       max-width: 540px;
       line-height: 1.8;
       margin-bottom: 2.5rem;
       animation: fadeup 0.7s 0.4s both;
       font-weight: 300;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+      z-index: 2;
     }
 
     .hero-cta {
@@ -182,6 +188,7 @@
       flex-wrap: wrap;
       justify-content: center;
       animation: fadeup 0.7s 0.55s both;
+      z-index: 2;
     }
 
     .btn-hero-primary {
@@ -1134,7 +1141,7 @@ if ('serviceWorker' in navigator) {
       size: Math.random() * 2 + 0.5,
       speedX: (Math.random() - 0.5) * 0.3,
       speedY: (Math.random() - 0.5) * 0.3,
-      opacity: Math.random() * 0.5 + 0.2,
+      opacity: Math.random() * 0.3 + 0.1,
       pulse: Math.random() * Math.PI * 2
     };
   }
@@ -1166,7 +1173,7 @@ if ('serviceWorker' in navigator) {
       if (p.y > canvas.height) p.y = 0;
       
       // Draw particle with pulse
-      const pulseOpacity = p.opacity * (0.7 + 0.3 * Math.sin(p.pulse));
+      const pulseOpacity = p.opacity * (0.5 + 0.5 * Math.sin(p.pulse));
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
       ctx.fillStyle = `rgba(196, 181, 253, ${pulseOpacity})`;
@@ -1178,11 +1185,11 @@ if ('serviceWorker' in navigator) {
         const dy = p.y - p2.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         
-        if (dist < 100) {
+        if (dist < 120) {
           ctx.beginPath();
           ctx.moveTo(p.x, p.y);
           ctx.lineTo(p2.x, p2.y);
-          ctx.strokeStyle = `rgba(124, 58, 237, ${0.1 * (1 - dist / 100)})`;
+          ctx.strokeStyle = `rgba(124, 58, 237, ${0.08 * (1 - dist / 120)})`;
           ctx.lineWidth = 0.5;
           ctx.stroke();
         }
