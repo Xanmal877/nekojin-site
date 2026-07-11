@@ -1,7 +1,7 @@
 # Planned Features — Nekojin Interactive Website
 
 > Roadmap and upcoming features.  
-> Last updated: 2026-07-11 (Games page revamp planning)
+> Last updated: 2026-07-11 (Games page revamp in progress - multi-game support added ✅)
 
 ---
 
@@ -158,6 +158,13 @@ Complete redesign of the games showcase page for Autumn's Dungeoneering.
   - Platform-specific branded buttons with icons
   - Support for custom platforms via `platforms` object
   - Graceful "Coming Soon" fallback
+
+- [x] **Admin Multi-Game Management** ✅ COMPLETE
+  - Games list view in admin panel
+  - Add new game with title/slug
+  - Edit individual games
+  - Delete games with confirmation
+  - Platform links editor (Steam, Itch, GOG, Epic)
 
 #### Interactive Elements
 - [ ] **Screenshot Lightbox**
