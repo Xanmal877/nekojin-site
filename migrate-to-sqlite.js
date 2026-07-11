@@ -79,6 +79,7 @@ async function migrate() {
                     slug: book.slug || book.id,
                     description: book.description || '',
                     blurb: book.blurb || '',
+                    volume: book.volume || '',
                     status: book.status || 'draft',
                     seriesId: book.seriesId || book.series_id,
                     volumeNumber: book.volumeNumber || book.volume_number,

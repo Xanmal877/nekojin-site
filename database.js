@@ -125,6 +125,7 @@ class ContentDB {
                 slug TEXT UNIQUE NOT NULL,
                 description TEXT,
                 blurb TEXT,
+                volume TEXT,
                 status TEXT DEFAULT 'draft',
                 series_id TEXT,
                 volume_number INTEGER,
@@ -273,14 +274,15 @@ class ContentDB {
     async InsertBook(data) {
         const sql = `
             INSERT INTO books (
-                id, title, slug, description, blurb, status, series_id,
+                id, title, slug, description, blurb, volume, status, series_id,
                 volume_number, word_count, cover_path, visible, genres, tags
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
                 title = excluded.title,
                 slug = excluded.slug,
                 description = excluded.description,
                 blurb = excluded.blurb,
+                volume = excluded.volume,
                 status = excluded.status,
                 series_id = excluded.series_id,
                 volume_number = excluded.volume_number,
@@ -298,6 +300,7 @@ class ContentDB {
             data.slug,
             data.description || '',
             data.blurb || '',
+            data.volume || '',
             data.status || 'draft',
             data.seriesId || data.series_id || null,
             data.volumeNumber || data.volume_number || null,
@@ -308,7 +311,7 @@ class ContentDB {
             JSON.stringify(data.tags || [])
         ]);
 
-        // Insert platforms
+        // Insert platforms with normalized field names
         const platforms = data.platforms || [];
         for (let i = 0; i < platforms.length; i++) {
             const p = platforms[i];
@@ -346,7 +349,22 @@ class ContentDB {
             }
             row.visible = !!row.visible;
             row.wordCount = row.word_count;
+
+            // Map database fields to expected API format
+            row.cover = row.cover_path;
+            row.volume = row.volume || '';
+            row.ctaPlatform = 'kdp'; // Default, not stored in DB
+            
+            // Load platforms and normalize field names
             row.platforms = await this.SelectBookPlatforms(row.id);
+            // Map platform fields for compatibility
+            row.platforms = row.platforms.map(p => ({
+                type: p.platform_type,
+                name: p.platform_name,
+                url: p.url,
+                ...p
+            }));
+            
             books.push(row);
         }
         return books;
@@ -557,6 +575,7 @@ class ContentDB {
                 slug: b.slug || b.id,
                 description: b.description || '',
                 blurb: b.blurb || '',
+                volume: b.volume || b.volume_info || '',
                 status: b.status || 'draft',
                 seriesId: b.seriesId || b.series_id,
                 volumeNumber: b.volumeNumber || b.volume_number,
@@ -565,7 +584,11 @@ class ContentDB {
                 visible: b.visible !== false,
                 genres: b.genres || [],
                 tags: b.tags || [],
-                platforms: b.platforms || b.links || []
+                platforms: (b.platforms || b.links || []).map(p => ({
+                    type: p.type || p.platform_type,
+                    name: p.name || p.platform_name,
+                    url: p.url
+                }))
             });
         }
 
