@@ -8,6 +8,8 @@
 
 ---
 
+
+
 ## High Priority
 
 ### 1. ✅ Data Storage Migration COMPLETE
@@ -29,7 +31,18 @@
 
 ## Medium Priority
 
-### 2. No Account Management in Admin Panel
+### 2. Navigation Search Bar UX Issues
+**Status:** Open  
+**Impact:** Search is hard to find and incorrectly labeled
+
+- Search bar in top-right is too small (easy to miss)
+- Placeholder says "Search books" but searches entire site (books + games)
+- Should say "Search site" or "Search..." to match actual behavior
+- Consider making search more prominent or adding search icon
+
+---
+
+### 3. No Account Management in Admin Panel
 **Status:** Open  
 **Impact:** Admin must use `/register` page directly to create accounts
 
@@ -42,7 +55,7 @@
 
 ---
 
-### 3. Manuscript Upload Has No Validation
+### 4. Manuscript Upload Has No Validation
 **Status:** Open  
 **Impact:** Could upload non-docx files, corrupt data
 
@@ -53,7 +66,7 @@
 
 ---
 
-### 4. Static Asset Serving Is Broad
+### 5. Static Asset Serving Is Broad
 **Status:** Open  
 **Impact:** Security consideration
 
@@ -64,7 +77,7 @@
 
 ## Low Priority / Nice to Have
 
-### 5. No Content Backup System
+### 6. No Content Backup System
 **Status:** Open  
 **Impact:** Data loss risk
 
@@ -74,7 +87,7 @@
 
 ---
 
-### 6. Session Files Grow Unbounded
+### 7. Session Files Grow Unbounded
 **Status:** Open  
 **Impact:** Minor disk usage
 
@@ -84,7 +97,7 @@
 
 ---
 
-### 7. Image Uploads Have No Optimization
+### 8. Image Uploads Have No Optimization
 **Status:** Open  
 **Impact:** Performance
 
@@ -95,7 +108,7 @@
 
 ---
 
-### 8. No API Rate Limiting
+### 9. No API Rate Limiting
 **Status:** Open  
 **Impact:** Security/performance
 
@@ -132,3 +145,6 @@ Description here...
 **Expected:** What should happen  
 **Actual:** What happens instead
 ```
+
+
+The search bar in the top right in too small and it says search books instead.
