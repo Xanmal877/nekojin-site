@@ -726,7 +726,7 @@
     <li><a href="/about">About</a></li>
   </ul>
   <div class="nav-search-wrap">
-    <input type="text" class="nav-search" id="nav-search" placeholder="Search books…" autocomplete="off">
+    <input type="text" class="nav-search" id="nav-search" placeholder="Search…" autocomplete="off">
     <div class="nav-search-results" id="nav-search-results"></div>
   </div>
   <button class="nav-hamburger" id="nav-hamburger" aria-label="Menu" onclick="toggleNav()">
@@ -735,7 +735,7 @@
 </nav>
 <div class="nav-drawer" id="nav-drawer">
   <ul>
-    <li><input type="text" class="drawer-search" id="drawer-search" placeholder="Search books…" autocomplete="off"></li>
+    <li><input type="text" class="drawer-search" id="drawer-search" placeholder="Search…" autocomplete="off"></li>
     <li><div class="drawer-search-results" id="drawer-search-results"></div></li>
     <li><a href="/" class="active">Home</a></li>
     <li><a href="/books">Books</a></li>
@@ -982,7 +982,7 @@ loadHome();
       ).slice(0, 6);
 
       if (!matches.length) {
-        results.innerHTML = '<div class="sr-empty">No books found</div>';
+        results.innerHTML = '<div class="sr-empty">No results</div>';
       } else {
         results.innerHTML = matches.map(b => `
           <a href="/book?id=${encodeURIComponent(b.id)}" class="sr-item" onclick="document.querySelectorAll('.nav-search-results,.drawer-search-results').forEach(r=>r.classList.remove('visible'));document.getElementById('nav-drawer').classList.remove('open');document.body.style.overflow='';document.getElementById('nav-hamburger').classList.remove('open')">
