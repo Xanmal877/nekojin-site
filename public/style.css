@@ -114,23 +114,35 @@ nav {
 
 .nav-links {
   display: flex;
-  gap: 0.15rem;
+  gap: 0.5rem;
   list-style: none;
 }
 
 .nav-links a {
   font-family: var(--font-body);
-  font-weight: 500;
-  font-size: 0.88rem;
+  font-weight: 600;
+  font-size: 1rem;
   color: var(--muted);
   text-decoration: none;
-  padding: 0.45rem 0.95rem;
-  border-radius: 8px;
-  transition: all 0.18s;
-  letter-spacing: 0.03em;
+  padding: 0.6rem 1.25rem;
+  border-radius: 10px;
+  transition: all 0.2s;
+  letter-spacing: 0.02em;
+  border: 1px solid rgba(124,58,237,0.2);
+  background: rgba(124,58,237,0.05);
 }
-.nav-links a:hover { color: var(--royal-light); background: rgba(124,58,237,0.1); }
-.nav-links a.active { color: var(--royal-light); background: rgba(124,58,237,0.12); }
+.nav-links a:hover { 
+  color: var(--royal-light); 
+  background: rgba(124,58,237,0.15); 
+  border-color: rgba(124,58,237,0.35);
+  transform: translateY(-2px);
+}
+.nav-links a.active { 
+  color: var(--royal-light); 
+  background: rgba(124,58,237,0.2); 
+  border-color: rgba(124,58,237,0.5);
+  box-shadow: 0 4px 12px rgba(124,58,237,0.2);
+}
 
 /* ── MAIN ── */
 main { position: relative; z-index: 1; }
