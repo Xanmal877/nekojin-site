@@ -1,13 +1,51 @@
 @import url('https://fonts.googleapis.com/css2?family=Darumadrop+One&family=Zen+Kaku+Gothic+New:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap');
 
 :root {
-  /* ── CORE PALETTE ── */
+  /* ── CORE PALETTE (LIGHT DEFAULT) ── */
+  --bg:           #f8f6ff;
+  --surface:      #ffffff;
+  --surface2:     #f0ecff;
+  --surface3:     #e8e4f5;
+
+  /* ── ACCENT COLORS ── */
+  --royal:        #7c3aed;
+  --royal-light:  #8b5cf6;
+  --royal-deep:   #5b21b6;
+  --sapphire:     #4f46e5;
+  --sapphire-light:#6366f1;
+  --sapphire-deep: #3730a3;
+  --gold:         #b45309;
+  --gold-soft:    #f59e0b;
+
+  /* ── TEXT ── */
+  --ink:          #1e1b4b;
+  --text:         #4338ca;
+  --muted:        #6b7280;
+  --faint:        #c7d2fe;
+
+  /* ── LEGACY COMPAT ── */
+  --cream:        #f8f6ff;
+  --parchment:    #e8e4f5;
+
+  --font-display: 'Darumadrop One', cursive;
+  --font-body:    'Zen Kaku Gothic New', sans-serif;
+  --font-mono:    'Space Mono', monospace;
+
+  --shadow-soft:  0 4px 24px rgba(124,58,237,0.1);
+  --shadow-card:  0 8px 40px rgba(124,58,237,0.15);
+  --shadow-glow:  0 0 40px rgba(124,58,237,0.15);
+
+  --border:       rgba(124,58,237,0.2);
+  --border2:      rgba(124,58,237,0.35);
+}
+
+/* ── DARK MODE ── */
+[data-theme="dark"] {
   --bg:           #080612;
   --surface:      #100d1f;
   --surface2:     #160f2e;
   --surface3:     #1e1540;
 
-  /* ── ACCENT COLORS ── */
   --royal:        #7c3aed;
   --royal-light:  #a78bfa;
   --royal-deep:   #4c1d95;
@@ -17,19 +55,13 @@
   --gold:         #d4a017;
   --gold-soft:    #fcd34d;
 
-  /* ── TEXT ── */
   --ink:          #f0eaff;
   --text:         #d4c8f0;
   --muted:        #6b5fa0;
   --faint:        #2d2455;
 
-  /* ── LEGACY COMPAT (used in existing pages) ── */
   --cream:        #080612;
   --parchment:    #1e1540;
-
-  --font-display: 'Darumadrop One', cursive;
-  --font-body:    'Zen Kaku Gothic New', sans-serif;
-  --font-mono:    'Space Mono', monospace;
 
   --shadow-soft:  0 4px 24px rgba(0,0,0,0.4);
   --shadow-card:  0 8px 40px rgba(0,0,0,0.5);
@@ -736,6 +768,37 @@ footer::before {
 }
 .nav-drawer ul li a:hover { color: var(--royal-light); background: rgba(124,58,237,0.1); }
 .nav-drawer ul li a.active { color: var(--royal-light); background: rgba(124,58,237,0.12); }
+
+/* ── THEME TOGGLE ── */
+.theme-toggle {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 1.1rem;
+}
+.theme-toggle:hover {
+  transform: scale(1.05);
+  border-color: var(--royal-light);
+  box-shadow: var(--shadow-soft);
+}
+.theme-toggle .theme-icon {
+  display: none;
+}
+/* Light mode: show sun */
+:root .theme-toggle .sun,
+[data-theme="light"] .theme-toggle .sun { display: block; }
+:root .theme-toggle .moon,
+[data-theme="light"] .theme-toggle .moon { display: none; }
+/* Dark mode: show moon */
+[data-theme="dark"] .theme-toggle .sun { display: none; }
+[data-theme="dark"] .theme-toggle .moon { display: block; }
 
 /* ── NAV SEARCH ── */
 .nav-search-wrap { position: relative; }

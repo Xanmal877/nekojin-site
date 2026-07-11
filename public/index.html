@@ -725,6 +725,10 @@
     <li><a href="/games">Games</a></li>
     <li><a href="/about">About</a></li>
   </ul>
+  <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode" onclick="toggleTheme()">
+    <span class="theme-icon sun">☀️</span>
+    <span class="theme-icon moon">🌙</span>
+  </button>
   <div class="nav-search-wrap">
     <input type="text" class="nav-search" id="nav-search" placeholder="Search…" autocomplete="off">
     <div class="nav-search-results" id="nav-search-results"></div>
@@ -761,10 +765,7 @@
     <span class="accent">Nekojin</span> Interactive
   </h1>
   <p class="hero-sub">
-    I create stories and games inside the Xanrea universe, a world where characters act with real autonomy and follow their own goals instead of waiting for instructions. My work combines character-driven fantasy, and worlds that grow through the choices of the people inside them.
-  </p>
-  <p class="hero-sub" style="font-size: 0.95rem; color: rgba(225, 220, 255, 0.9); margin-top: -1rem;">
-    Everything I work on aims toward one core idea: characters should feel alive. Solo creator building a universe one system and one story at a time.
+    Stories and games where characters think for themselves. Building the Xanrea universe one system at a time.
   </p>
   <div class="hero-cta">
     <a href="/books" class="btn-hero-primary"><img src="/images/saki-icon.png" alt="" style="width:1.4em;height:1.4em;vertical-align:middle;margin-right:0.4em;"> Check Out Our Books!</a>
@@ -779,8 +780,8 @@
 <!-- NEWSLETTER -->
 <div class="nl-banner">
   <div class="nl-banner-inner">
-    <h4>📬 Never miss a chapter</h4>
-    <p>Get notified when new books, chapters, or game updates drop. No spam, just worlds.</p>
+    <h4>📬 Stay Updated</h4>
+    <p>New releases, chapters, and dev updates. No spam.</p>
     <div class="nl-form" id="nl-form">
       <input type="email" id="nl-email" placeholder="your@email.com" required>
       <button onclick="subscribeNewsletter()">Subscribe</button>
@@ -923,6 +924,23 @@ async function subscribeNewsletter() {
   setTimeout(()=>toast.classList.remove('visible'), 3000);
   btn.disabled = false; btn.textContent = 'Subscribe';
 }
+
+// ── THEME TOGGLE ───────────────────────────────────────
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme') || 'light';
+  const next = current === 'light' ? 'dark' : 'light';
+  html.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+}
+
+// Load saved theme
+document.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem('theme');
+  if (saved) {
+    document.documentElement.setAttribute('data-theme', saved);
+  }
+});
 
 function toggleNav() {
   const btn = document.getElementById('nav-hamburger');
