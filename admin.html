@@ -1312,6 +1312,39 @@ function renderGameEditor() {
     </div>
 
     <div style="margin-top:1.5rem;border-top:1px solid var(--border);padding-top:1rem;">
+      <div class="card-title" style="margin-bottom:0.75rem;">🎲 Demo</div>
+      <p style="font-size:0.78rem;color:var(--muted);margin-bottom:1rem;">Add a playable demo. Can be on a store (Steam/Itch) or self-hosted.</p>
+      <div class="form-row">
+        <div style="flex:0 0 120px;">
+          <label style="font-size:0.75rem;">Has Demo</label>
+          <select onchange="updateGameField('hasDemo', this.value === 'true'); toggleDemoFields(this.value === 'true')">
+            <option value="false" ${!g.hasDemo ? 'selected' : ''}>No</option>
+            <option value="true" ${g.hasDemo ? 'selected' : ''}>Yes</option>
+          </select>
+        </div>
+        <div id="demo-platform-row" style="flex:0 0 150px;${!g.hasDemo ? 'display:none;' : ''}">
+          <label style="font-size:0.75rem;">Demo On</label>
+          <select id="demo-platform-select" onchange="updateGameField('demoPlatform', this.value)">
+            <option value="steam" ${g.demoPlatform === 'steam' ? 'selected' : ''}>Steam</option>
+            <option value="itch" ${g.demoPlatform === 'itch' ? 'selected' : ''}>Itch.io</option>
+            <option value="self" ${g.demoPlatform === 'self' ? 'selected' : ''}>Self-hosted</option>
+          </select>
+        </div>
+        <div id="demo-url-row" style="flex:1;${!g.hasDemo ? 'display:none;' : ''}">
+          <label style="font-size:0.75rem;">Demo URL</label>
+          <input type="url" id="demo-url-input" value="${esc(g.demoUrl || '')}" 
+            oninput="updateGameField('demoUrl', this.value)" 
+            placeholder="https://.../demo or /demo/index.html">
+        </div>
+      </div>
+      <p id="demo-help-text" style="font-size:0.72rem;color:var(--muted);margin-top:0.5rem;${!g.hasDemo ? 'display:none;' : ''}">
+        ${g.demoPlatform === 'steam' ? 'Link to Steam demo page' : 
+          g.demoPlatform === 'itch' ? 'Link to Itch.io demo or project' : 
+          'Direct link to playable demo (HTML5/WebGL build)'}
+      </p>
+    </div>
+
+    <div style="margin-top:1.5rem;border-top:1px solid var(--border);padding-top:1rem;">
       <div class="card-title" style="margin-bottom:0.75rem;">✨ Features</div>
       <div id="game-features-editor">${renderGameFeatureRows(g.features || [])}</div>
       <button class="btn btn-ghost btn-sm" onclick="addGameFeature()">+ Add Feature</button>
@@ -1336,6 +1369,27 @@ function updateGameField(field, value) {
   if (currentEditingGameIndex >= 0) {
     siteContent.game[currentEditingGameIndex][field] = value;
     markDirty();
+  }
+}
+
+function toggleDemoFields(show) {
+  const platformRow = document.getElementById('demo-platform-row');
+  const urlRow = document.getElementById('demo-url-row');
+  const helpText = document.getElementById('demo-help-text');
+  
+  if (platformRow) platformRow.style.display = show ? 'block' : 'none';
+  if (urlRow) urlRow.style.display = show ? 'block' : 'none';
+  if (helpText) helpText.style.display = show ? 'block' : 'none';
+  
+  // Update help text based on platform
+  if (show) {
+    const platform = document.getElementById('demo-platform-select')?.value || 'steam';
+    const messages = {
+      steam: 'Link to Steam demo page',
+      itch: 'Link to Itch.io demo or project',
+      self: 'Direct link to playable demo (HTML5/WebGL build)'
+    };
+    if (helpText) helpText.textContent = messages[platform] || messages.self;
   }
 }
 
@@ -1393,6 +1447,9 @@ function createNewGame() {
     engine: 'Godot 4',
     players: '1',
     platforms: {},
+    hasDemo: false,
+    demoPlatform: 'itch',
+    demoUrl: '',
     features: [],
     screenshots: [],
     devlog: []
