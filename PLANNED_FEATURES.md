@@ -28,17 +28,18 @@ Move from JSON file storage to SQLite database:
 
 ---
 
-### 1.2 Admin User Management
-**Priority:** High  
-**Estimated:** 1 session
+### 1.2 Admin User Management ✅ COMPLETE
+**Date:** 2026-07-11  
+**Priority:** High
 
 Add account management to admin panel:
 
-- [ ] User list view (username, role, created date)
-- [ ] Create user button (calls existing `accounts.js`)
-- [ ] Reset password functionality
-- [ ] Delete user (with confirmation)
-- [ ] Role assignment (admin/user)
+- [x] User list view (username, role, created date)
+- [x] Create user button (calls existing `accounts.js`)
+- [x] Reset password functionality
+- [x] Delete user (with confirmation)
+- [x] Role assignment (admin/user)
+- [x] Protected default admin from deletion
 
 ---
 
@@ -145,111 +146,6 @@ Better chapter/reader experience:
 
 ---
 
-### 2.4 Games Page Revamp 🎮 NEW
-**Status:** Planning  
-**Priority:** High  
-**Estimated:** 2-3 sessions
-
-Complete redesign of the games showcase page for Autumn's Dungeoneering.
-
-#### Visual/Layout
-- [x] **Hero Section Enhancement** ✅ COMPLETE
-  - Bigger hero with parallax scrolling effect
-  - Particle system with constellation lines
-  - Animated gradient with scroll indicator
-
-- [ ] **Screenshot Gallery**
-  - Side-by-side image gallery with lightbox
-  - Image carousel with swipe support
-  - Thumbnail navigation
-  - Full-screen mode on click
-
-- [x] **Atmospheric Color Scheme** ✅ COMPLETE
-  - Darker, more immersive theme with glass-morphism
-  - Cinematic gradient overlays and glows
-  - Animated borders on hover
-
-- [ ] **Feature Cards Animation**
-  - Hover effects (lift, glow, scale)
-  - Staggered reveal animations on scroll
-  - Icon animations (subtle pulse/bounce)
-  - Card tilt effect on mouse move
-
-#### Content Additions
-- [ ] **Gameplay Video Section**
-  - Embedded YouTube/Vimeo player
-  - Custom video thumbnail with play button overlay
-  - Trailer autoplay on scroll into view (muted)
-
-- [ ] **System Requirements Panel**
-  - Minimum/Recommended specs table
-  - OS compatibility icons (Windows, Linux, Steam Deck)
-  - Storage/RAM/Graphics card requirements
-
-- [ ] **Newsletter Signup**
-  - Game-specific email capture
-  - "Get notified on Early Access launch"
-  - Integration with existing newsletter system
-
-- [ ] **Press Kit Section**
-  - Downloadable assets (logos, screenshots, key art)
-  - Fact sheet with game details
-  - Developer bio and contact
-  - Link to press inquiries
-
-- [x] **Multi-Platform Wishlist** ✅ COMPLETE
-  - Steam, Itch.io, GOG Galaxy, Epic Games Store
-  - Platform-specific branded buttons with icons
-  - Support for custom platforms via `platforms` object
-  - Graceful "Coming Soon" fallback
-  - Smart labels: Wishlist (in-dev) → Get/Buy (released) → Try Demo (with demo)
-
-- [x] **Admin Multi-Game Management** ✅ COMPLETE
-  - Games list view in admin panel
-  - Add new game with title/slug
-  - Edit individual games
-  - Delete games with confirmation
-  - Platform links editor (Steam, Itch, GOG, Epic)
-
-#### Interactive Elements
-- [ ] **Screenshot Lightbox**
-  - Click to expand images
-  - Keyboard navigation (arrow keys, Escape)
-  - Caption display
-  - Swipe on mobile
-
-- [ ] **Tabbed Interface**
-  - Tabs: Overview | Features | Media | Devlog | Press
-  - Smooth transitions between tabs
-  - URL hash updates for direct linking
-
-- [ ] **Development Progress Bar**
-  - Visual progress indicator (% complete)
-  - Milestone markers (Alpha → Beta → Early Access)
-  - Estimated timeline tooltips
-
-- [ ] **Interactive Feature Demo**
-  - Hover to see feature explanations
-  - Optional: mini interactive demo (if feasible)
-  - GIF/video previews on hover
-
-#### Technical
-- [ ] **Performance Optimization**
-  - Lazy loading for images below fold
-  - WebP format with JPG fallback
-  - Responsive image srcsets
-  - Minimize layout shift
-
-- [ ] **SEO Enhancements**
-  - Game schema markup (Schema.org)
-  - Open Graph tags for social sharing
-  - Meta description optimization
-  - Sitemap entry
-
-**Inspiration:** Steam store pages, Hades website, Hollow Knight site, modern indie game marketing pages
-
----
-
 ## Phase 3: Technical Improvements
 
 ### 3.1 Dark/Light Mode Toggle ✅ COMPLETE
@@ -263,7 +159,7 @@ Complete redesign of the games showcase page for Autumn's Dungeoneering.
 
 ---
 
-### 3.1 Image Optimization Pipeline
+### 3.2 Image Optimization Pipeline
 **Priority:** Medium  
 **Estimated:** 1 session
 

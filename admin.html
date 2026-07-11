@@ -405,6 +405,9 @@
       <span class="sidebar-icon">👁️</span> Visibility
     </div>
     <div class="sidebar-section">Operations</div>
+    <div class="sidebar-item" data-panel="users" onclick="switchPanel('users')">
+      <span class="sidebar-icon">👥</span> Users
+    </div>
     <div class="sidebar-item" data-panel="settings" onclick="switchPanel('settings')">
       <span class="sidebar-icon">⚙️</span> Settings
     </div>
@@ -488,6 +491,64 @@
       <p class="panel-sub">Show or hide individual books and series on the public site instantly.</p>
       <div class="card" id="visibility-editor"><p style="color:var(--muted);">Loading...</p></div>
       <button class="btn btn-primary" onclick="saveContent()">💾 Save Visibility</button>
+    </div>
+
+    <!-- USERS PANEL -->
+    <div class="panel" id="panel-users">
+      <h1 class="panel-title">👥 Users</h1>
+      <p class="panel-sub">Manage user accounts, roles, and passwords.</p>
+      
+      <div class="users-toolbar" style="display:flex;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="openAddUserModal()">+ Create User</button>
+      </div>
+      
+      <div class="card" id="users-list-container">
+        <p style="color:var(--muted);">Loading users...</p>
+      </div>
+    </div>
+
+    <!-- ADD USER MODAL -->
+    <div id="add-user-modal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Create New User</h3>
+          <button class="modal-close" onclick="closeAddUserModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <label>Username</label>
+          <input type="text" id="new-user-username" placeholder="Enter username...">
+          <label>Password</label>
+          <input type="password" id="new-user-password" placeholder="Enter password...">
+          <label>Role</label>
+          <select id="new-user-role">
+            <option value="user">User</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" onclick="closeAddUserModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="createNewUser()">Create User</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESET PASSWORD MODAL -->
+    <div id="reset-password-modal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Reset Password</h3>
+          <button class="modal-close" onclick="closeResetPasswordModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p style="margin-bottom:1rem;color:var(--muted);">Enter a new password for <strong id="reset-password-username"></strong>.</p>
+          <label>New Password</label>
+          <input type="password" id="reset-password-input" placeholder="Enter new password...">
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" onclick="closeResetPasswordModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="submitResetPassword()">Reset Password</button>
+        </div>
+      </div>
     </div>
 
     <!-- SETTINGS PANEL -->
@@ -1882,8 +1943,205 @@ renderBooksPanel = function() {
   refreshMsStatus();
 };
 
+// ── USER MANAGEMENT ─────────────────────────────────────
+let usersData = [];
+
+async function loadUsers() {
+  const container = document.getElementById('users-list-container');
+  if (!container) return;
+  
+  container.innerHTML = '<p style="color:var(--muted);">Loading users...</p>';
+  
+  try {
+    const res = await fetch('/api/users');
+    if (res.status === 403) {
+      container.innerHTML = '<p style="color:var(--red);">Access denied. Admin privileges required.</p>';
+      return;
+    }
+    if (res.status === 401) {
+      container.innerHTML = '<p style="color:var(--red);">Session expired. Please <a href="/login">log in</a> again.</p>';
+      return;
+    }
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    usersData = await res.json();
+    renderUsersPanel();
+  } catch (e) {
+    console.error('loadUsers error:', e);
+    container.innerHTML = '<p style="color:var(--red);">Error loading users: ' + e.message + '</p>';
+  }
+}
+
+function renderUsersPanel() {
+  const container = document.getElementById('users-list-container');
+  if (!usersData.length) {
+    container.innerHTML = '<p style="color:var(--muted);">No users found.</p>';
+    return;
+  }
+  
+  const rows = usersData.map(u => `
+    <div class="user-row" style="display:flex;align-items:center;justify-content:space-between;padding:0.75rem 0;border-bottom:1px solid var(--border);"
+      data-username="${esc(u.username)}">
+      <div style="display:flex;align-items:center;gap:1rem;flex:1;">
+        <div>
+          <div style="font-weight:600;color:var(--text);">${esc(u.username)}</div>
+          <div style="font-size:0.78rem;color:var(--muted);">Created: ${new Date(u.createdAt).toLocaleDateString()}</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:0.75rem;">
+        <span class="role-badge ${u.role}" style="padding:0.25rem 0.75rem;border-radius:999px;font-size:0.75rem;font-weight:600;text-transform:uppercase;background:${u.role === 'admin' ? 'rgba(232,176,32,0.15)' : 'rgba(124,58,237,0.15)'};color:${u.role === 'admin' ? 'var(--gold)' : 'var(--royal)'};border:1px solid ${u.role === 'admin' ? 'rgba(232,176,32,0.3)' : 'rgba(124,58,237,0.3)'};">
+          ${u.role}
+        </span>
+        <select onchange="changeUserRole('${esc(u.username)}', this.value)" style="padding:0.4rem 0.6rem;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:0.8rem;cursor:pointer;"
+          ${u.username === 'xanmal' ? 'disabled title="Cannot modify default admin"' : ''}>
+          <option value="user" ${u.role === 'user' ? 'selected' : ''}>User</option>
+          <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" onclick="resetUserPassword('${esc(u.username)}')" ${u.username === 'xanmal' ? 'disabled' : ''}>Reset Password</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteUser('${esc(u.username)}')" ${u.username === 'xanmal' ? 'disabled' : ''}>Delete</button>
+      </div>
+    </div>
+  `).join('');
+  
+  container.innerHTML = rows;
+}
+
+function openAddUserModal() {
+  document.getElementById('add-user-modal').style.display = 'flex';
+  document.getElementById('new-user-username').focus();
+}
+
+function closeAddUserModal() {
+  document.getElementById('add-user-modal').style.display = 'none';
+  document.getElementById('new-user-username').value = '';
+  document.getElementById('new-user-password').value = '';
+  document.getElementById('new-user-role').value = 'user';
+}
+
+async function createNewUser() {
+  const username = document.getElementById('new-user-username').value.trim();
+  const password = document.getElementById('new-user-password').value;
+  const role = document.getElementById('new-user-role').value;
+  
+  if (!username || !password) {
+    showToast('Username and password are required', 'error');
+    return;
+  }
+  
+  try {
+    const res = await fetch('/api/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password, role })
+    });
+    
+    if (res.status === 409) {
+      showToast('Username already exists', 'error');
+      return;
+    }
+    if (!res.ok) throw new Error('Failed to create user');
+    
+    showToast(`User ${username} created successfully`, 'success');
+    closeAddUserModal();
+    await loadUsers();
+  } catch (e) {
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+async function changeUserRole(username, role) {
+  if (!confirm(`Change ${username}'s role to ${role}?`)) return;
+  
+  try {
+    const res = await fetch(`/api/users/${encodeURIComponent(username)}/role`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role })
+    });
+    
+    if (!res.ok) throw new Error('Failed to change role');
+    showToast(`Role updated for ${username}`, 'success');
+    await loadUsers();
+  } catch (e) {
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+let currentResetUsername = null;
+
+function openResetPasswordModal(username) {
+  currentResetUsername = username;
+  document.getElementById('reset-password-username').textContent = username;
+  document.getElementById('reset-password-input').value = '';
+  document.getElementById('reset-password-modal').style.display = 'flex';
+  document.getElementById('reset-password-input').focus();
+}
+
+function closeResetPasswordModal() {
+  document.getElementById('reset-password-modal').style.display = 'none';
+  currentResetUsername = null;
+}
+
+async function submitResetPassword() {
+  const newPassword = document.getElementById('reset-password-input').value;
+  if (!newPassword) {
+    showToast('Password cannot be empty', 'error');
+    return;
+  }
+  
+  try {
+    const res = await fetch(`/api/users/${encodeURIComponent(currentResetUsername)}/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: newPassword })
+    });
+    
+    if (!res.ok) throw new Error('Failed to reset password');
+    showToast(`Password reset for ${currentResetUsername}`, 'success');
+    closeResetPasswordModal();
+  } catch (e) {
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+async function resetUserPassword(username) {
+  openResetPasswordModal(username);
+}
+
+async function deleteUser(username) {
+  if (!confirm(`Are you sure you want to delete ${username}?\n\nThis will permanently remove the user account. This cannot be undone.`)) return;
+  
+  try {
+    const res = await fetch(`/api/users/${encodeURIComponent(username)}`, {
+      method: 'DELETE'
+    });
+    
+    if (!res.ok) throw new Error('Failed to delete user');
+    showToast(`User ${username} deleted`, 'success');
+    await loadUsers();
+  } catch (e) {
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+// Load users when panel is shown
+const _origSwitchPanel = switchPanel;
+switchPanel = function(panelName) {
+  _origSwitchPanel(panelName);
+  if (panelName === 'users') loadUsers();
+};
+
+const _origInit = init;
+init = function() {
+  _origInit();
+};
+
 init();
 loadBgSettings();
+
+// Load users if starting on users panel
+if (document.querySelector('.sidebar-item[data-panel="users"]')?.classList.contains('active')) {
+  loadUsers();
+}
 </script>
 </body>
 </html>

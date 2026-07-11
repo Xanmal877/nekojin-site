@@ -83,12 +83,12 @@ function findUser(username) {
     return db.users[username] || null;
 }
 
-function createUser(username, password) {
+function createUser(username, password, role = 'user') {
     const db = loadUsers();
     if (db.users[username]) return false;
     db.users[username] = {
         passwordHash: bcrypt.hashSync(password, SALT_ROUNDS),
-        role: 'user',
+        role: role,
         createdAt: Date.now()
     };
     saveUsers(db);
@@ -131,6 +131,40 @@ function ensureAdminUser() {
         console.log('Created default admin user: xanmal');
     }
     if (migrated) saveUsers(db);
+}
+
+// ── USER MANAGEMENT ────────────────────────────────────
+function listAllUsers() {
+    const db = loadUsers();
+    return Object.entries(db.users).map(([username, user]) => ({
+        username,
+        role: user.role || 'user',
+        createdAt: user.createdAt
+    }));
+}
+
+function deleteUser(username) {
+    const db = loadUsers();
+    if (!db.users[username]) return false;
+    delete db.users[username];
+    saveUsers(db);
+    return true;
+}
+
+function resetPassword(username, newPassword) {
+    const db = loadUsers();
+    if (!db.users[username]) return false;
+    db.users[username].passwordHash = bcrypt.hashSync(newPassword, SALT_ROUNDS);
+    saveUsers(db);
+    return true;
+}
+
+function setUserRole(username, role) {
+    const db = loadUsers();
+    if (!db.users[username]) return false;
+    db.users[username].role = role;
+    saveUsers(db);
+    return true;
 }
 
 // ── USER KEYS ───────────────────────────────────────────
@@ -198,6 +232,11 @@ module.exports = {
     verifyUser,
     getUserRole,
     isAdmin,
+    // User management
+    listAllUsers,
+    deleteUser,
+    resetPassword,
+    setUserRole,
     // User keys
     getUserKeys,
     setUserKey,

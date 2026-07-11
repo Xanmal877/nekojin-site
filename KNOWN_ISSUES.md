@@ -42,16 +42,19 @@
 
 ---
 
-### 3. No Account Management in Admin Panel
-**Status:** Open  
-**Impact:** Admin must use `/register` page directly to create accounts
+### 3. ✅ No Account Management in Admin Panel — FIXED
+**Status:** Fixed 2026-07-11  
+**Commit:** `036bd32`
 
-- Admin panel has no user list view
-- No way to reset passwords from admin
-- No way to view/delete user accounts
-- No role management UI
+- Admin panel now has Users section
+- User list view with username, role, created date
+- Create user button with role selection
+- Reset password functionality
+- Delete user with confirmation
+- Role management (admin/user)
+- Protected default admin (xanmal) from deletion/modification
 
-**Workaround:** Use `/register` public page, or manually edit `users.json`
+**Old Workaround:** Use `/register` public page, or manually edit `users.json`
 
 ---
 
@@ -122,6 +125,7 @@
 
 | Issue | Date Fixed | Commit |
 |-------|------------|--------|
+| No account management in admin panel | 2026-07-11 | `feat: admin user management panel` |
 | Homepage typography imbalanced (title too big, text too small) | 2026-07-11 | `fix: better font sizing ratio, compact layout` |
 | Homepage scroll required to see newsletter | 2026-07-11 | (same) |
 | CTA buttons too small, static icons | 2026-07-11 | `feat: bigger CTA buttons with animated characters, inline newsletter` |
