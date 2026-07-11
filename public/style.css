@@ -2,14 +2,14 @@
 
 :root {
   /* ── CORE PALETTE (LIGHT DEFAULT) ── */
-  --bg:           #f8f6ff;
-  --surface:      #ffffff;
-  --surface2:     #f0ecff;
-  --surface3:     #e8e4f5;
+  --bg:           #ffffff;
+  --surface:      #f8f9fa;
+  --surface2:     #e9ecef;
+  --surface3:     #dee2e6;
 
   /* ── ACCENT COLORS ── */
-  --royal:        #7c3aed;
-  --royal-light:  #8b5cf6;
+  --royal:        #6d28d9;
+  --royal-light:  #7c3aed;
   --royal-deep:   #5b21b6;
   --sapphire:     #4f46e5;
   --sapphire-light:#6366f1;
@@ -18,25 +18,25 @@
   --gold-soft:    #f59e0b;
 
   /* ── TEXT ── */
-  --ink:          #1e1b4b;
-  --text:         #4338ca;
+  --ink:          #111827;
+  --text:         #374151;
   --muted:        #6b7280;
-  --faint:        #c7d2fe;
+  --faint:        #9ca3af;
 
   /* ── LEGACY COMPAT ── */
-  --cream:        #f8f6ff;
-  --parchment:    #e8e4f5;
+  --cream:        #ffffff;
+  --parchment:    #f3f4f6;
 
   --font-display: 'Darumadrop One', cursive;
   --font-body:    'Zen Kaku Gothic New', sans-serif;
   --font-mono:    'Space Mono', monospace;
 
-  --shadow-soft:  0 4px 24px rgba(124,58,237,0.1);
-  --shadow-card:  0 8px 40px rgba(124,58,237,0.15);
-  --shadow-glow:  0 0 40px rgba(124,58,237,0.15);
+  --shadow-soft:  0 4px 24px rgba(0,0,0,0.08);
+  --shadow-card:  0 8px 40px rgba(0,0,0,0.1);
+  --shadow-glow:  0 0 40px rgba(124,58,237,0.1);
 
-  --border:       rgba(124,58,237,0.2);
-  --border2:      rgba(124,58,237,0.35);
+  --border:       rgba(0,0,0,0.08);
+  --border2:      rgba(0,0,0,0.15);
 }
 
 /* ── DARK MODE ── */
@@ -87,9 +87,8 @@ body::before {
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(ellipse 70% 50% at 15% 0%,   rgba(124,58,237,0.07) 0%, transparent 60%),
-    radial-gradient(ellipse 50% 60% at 85% 100%,  rgba(59,106,204,0.06) 0%, transparent 60%),
-    radial-gradient(ellipse 40% 40% at 50% 50%,   rgba(124,58,237,0.03) 0%, transparent 70%);
+    radial-gradient(ellipse 70% 50% at 15% 0%,   rgba(124,58,237,0.03) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 60% at 85% 100%,  rgba(59,106,204,0.02) 0%, transparent 60%);
   pointer-events: none;
   z-index: 0;
 }
@@ -99,7 +98,7 @@ nav {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(8,6,18,0.88);
+  background: var(--surface);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--border);
@@ -113,7 +112,7 @@ nav {
 .nav-logo {
   font-family: var(--font-display);
   font-size: 1.4rem;
-  color: var(--royal-light);
+  color: var(--royal);
   text-decoration: none;
   letter-spacing: 0.02em;
   display: flex;
@@ -121,7 +120,7 @@ nav {
   gap: 0.5rem;
   transition: color 0.2s;
 }
-.nav-logo:hover { color: #c4b5fd; }
+.nav-logo:hover { color: var(--royal-light); }
 
 .nav-logo .paw {
   width: 30px;

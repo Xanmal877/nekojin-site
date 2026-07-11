@@ -21,11 +21,29 @@
   <style>
     /* ── PAGE-SPECIFIC OVERRIDES & ENHANCEMENTS ── */
 
-    /* Animated starfield background */
+    /* Starfield - only visible in dark mode */
     body::before {
       content: '';
       position: fixed;
       inset: 0;
+      background-image:
+        radial-gradient(1px 1px at 15% 25%, rgba(124,58,237,0.15) 0%, transparent 100%),
+        radial-gradient(1px 1px at 42% 68%, rgba(124,58,237,0.1) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 71% 12%, rgba(124,58,237,0.12) 0%, transparent 100%),
+        radial-gradient(1px 1px at 88% 55%, rgba(124,58,237,0.1) 0%, transparent 100%),
+        radial-gradient(1px 1px at 33% 88%, rgba(124,58,237,0.08) 0%, transparent 100%),
+        radial-gradient(1px 1px at 60% 40%, rgba(124,58,237,0.06) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 5% 72%, rgba(124,58,237,0.08) 0%, transparent 100%),
+        radial-gradient(1px 1px at 95% 30%, rgba(124,58,237,0.1) 0%, transparent 100%),
+        radial-gradient(1px 1px at 78% 82%, rgba(124,58,237,0.06) 0%, transparent 100%),
+        radial-gradient(1px 1px at 22% 48%, rgba(124,58,237,0.08) 0%, transparent 100%);
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.5;
+      transition: opacity 0.3s;
+    }
+    [data-theme="dark"] body::before {
+      opacity: 1;
       background-image:
         radial-gradient(1px 1px at 15% 25%, rgba(255,255,255,0.35) 0%, transparent 100%),
         radial-gradient(1px 1px at 42% 68%, rgba(255,255,255,0.2) 0%, transparent 100%),
@@ -37,8 +55,6 @@
         radial-gradient(1px 1px at 95% 30%, rgba(255,255,255,0.25) 0%, transparent 100%),
         radial-gradient(1px 1px at 78% 82%, rgba(255,255,255,0.15) 0%, transparent 100%),
         radial-gradient(1px 1px at 22% 48%, rgba(255,255,255,0.2) 0%, transparent 100%);
-      pointer-events: none;
-      z-index: 0;
     }
 
     /* ── PARTICLE CANVAS ── */
@@ -47,6 +63,11 @@
       inset: 0;
       pointer-events: none;
       z-index: 1;
+      opacity: 0.6;
+      transition: opacity 0.3s;
+    }
+    [data-theme="dark"] #hero-particles {
+      opacity: 1;
     }
 
     /* ── PARALLAX LAYERS ── */
@@ -57,9 +78,17 @@
       z-index: 0;
     }
     .hero-parallax-layer--1 {
+      background: radial-gradient(circle at 30% 70%, rgba(124,58,237,0.04) 0%, transparent 50%);
+      transition: background 0.3s;
+    }
+    [data-theme="dark"] .hero-parallax-layer--1 {
       background: radial-gradient(circle at 30% 70%, rgba(124,58,237,0.08) 0%, transparent 50%);
     }
     .hero-parallax-layer--2 {
+      background: radial-gradient(circle at 70% 30%, rgba(167,139,250,0.03) 0%, transparent 40%);
+      transition: background 0.3s;
+    }
+    [data-theme="dark"] .hero-parallax-layer--2 {
       background: radial-gradient(circle at 70% 30%, rgba(167,139,250,0.06) 0%, transparent 40%);
     }
 
@@ -80,10 +109,17 @@
       position: absolute;
       inset: 0;
       background:
+        radial-gradient(ellipse 80% 60% at 50% 40%, rgba(124,58,237,0.08) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 40% at 20% 80%, rgba(59,106,204,0.05) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 50% at 85% 20%, rgba(124,40,212,0.04) 0%, transparent 60%);
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    [data-theme="dark"] .hero-bg-mesh {
+      background:
         radial-gradient(ellipse 80% 60% at 50% 40%, rgba(91,26,154,0.18) 0%, transparent 70%),
         radial-gradient(ellipse 40% 40% at 20% 80%, rgba(59,106,204,0.12) 0%, transparent 60%),
         radial-gradient(ellipse 50% 50% at 85% 20%, rgba(124,40,212,0.1) 0%, transparent 60%);
-      pointer-events: none;
     }
 
     /* Floating geometric shapes */
@@ -149,37 +185,42 @@
       font-family: var(--font-display, 'Darumadrop One', cursive);
       font-size: clamp(3.5rem, 9vw, 7.5rem);
       line-height: 1.0;
-      color: #ffffff;
+      color: var(--ink);
       margin-bottom: 1.75rem;
       animation: fadeup 0.7s 0.25s both;
       position: relative;
       letter-spacing: -0.01em;
-      text-shadow: 0 4px 20px rgba(0,0,0,0.5);
       z-index: 2;
+      text-shadow: none;
+    }
+    [data-theme="dark"] .hero-title {
+      color: #ffffff;
+      text-shadow: 0 4px 20px rgba(0,0,0,0.5);
     }
     .hero-title .accent {
-      background: linear-gradient(135deg, #c084fc, #818cf8, #60a5fa);
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
     }
-    .hero-title .line2 {
-      display: block;
-      font-size: clamp(2.2rem, 5.5vw, 4.8rem);
-      color: rgba(240,234,255,0.72);
-      margin-top: 0.15em;
+    [data-theme="dark"] .hero-title .accent {
+      background: linear-gradient(135deg, #c084fc, #818cf8, #60a5fa);
     }
 
     .hero-sub {
       font-size: clamp(1rem, 2vw, 1.2rem);
-      color: rgba(230, 225, 255, 0.95);
+      color: var(--text);
       max-width: 540px;
       line-height: 1.8;
       margin-bottom: 2.5rem;
       animation: fadeup 0.7s 0.4s both;
-      font-weight: 300;
-      text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+      font-weight: 400;
       z-index: 2;
+      text-shadow: none;
+    }
+    [data-theme="dark"] .hero-sub {
+      color: rgba(230, 225, 255, 0.95);
+      text-shadow: 0 2px 10px rgba(0,0,0,0.5);
     }
 
     .hero-cta {
@@ -194,21 +235,30 @@
     .btn-hero-primary {
       padding: 0.85rem 2rem;
       border-radius: 12px;
-      background: linear-gradient(135deg, #7c28d4, #5b1a9a);
+      background: linear-gradient(135deg, #7c3aed, #6d28d9);
       color: white;
       font-weight: 700;
       font-size: 0.9rem;
       text-decoration: none;
       letter-spacing: 0.04em;
-      border: 1px solid rgba(124,40,212,0.5);
+      border: 1px solid rgba(124,58,237,0.3);
       transition: all 0.25s;
-      box-shadow: 0 4px 24px rgba(91,26,154,0.35);
+      box-shadow: 0 4px 24px rgba(124,58,237,0.15);
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
     }
+    [data-theme="dark"] .btn-hero-primary {
+      background: linear-gradient(135deg, #7c28d4, #5b1a9a);
+      border-color: rgba(124,40,212,0.5);
+      box-shadow: 0 4px 24px rgba(91,26,154,0.35);
+    }
     .btn-hero-primary:hover {
       transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(124,58,237,0.25);
+      background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    }
+    [data-theme="dark"] .btn-hero-primary:hover {
       box-shadow: 0 8px 32px rgba(91,26,154,0.5);
       background: linear-gradient(135deg, #9333ea, #6b21a8);
     }
@@ -216,23 +266,33 @@
     .btn-hero-outline {
       padding: 0.85rem 2rem;
       border-radius: 12px;
-      background: rgba(255,255,255,0.04);
-      color: rgba(200,185,240,0.85);
+      background: var(--surface);
+      color: var(--text);
       font-weight: 600;
       font-size: 0.9rem;
       text-decoration: none;
       letter-spacing: 0.04em;
-      border: 1px solid rgba(124,40,212,0.3);
+      border: 1px solid var(--border);
       transition: all 0.25s;
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
     }
+    [data-theme="dark"] .btn-hero-outline {
+      background: rgba(255,255,255,0.04);
+      color: rgba(200,185,240,0.85);
+      border-color: rgba(124,40,212,0.3);
+    }
     .btn-hero-outline:hover {
+      background: var(--surface2);
+      border-color: var(--royal);
+      color: var(--royal);
+      transform: translateY(-2px);
+    }
+    [data-theme="dark"] .btn-hero-outline:hover {
       background: rgba(124,40,212,0.12);
       border-color: rgba(124,40,212,0.5);
       color: #e9d5ff;
-      transform: translateY(-2px);
     }
 
     /* Scroll indicator */
@@ -251,13 +311,23 @@
       font-size: 0.65rem;
       letter-spacing: 0.2em;
       text-transform: uppercase;
+      color: var(--muted);
+      opacity: 0.6;
+    }
+    [data-theme="dark"] .scroll-hint-text {
       color: rgba(200,185,240,0.3);
+      opacity: 1;
     }
     .scroll-hint-line {
       width: 1px;
       height: 40px;
-      background: linear-gradient(to bottom, rgba(124,40,212,0.5), transparent);
+      background: linear-gradient(to bottom, var(--royal), transparent);
+      opacity: 0.5;
       animation: scrollpulse 2s ease-in-out infinite;
+    }
+    [data-theme="dark"] .scroll-hint-line {
+      background: linear-gradient(to bottom, rgba(124,40,212,0.5), transparent);
+      opacity: 1;
     }
     @keyframes scrollpulse {
       0%, 100% { opacity: 0.3; transform: scaleY(1); }
