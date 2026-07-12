@@ -218,11 +218,13 @@
 
     async function loadCharacter() {
       const charKey = getCharName();
+      console.log('Loading character:', charKey, 'from URL:', window.location.pathname);
       const config = CHARACTERS[charKey];
+      console.log('Config found:', config);
       
       if (!config) {
         document.getElementById('char-content').innerHTML = 
-          `<div class="char-error">Character "${charKey}" not found. URL: ${window.location.pathname}</div>`;
+          `<div class="char-error">Character "${charKey}" not found in CHARACTERS. Available: ${Object.keys(CHARACTERS).join(', ')}</div>`;
         return;
       }
 
