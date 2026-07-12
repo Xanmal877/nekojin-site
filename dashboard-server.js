@@ -356,6 +356,8 @@ const PUBLIC_ROUTES = {
     '/xanrean': path.join(PUBLIC_DIR, 'xanrean.html'),
     '/xanrean/books': path.join(PUBLIC_DIR, 'xanrean', 'books.html'),
     '/xanrean/characters': path.join(PUBLIC_DIR, 'xanrean', 'characters.html'),
+    '/xanrean/characters/admins': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'admins.html'),
+    '/xanrean/characters/moderators': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'moderators.html'),
     '/xanrean/lore': path.join(PUBLIC_DIR, 'xanrean', 'lore.html'),
     '/standalone': path.join(PUBLIC_DIR, 'standalone.html'),
 };
