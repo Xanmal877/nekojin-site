@@ -124,17 +124,7 @@
       transition: all 0.3s;
     }
     
-    .mod-card:hover {
-      background: var(--surface2);
-    }
-    
-    .mod-card.assigned {
-      cursor: pointer;
-      text-decoration: none;
-      color: inherit;
-    }
-    
-    .mod-card.unassigned {
+    .mod-card.empty {
       opacity: 0.6;
     }
     
@@ -172,29 +162,8 @@
       background: var(--bg);
       border-radius: 8px;
       font-size: 0.9rem;
-    }
-    
-    .mod-incarnation.assigned {
-      border-left: 3px solid var(--royal);
-    }
-    
-    .mod-incarnation.empty {
       color: var(--muted);
       font-style: italic;
-    }
-    
-    .mod-link {
-      margin-top: 1rem;
-      color: var(--royal-light);
-      text-decoration: none;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    
-    .mod-link:hover {
-      text-decoration: underline;
     }
     
     /* Status badges */
@@ -206,11 +175,6 @@
       font-weight: 600;
       text-transform: uppercase;
       margin-bottom: 1rem;
-    }
-    
-    .status-assigned {
-      background: rgba(16, 185, 129, 0.2);
-      color: #10b981;
     }
     
     .status-empty {
@@ -266,29 +230,27 @@
   <p class="opposites-subtitle">Without these, existence itself cannot persist</p>
   
   <div class="opposites-pair">
-    <a href="/xanrean/characters/moderator-time" class="mod-card assigned" style="border-right: 1px solid var(--border);">
-      <div class="status-badge status-assigned">● Assigned</div>
+    <div class="mod-card empty" style="border-right: 1px solid var(--border);">
+      <div class="status-badge status-empty">○ Unassigned</div>
       <div class="mod-icon">⏰</div>
       <div class="mod-name">Moderator Time</div>
       <div class="mod-domain">Temporal Continuity</div>
       <div class="mod-desc">Manages the soul stream and functions as the system's CPU-like processor. Without Time, events have no sequence.</div>
-      <div class="mod-incarnation assigned">
-        <span>👤</span> Anna Trissaile
+      <div class="mod-incarnation">
+        <span>👤</span> Awaiting incarnation...
       </div>
-      <span class="mod-link">View Profile →</span>
-    </a>
+    </div>
     
-    <a href="/xanrean/characters/moderator-space" class="mod-card assigned">
-      <div class="status-badge status-assigned">● Assigned</div>
+    <div class="mod-card empty">
+      <div class="status-badge status-empty">○ Unassigned</div>
       <div class="mod-icon">🌌</div>
       <div class="mod-name">Moderator Space</div>
       <div class="mod-domain">Spatial Continuity</div>
       <div class="mod-desc">Governs position, distance, connections between regions, and movement across the system. Without Space, there is no "where."</div>
-      <div class="mod-incarnation assigned">
-        <span>👤</span> Xanari Telis
+      <div class="mod-incarnation">
+        <span>👤</span> Awaiting incarnation...
       </div>
-      <span class="mod-link">View Profile →</span>
-    </a>
+    </div>
   </div>
   
   <!-- Order & Chaos -->
@@ -296,29 +258,27 @@
   <p class="opposites-subtitle">Structure and transformation—the endless cycle</p>
   
   <div class="opposites-pair">
-    <a href="/xanrean/characters/moderator-order" class="mod-card assigned" style="border-right: 1px solid var(--border);">
-      <div class="status-badge status-assigned">● Assigned</div>
+    <div class="mod-card empty" style="border-right: 1px solid var(--border);">
+      <div class="status-badge status-empty">○ Unassigned</div>
       <div class="mod-icon">⚖️</div>
       <div class="mod-name">Moderator Order</div>
       <div class="mod-domain">Structure & Pattern</div>
       <div class="mod-desc">Governs stability, maintenance of systems, and the patterns that allow civilization to exist. Order prevents collapse into entropy.</div>
-      <div class="mod-incarnation assigned">
-        <span>👤</span> Timothy "Acros" Dramtheir
+      <div class="mod-incarnation">
+        <span>👤</span> Awaiting incarnation...
       </div>
-      <span class="mod-link">View Profile →</span>
-    </a>
+    </div>
     
-    <a href="/xanrean/characters/moderator-chaos" class="mod-card assigned">
-      <div class="status-badge status-assigned">● Assigned</div>
+    <div class="mod-card empty">
+      <div class="status-badge status-empty">○ Unassigned</div>
       <div class="mod-icon">⚡</div>
       <div class="mod-name">Moderator Chaos</div>
       <div class="mod-domain">Change & Transformation</div>
       <div class="mod-desc">Governs deviation, unpredictability, and emergent outcomes. Chaos prevents stagnation and allows the new to arise.</div>
-      <div class="mod-incarnation assigned">
-        <span>👤</span> Marissa Richmond
+      <div class="mod-incarnation">
+        <span>👤</span> Awaiting incarnation...
       </div>
-      <span class="mod-link">View Profile →</span>
-    </a>
+    </div>
   </div>
   
   <!-- Light & Dark -->
@@ -326,24 +286,24 @@
   <p class="opposites-subtitle">Illumination and shadow—both necessary for perception</p>
   
   <div class="opposites-pair">
-    <div class="mod-card unassigned" style="border-right: 1px solid var(--border);">
+    <div class="mod-card empty" style="border-right: 1px solid var(--border);">
       <div class="status-badge status-empty">○ Unassigned</div>
       <div class="mod-icon">☀️</div>
       <div class="mod-name">Moderator Light</div>
       <div class="mod-domain">Illumination & Revelation</div>
       <div class="mod-desc">Governs visibility, truth, and the forces that bring what is hidden into awareness. Light makes knowledge possible.</div>
-      <div class="mod-incarnation empty">
+      <div class="mod-incarnation">
         <span>👤</span> Awaiting incarnation...
       </div>
     </div>
     
-    <div class="mod-card unassigned">
+    <div class="mod-card empty">
       <div class="status-badge status-empty">○ Unassigned</div>
       <div class="mod-icon">🌑</div>
       <div class="mod-name">Moderator Dark</div>
       <div class="mod-domain">Shadow & Obscurity</div>
       <div class="mod-desc">Governs concealment, mystery, and the spaces between knowledge. Dark is not evil—it is potential unrealized.</div>
-      <div class="mod-incarnation empty">
+      <div class="mod-incarnation">
         <span>👤</span> Awaiting incarnation...
       </div>
     </div>
@@ -354,24 +314,24 @@
   <p class="opposites-subtitle">What drives souls forward—or stops them cold</p>
   
   <div class="opposites-pair">
-    <div class="mod-card unassigned" style="border-right: 1px solid var(--border);">
+    <div class="mod-card empty" style="border-right: 1px solid var(--border);">
       <div class="status-badge status-empty">○ Unassigned</div>
       <div class="mod-icon">🕊️</div>
       <div class="mod-name">Moderator Hope</div>
       <div class="mod-domain">Aspiration & Possibility</div>
       <div class="mod-desc">Governs the belief in better outcomes, the will to continue, and the visions that pull souls toward tomorrow.</div>
-      <div class="mod-incarnation empty">
+      <div class="mod-incarnation">
         <span>👤</span> Awaiting incarnation...
       </div>
     </div>
     
-    <div class="mod-card unassigned">
+    <div class="mod-card empty">
       <div class="status-badge status-empty">○ Unassigned</div>
       <div class="mod-icon">💀</div>
       <div class="mod-name">Moderator Despair</div>
       <div class="mod-domain">Hopelessness & Finality</div>
       <div class="mod-desc">Governs the acceptance of endings, the weight of futility, and the gravity that pulls souls toward surrender.</div>
-      <div class="mod-incarnation empty">
+      <div class="mod-incarnation">
         <span>👤</span> Awaiting incarnation...
       </div>
     </div>
@@ -382,25 +342,24 @@
   <p class="opposites-subtitle">Connection and division—what binds or breaks</p>
   
   <div class="opposites-pair">
-    <a href="/xanrean/characters/moderator-devotion" class="mod-card assigned" style="border-right: 1px solid var(--border);">
-      <div class="status-badge status-assigned">● Assigned</div>
+    <div class="mod-card empty" style="border-right: 1px solid var(--border);">
+      <div class="status-badge status-empty">○ Unassigned</div>
       <div class="mod-icon">❤️</div>
       <div class="mod-name">Moderator Devotion</div>
       <div class="mod-domain">Loyalty & Attachment</div>
       <div class="mod-desc">Governs commitment, sacrifice for others, and the bonds that make individual souls part of something greater.</div>
-      <div class="mod-incarnation assigned">
-        <span>👤</span> Alia
+      <div class="mod-incarnation">
+        <span>👤</span> Awaiting incarnation...
       </div>
-      <span class="mod-link">View Profile →</span>
-    </a>
+    </div>
     
-    <div class="mod-card unassigned">
+    <div class="mod-card empty">
       <div class="status-badge status-empty">○ Unassigned</div>
       <div class="mod-icon">⚔️</div>
       <div class="mod-name">Moderator Animosity</div>
       <div class="mod-domain">Conflict & Opposition</div>
       <div class="mod-desc">Governs division, rivalry, and the forces that push souls apart. Not evil—merely the space necessary for identity.</div>
-      <div class="mod-incarnation empty">
+      <div class="mod-incarnation">
         <span>👤</span> Awaiting incarnation...
       </div>
     </div>
