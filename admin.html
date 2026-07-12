@@ -401,6 +401,9 @@
     <div class="sidebar-item" data-panel="about" onclick="switchPanel('about')">
       <span class="sidebar-icon">🏛️</span> About Page
     </div>
+    <div class="sidebar-item" data-panel="xanrean" onclick="switchPanel('xanrean')">
+      <span class="sidebar-icon">✨</span> Xanrean Page
+    </div>
     <div class="sidebar-item" data-panel="homepage" onclick="switchPanel('homepage')">
       <span class="sidebar-icon">🏠</span> Homepage
     </div>
@@ -486,6 +489,54 @@
       <p class="panel-sub">Edit the studio description and universe blurb shown on the About page.</p>
       <div class="card" id="about-editor"><p style="color:var(--muted);">Loading...</p></div>
       <button class="btn btn-primary" onclick="saveContent()">💾 Save About</button>
+    </div>
+
+    <!-- XANREAN PANEL -->
+    <div class="panel" id="panel-xanrean">
+      <h1 class="panel-title">✨ Xanrean Page</h1>
+      <p class="panel-sub">Customize the background images for the Xanrean Chronicles hub panels.</p>
+      
+      <div class="card">
+        <h3 style="margin-bottom:1rem;">Books Panel</h3>
+        <div class="bg-preview" id="xanrean-books-preview" style="width:140px;height:200px;border-radius:10px;background:var(--surface2);background-size:cover;background-position:center;margin-bottom:0.75rem;border:2px solid var(--border);box-shadow:0 4px 12px rgba(0,0,0,0.3);"></div>
+        <div class="form-row" style="display:flex;gap:0.75rem;align-items:center;">
+          <input type="text" id="xanrean-books-bg" placeholder="/covers/sb-cover.png" style="flex:1;" oninput="updateXanreanPreview('books', this.value)">
+          <input type="file" id="xanrean-books-file-input" accept="image/*" style="display:none;" onchange="handleXanreanImageUpload(this, 'books')">
+          <button class="btn btn-ghost" onclick="document.getElementById('xanrean-books-file-input').click()">📁 Browse</button>
+        </div>
+      </div>
+      
+      <div class="card" style="margin-top:1rem;">
+        <h3 style="margin-bottom:1rem;">Characters Panel</h3>
+        <div class="bg-preview" id="xanrean-characters-preview" style="width:140px;height:200px;border-radius:10px;background:var(--surface2);background-size:cover;background-position:center;margin-bottom:0.75rem;border:2px solid var(--border);box-shadow:0 4px 12px rgba(0,0,0,0.3);"></div>
+        <div class="form-row" style="display:flex;gap:0.75rem;align-items:center;">
+          <input type="text" id="xanrean-characters-bg" placeholder="/images/tama-bg.png" style="flex:1;" oninput="updateXanreanPreview('characters', this.value)">
+          <input type="file" id="xanrean-characters-file-input" accept="image/*" style="display:none;" onchange="handleXanreanImageUpload(this, 'characters')">
+          <button class="btn btn-ghost" onclick="document.getElementById('xanrean-characters-file-input').click()">📁 Browse</button>
+        </div>
+      </div>
+      
+      <div class="card" style="margin-top:1rem;">
+        <h3 style="margin-bottom:1rem;">Lore Panel</h3>
+        <div class="bg-preview" id="xanrean-lore-preview" style="width:140px;height:200px;border-radius:10px;background:var(--surface2);background-size:cover;background-position:center;margin-bottom:0.75rem;border:2px solid var(--border);box-shadow:0 4px 12px rgba(0,0,0,0.3);"></div>
+        <div class="form-row" style="display:flex;gap:0.75rem;align-items:center;">
+          <input type="text" id="xanrean-lore-bg" placeholder="/images/tama-bg.png" style="flex:1;" oninput="updateXanreanPreview('lore', this.value)">
+          <input type="file" id="xanrean-lore-file-input" accept="image/*" style="display:none;" onchange="handleXanreanImageUpload(this, 'lore')">
+          <button class="btn btn-ghost" onclick="document.getElementById('xanrean-lore-file-input').click()">📁 Browse</button>
+        </div>
+      </div>
+      
+      <div class="card" style="margin-top:1rem;">
+        <h3 style="margin-bottom:1rem;">Game Panel</h3>
+        <div class="bg-preview" id="xanrean-game-preview" style="width:140px;height:200px;border-radius:10px;background:var(--surface2);background-size:cover;background-position:center;margin-bottom:0.75rem;border:2px solid var(--border);box-shadow:0 4px 12px rgba(0,0,0,0.3);"></div>
+        <div class="form-row" style="display:flex;gap:0.75rem;align-items:center;">
+          <input type="text" id="xanrean-game-bg" placeholder="/images/tama-bg.png" style="flex:1;" oninput="updateXanreanPreview('game', this.value)">
+          <input type="file" id="xanrean-game-file-input" accept="image/*" style="display:none;" onchange="handleXanreanImageUpload(this, 'game')">
+          <button class="btn btn-ghost" onclick="document.getElementById('xanrean-game-file-input').click()">📁 Browse</button>
+        </div>
+      </div>
+      
+      <button class="btn btn-primary" onclick="saveXanreanSettings()" style="margin-top:1rem;">💾 Save Xanrean</button>
     </div>
 
     <!-- HOMEPAGE PANEL -->
@@ -708,6 +759,8 @@ function switchPanel(name) {
   document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
   document.getElementById('panel-' + name).classList.add('active');
   document.querySelector(`[data-panel="${name}"]`).classList.add('active');
+  
+  if (name === 'xanrean') loadXanreanSettings();
 }
 
 // ── DIRTY TRACKING ────────────────────────────────────────
@@ -2263,6 +2316,86 @@ document.addEventListener('input', (e) => {
     document.getElementById('homepage-standalone-preview').style.backgroundImage = `url('${e.target.value}')`;
   }
 });
+
+// XANREAN SETTINGS
+let xanreanSettings = {};
+
+function updateXanreanPreview(panel, url) {
+  const preview = document.getElementById(`xanrean-${panel}-preview`);
+  if (preview && url) {
+    preview.style.backgroundImage = `url('${url}')`;
+    preview.style.backgroundColor = 'var(--surface2)';
+  }
+}
+
+async function handleXanreanImageUpload(input, panel) {
+  const file = input.files[0];
+  if (!file) return;
+  const form = new FormData();
+  form.append('cover', file);
+  form.append('bookId', `xanrean-cover-${panel}`);
+  try {
+    const res = await fetch('/upload-cover', { method: 'POST', body: form });
+    const data = await res.json();
+    document.getElementById(`xanrean-${panel}-bg`).value = data.path;
+    updateXanreanPreview(panel, data.path);
+    showToast('Image uploaded! Click Save to apply.');
+  } catch(e) {
+    showToast('Upload failed', 'error');
+  }
+}
+
+async function loadXanreanSettings() {
+  console.log('>>> loadXanreanSettings() called');
+  try {
+    const res = await fetch('/api/xanrean?_=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) throw new Error('Failed to load: ' + res.status);
+    xanreanSettings = await res.json();
+    console.log('>>> Got Xanrean settings:', xanreanSettings);
+    
+    const panels = ['books', 'characters', 'lore', 'game'];
+    panels.forEach(panel => {
+      const input = document.getElementById(`xanrean-${panel}-bg`);
+      const preview = document.getElementById(`xanrean-${panel}-preview`);
+      if (input && preview) {
+        const defaultPath = panel === 'books' ? '/covers/sb-cover.png' : '/images/tama-bg.png';
+        input.value = xanreanSettings[`${panel}_bg`] || defaultPath;
+        preview.style.backgroundImage = `url('${input.value}')`;
+      }
+    });
+  } catch (e) {
+    console.error('loadXanreanSettings error:', e);
+  }
+}
+
+async function saveXanreanSettings() {
+  console.log('>>> saveXanreanSettings() called');
+  const data = {
+    books_bg: document.getElementById('xanrean-books-bg').value.trim(),
+    characters_bg: document.getElementById('xanrean-characters-bg').value.trim(),
+    lore_bg: document.getElementById('xanrean-lore-bg').value.trim(),
+    game_bg: document.getElementById('xanrean-game-bg').value.trim()
+  };
+  console.log('>>> Values to save:', data);
+  try {
+    const res = await fetch('/api/xanrean', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store',
+      body: JSON.stringify(data)
+    });
+    const responseText = await res.text();
+    console.log('>>> POST response:', res.status, responseText);
+    if (res.ok) {
+      showToast('✓ Saved!');
+    } else {
+      showToast('Save failed', 'error');
+    }
+  } catch(e) {
+    console.error('>>> POST error:', e);
+    showToast('Save failed: ' + e.message, 'error');
+  }
+}
 
 // Load users when panel is shown
 const _origSwitchPanel = switchPanel;

@@ -28,6 +28,12 @@
     }
   </script>
   <style>
+    :root {
+      --xanrean-books-bg: url('/covers/sb-cover.png');
+      --xanrean-characters-bg: url('/images/tama-bg.png');
+      --xanrean-lore-bg: url('/images/tama-bg.png');
+      --xanrean-game-bg: url('/images/tama-bg.png');
+    }
     /* Nav - matches homepage */
     nav {
       position: fixed;
@@ -150,7 +156,7 @@
     
     .hub-panel-books {
       background: linear-gradient(180deg, rgba(124,58,237,0.1) 0%, rgba(10,6,20,0.9) 100%),
-                  var(--xanrean-bg) center/contain no-repeat;
+                  var(--xanrean-books-bg) center/contain no-repeat;
       border-right: 1px solid rgba(124,58,237,0.3);
     }
     
@@ -173,7 +179,7 @@
     
     [data-theme="light"] .hub-panel-books {
       background: linear-gradient(180deg, rgba(124,58,237,0.15) 0%, rgba(20,10,40,0.7) 100%),
-                  var(--xanrean-bg) center/contain no-repeat;
+                  var(--xanrean-books-bg) center/contain no-repeat;
     }
     
     [data-theme="light"] .hub-panel-characters {
@@ -581,6 +587,22 @@ function showToast(message, type = 'success') {
   msg.classList.add('visible');
   setTimeout(() => msg.classList.remove('visible'), 3000);
 }
+
+// Load Xanrean panel background settings
+(async function loadXanreanSettings() {
+  try {
+    const res = await fetch('/api/xanrean');
+    if (!res.ok) return;
+    const settings = await res.json();
+    const root = document.documentElement;
+    if (settings.books_bg) root.style.setProperty('--xanrean-books-bg', `url('${settings.books_bg}')`);
+    if (settings.characters_bg) root.style.setProperty('--xanrean-characters-bg', `url('${settings.characters_bg}')`);
+    if (settings.lore_bg) root.style.setProperty('--xanrean-lore-bg', `url('${settings.lore_bg}')`);
+    if (settings.game_bg) root.style.setProperty('--xanrean-game-bg', `url('${settings.game_bg}')`);
+  } catch (e) {
+    console.error('Failed to load Xanrean settings:', e);
+  }
+})();
 
 // Initialize
 document.getElementById('theme-icon').textContent = 
