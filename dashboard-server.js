@@ -405,12 +405,14 @@ const server = http.createServer(async (req, res) => {
     ];
     
     if (req.method === 'GET') {
-        const ext = path.extname(url).toLowerCase();
+        // Decode URL to handle spaces and special characters
+        const decodedUrl = decodeURIComponent(url);
+        const ext = path.extname(decodedUrl).toLowerCase();
         const isAllowedExt = ALLOWED_EXTENSIONS.has(ext);
-        const isAllowedDir = ALLOWED_DIRECTORIES.some(dir => url.startsWith(dir));
+        const isAllowedDir = ALLOWED_DIRECTORIES.some(dir => decodedUrl.startsWith(dir));
         
         // Block path traversal attempts
-        const resolvedPath = path.resolve(path.join(PUBLIC_DIR, url));
+        const resolvedPath = path.resolve(path.join(PUBLIC_DIR, decodedUrl));
         const isPathSafe = resolvedPath.startsWith(PUBLIC_DIR);
         
         if ((isAllowedExt || isAllowedDir) && isPathSafe) {
