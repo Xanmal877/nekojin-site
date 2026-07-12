@@ -263,12 +263,20 @@
         document.getElementById('card-role').textContent = info.fundamentalidentity || info.role || 'Character';
         document.title = `${name} - Xanrean Chronicles`;
         
-        // Build stats
+        // Build stats - NO Level (changes too often)
         const stats = [];
         if (info.age) stats.push({label: 'Age', value: info.age});
-        if (info.level) stats.push({label: 'Level', value: info.level});
         if (info.species) stats.push({label: 'Species', value: info.species});
-        if (info.primaryelement) stats.push({label: 'Element', value: info.primaryelement});
+        // Combine primary and secondary element
+        if (info.primaryelement || info.secondaryelement) {
+          const primary = info.primaryelement || 'None';
+          const secondary = info.secondaryelement || 'None';
+          if (secondary !== 'None') {
+            stats.push({label: 'Elements', value: `${primary} / ${secondary}`});
+          } else {
+            stats.push({label: 'Element', value: primary});
+          }
+        }
         if (info.knownincarnation) stats.push({label: 'Incarnation', value: info.knownincarnation});
         
         const statsHtml = stats.map(s => 
