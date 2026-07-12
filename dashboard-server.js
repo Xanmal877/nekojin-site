@@ -364,6 +364,12 @@ const PUBLIC_ROUTES = {
     '/xanrean/wiki': path.join(PUBLIC_DIR, 'xanrean', 'wiki.html'),
     '/xanrean/characters/moderators': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'moderators.html'),
     '/xanrean/lore': path.join(PUBLIC_DIR, 'xanrean', 'lore.html'),
+    '/xanrean/lore/nekojin': path.join(PUBLIC_DIR, 'xanrean', 'lore', 'nekojin.html'),
+    '/xanrean/lore/foxkin': path.join(PUBLIC_DIR, 'xanrean', 'lore', 'foxkin.html'),
+    '/xanrean/lore/elves': path.join(PUBLIC_DIR, 'xanrean', 'lore', 'elves.html'),
+    '/xanrean/lore/travelers': path.join(PUBLIC_DIR, 'xanrean', 'lore', 'travelers.html'),
+    '/xanrean/lore/wolfkin': path.join(PUBLIC_DIR, 'xanrean', 'lore', 'wolfkin.html'),
+    '/xanrean/lore/kitsune': path.join(PUBLIC_DIR, 'xanrean', 'lore', 'kitsune.html'),
     '/standalone': path.join(PUBLIC_DIR, 'standalone.html'),
 };
 
@@ -394,7 +400,8 @@ const server = http.createServer(async (req, res) => {
         '/covers/',
         '/assets/',
         '/images/',
-        '/fonts/'
+        '/fonts/',
+        '/data/'
     ];
     
     if (req.method === 'GET') {
