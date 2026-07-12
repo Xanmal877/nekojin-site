@@ -454,11 +454,11 @@
   <script>
     // Wiki link database
     const wikiLinks = {
-      // Characters
-      'Tama': { type: 'character', file: 'admin-creation.md', title: 'Admin Creation (Tama)' },
-      'Admin Creation': { type: 'character', file: 'admin-creation.md', title: 'Admin Creation' },
-      'Saki': { type: 'character', file: 'admin-destruction.md', title: 'Admin Destruction (Saki)' },
-      'Admin Destruction': { type: 'character', file: 'admin-destruction.md', title: 'Admin Destruction' },
+      // Characters - with URLs to standalone pages
+      'Tama': { type: 'character', url: '/xanrean/characters/tama', title: 'Admin Creation (Tama)' },
+      'Admin Creation': { type: 'character', url: '/xanrean/characters/tama', title: 'Admin Creation' },
+      'Saki': { type: 'character', url: '/xanrean/characters/saki', title: 'Admin Destruction (Saki)' },
+      'Admin Destruction': { type: 'character', url: '/xanrean/characters/saki', title: 'Admin Destruction' },
       'Anna': { type: 'character', file: 'moderator-time.md', title: 'Water/Anna' },
       'Xanari': { type: 'character', file: 'moderator-space.md', title: 'Xanari (Xan)' },
       'Xan': { type: 'character', file: 'moderator-space.md', title: 'Xanari' },
@@ -568,7 +568,11 @@
           seeAlso.innerHTML = `
             <div class="see-also-title">📎 See Also</div>
             <div class="see-also-list">
-              ${refs.map(r => `<a href="#${r.name.toLowerCase().replace(/\s+/g, '-')}" class="see-also-item" data-wiki="${r.name}">${r.title || r.name}</a>`).join('')}
+              ${refs.map(r => {
+                const link = wikiLinks[r.name];
+                const href = link?.url || `#${r.name.toLowerCase().replace(/\s+/g, '-')}`;
+                return `<a href="${href}" class="see-also-item">${r.title || r.name}</a>`;
+              }).join('')}
             </div>
           `;
           content.querySelector('.wiki-article').appendChild(seeAlso);
@@ -668,6 +672,9 @@
           if (link.type === 'species') {
             // Redirect species to lore reader
             window.location.href = `/xanrean/lore/reader.html#${link.section}`;
+          } else if (link.type === 'character' && link.url) {
+            // Redirect characters to their standalone pages
+            window.location.href = link.url;
           } else {
             loadWikiPage(pageKey.toLowerCase().replace(/\s+/g, '-'));
             history.pushState({ page: pageKey }, '', `#${pageKey.toLowerCase().replace(/\s+/g, '-')}`);
