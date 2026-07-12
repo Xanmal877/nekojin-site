@@ -1408,20 +1408,26 @@
 <body>
 
 <nav>
-  <a href="/" class="nav-logo"><div class="paw" aria-hidden="true"></div> Nekojin Interactive</a>
-  <ul class="nav-links">
-    <li><a href="/">Home</a></li>
-    <li><a href="/books">Books</a></li>
-    <li><a href="/games" class="active">Games</a></li>
-    <li><a href="/about">About</a></li>
-  </ul>
-  <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode" onclick="toggleTheme()">
-    <span class="theme-icon sun">☀️</span>
-    <span class="theme-icon moon">🌙</span>
-  </button>
-  <div class="nav-search-wrap">
-    <input type="text" class="nav-search" id="nav-search" placeholder="Search…" autocomplete="off">
-    <div class="nav-search-results" id="nav-search-results"></div>
+  <div class="nav-left">
+    <a href="/" class="nav-logo">
+      <div class="paw" aria-hidden="true"></div> Nekojin Interactive
+    </a>
+    <ul class="nav-links">
+      <li><a href="/">Home</a></li>
+      <li><a href="/books">Books</a></li>
+      <li><a href="/games" class="active">Games</a></li>
+      
+    </ul>
+  </div>
+  <div class="nav-right">
+    <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode" onclick="toggleTheme()">
+      <span class="theme-icon sun">☀️</span>
+      <span class="theme-icon moon">🌙</span>
+    </button>
+    <div class="nav-search-wrap">
+      <input type="text" class="nav-search" id="nav-search" placeholder="Search…" autocomplete="off">
+      <div class="nav-search-results" id="nav-search-results"></div>
+    </div>
   </div>
   <button class="nav-hamburger" id="nav-hamburger" aria-label="Menu" onclick="toggleNav()">
     <span></span><span></span><span></span>
@@ -1434,7 +1440,7 @@
     <li><a href="/">Home</a></li>
     <li><a href="/books">Books</a></li>
     <li><a href="/games" class="active">Games</a></li>
-    <li><a href="/about">About</a></li>
+    
   </ul>
 </div>
 
@@ -1504,17 +1510,24 @@
 <footer>
   <div class="footer-inner">
     <div class="footer-logo"><div class="tama-icon" aria-hidden="true"></div> Nekojin Interactive</div>
-    <p class="footer-tagline" id="footer-tagline">Crafting worlds, one upload at a time.</p>
-    <div class="footer-links">
-      <a href="/">Home</a><a href="/books">Books</a>
-      <a href="/games">Games</a><a href="/about">About</a>
-    </div>
+    <p class="footer-tagline" id="footer-tagline">Crafting worlds</p>
+    <div class="footer-links"></div>
     <p class="footer-copy">© 2026 Nekojin Interactive LLC. All rights reserved.</p>
   </div>
 </footer>
 
 <script src="/common.js"></script>
 <script>
+// Load footer tagline
+fetch('/content')
+  .then(r => r.json())
+  .then(data => {
+    if (data.about && data.about.tagline) {
+      document.getElementById('footer-tagline').textContent = data.about.tagline;
+    }
+  })
+  .catch(() => {});
+
 const revealObs = new IntersectionObserver((entries) => {
   entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); revealObs.unobserve(e.target); } });
 }, { threshold: 0.08, rootMargin: '0px 0px -20px 0px' });
@@ -1991,8 +2004,3 @@ loadGame();
 
 // Register PWA service worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js').catch(() => {});
-}
-</script>
-</body>
-</html>
