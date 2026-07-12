@@ -137,6 +137,78 @@
       .char-layout { grid-template-columns: 1fr; }
       .char-sidebar { position: static; }
     }
+    /* Canon Status Markers */
+    .canon-confirmed {
+      color: #10b981;
+      font-weight: 600;
+    }
+    
+    .canon-unconfirmed {
+      color: #6b7280;
+      font-style: italic;
+    }
+    
+    .canon-possible {
+      color: #f59e0b;
+      font-weight: 500;
+    }
+    
+    .canon-verify {
+      color: #3b82f6;
+      font-weight: 500;
+    }
+    
+    [data-theme="dark"] .canon-confirmed { color: #34d399; }
+    [data-theme="dark"] .canon-unconfirmed { color: #9ca3af; }
+    [data-theme="dark"] .canon-possible { color: #fbbf24; }
+    [data-theme="dark"] .canon-verify { color: #60a5fa; }
+    
+    /* Content area styling */
+    .char-main h1, .char-content h1 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+    
+    .char-main h2, .char-content h2 {
+      font-size: 1.5rem;
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .char-main h3, .char-content h3 {
+      font-size: 1.25rem;
+      margin-top: 1.5rem;
+      margin-bottom: 0.75rem;
+      color: var(--text);
+    }
+    
+    .char-main h4, .char-content h4 {
+      font-size: 1rem;
+      margin-top: 1rem;
+      margin-bottom: 0.5rem;
+      color: var(--muted);
+    }
+    
+    .char-main ul, .char-content ul {
+      margin-left: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    
+    .char-main li, .char-content li {
+      margin-bottom: 0.5rem;
+    }
+    
+    .char-main hr, .char-content hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 2rem 0;
+    }
+    
+    .char-main p, .char-content p {
+      margin-bottom: 1rem;
+    }
   </style>
 </head>
 <body>
@@ -274,21 +346,47 @@
     }
 
     function mdToHtml(text) {
-      return text
-        .replace(/^####?\s*(.+)$/gim, '<h4>$1</h4>')
+      // First, handle the Canon Status Key section specially
+      let html = text
+        // Remove the Canon Status Key block entirely (it's metadata)
+        .replace(/## Canon Status Key[\s\S]*?---\n*/i, '')
+        // Handle headers - order matters (longest first)
+        .replace(/^####\s*(.+)$/gim, '<h4>$1</h4>')
         .replace(/^###\s*(.+)$/gim, '<h3>$1</h3>')
         .replace(/^##\s*(.+)$/gim, '<h2>$1</h2>')
         .replace(/^#\s*(.+)$/gim, '<h1>$1</h1>')
+        // Bold/italic
         .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
         .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        // Code
         .replace(/`([^`]+)`/g, '<code>$1</code>')
-        // Handle MD links [text](url)
+        // MD links [text](url)
         .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
-        .replace(/^-\s+(.+)$/gim, '<li>$1</li>')
+        // Horizontal rules
+        .replace(/^---$/gim, '<hr>')
+        // Lists
+        .replace(/^-\s+(.+)$/gim, '<li>$1</li>');
+      
+      // Wrap list items in ul
+      html = html.replace(/(<li>.*<\/li>\n*)+/gs, match => `<ul>${match}</ul>`);
+      
+      // Handle Canon status markers with styling
+      html = html
+        .replace(/\*\*Confirmed:\*\*/g, '<span class="canon-confirmed">Confirmed:</span>')
+        .replace(/\*\*Not yet established:\*\*/g, '<span class="canon-unconfirmed">Not yet established:</span>')
+        .replace(/\*\*Possible:\*\*/g, '<span class="canon-possible">Possible:</span>')
+        .replace(/\*\*Requires manuscript verification:\*\*/g, '<span class="canon-verify">Requires manuscript verification:</span>');
+      
+      // Paragraphs - but preserve existing HTML tags
+      html = html
         .replace(/\n\n+/g, '</p><p>')
         .replace(/^(?!<[hlu])/gim, '<p>')
-        .replace(/$(?!<\/)/gim, '</p>')
-        .replace(/(<li>.*<\/li>)+/gs, '<ul>$&</ul>');
+        .replace(/$(?!<\/)/gim, '</p>');
+      
+      // Clean up empty paragraphs
+      html = html.replace(/<p><\/p>/g, '');
+      
+      return html;
     }
 
     async function loadCharacter() {
