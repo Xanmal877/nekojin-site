@@ -268,6 +268,7 @@
 
     async function loadCharacter() {
       const charKey = getCharName();
+      console.log('Loading character:', charKey);
       const config = CHARACTERS[charKey];
       
       if (!config) {
@@ -280,18 +281,23 @@
       document.getElementById('back-link').href = config.backLink;
 
       try {
+        console.log('Fetching:', `/data/characters/${config.file}`);
         const response = await fetch(`/data/characters/${config.file}`);
+        console.log('Response status:', response.status);
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         const md = await response.text();
+        console.log('Loaded content length:', md.length);
         
         // Extract name from first h1
         const nameMatch = md.match(/^#\s+(.+?)(?:\n|$)/m);
         const name = nameMatch ? nameMatch[1] : 'Unknown';
+        console.log('Extracted name:', name);
         
         // Extract info from content
         const info = extractInfoFromContent(md);
+        console.log('Extracted info:', info);
         
         // Update sidebar
         document.getElementById('char-avatar').textContent = config.emoji;
