@@ -1077,6 +1077,14 @@ function renderBookEditor(si, bi, book, totalBooks) {
           <input type="text" value="${esc(book.volume||'')}"
             oninput="getBook(${si},${bi}).volume=this.value; markDirty()">
         </div>
+        <div>
+          <label>Xanrean Tier</label>
+          <select onchange="getBook(${si},${bi}).tier=this.value; markDirty()">
+            <option value="" ${!book.tier ? 'selected' : ''}>— None —</option>
+            <option value="admins" ${book.tier==='admins' ? 'selected' : ''}>👑 The Admins</option>
+            <option value="moderators" ${book.tier==='moderators' ? 'selected' : ''}>🛡️ The Moderators</option>
+          </select>
+        </div>
       </div>
 
       <div class="form-row">

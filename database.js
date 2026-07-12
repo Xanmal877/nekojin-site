@@ -154,6 +154,14 @@ class ContentDB {
             )
         `);
 
+        // Migration: Add tier column to books table (if not exists)
+        try {
+            await this._run(`ALTER TABLE books ADD COLUMN tier TEXT`);
+            console.log('ContentDB: Added tier column to books table');
+        } catch (e) {
+            // Column likely already exists, ignore
+        }
+
         // Game info
         await this._run(`
             CREATE TABLE IF NOT EXISTS game (
@@ -321,8 +329,8 @@ class ContentDB {
         const sql = `
             INSERT INTO books (
                 id, title, slug, description, blurb, volume, status, series_id,
-                volume_number, word_count, cover_path, visible, genres, tags
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                volume_number, word_count, cover_path, visible, genres, tags, tier
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
                 title = excluded.title,
                 slug = excluded.slug,
@@ -337,6 +345,7 @@ class ContentDB {
                 visible = excluded.visible,
                 genres = excluded.genres,
                 tags = excluded.tags,
+                tier = excluded.tier,
                 updated_at = CURRENT_TIMESTAMP
         `;
 
@@ -354,7 +363,8 @@ class ContentDB {
             data.cover || data.cover_path || null,
             data.visible !== false ? 1 : 0,
             JSON.stringify(data.genres || []),
-            JSON.stringify(data.tags || [])
+            JSON.stringify(data.tags || []),
+            data.tier || null
         ]);
 
         // Insert platforms with normalized field names
