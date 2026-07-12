@@ -308,8 +308,12 @@
         document.getElementById('char-content').innerHTML = contentHtml;
         
       } catch (err) {
+        console.error('Failed to load:', err);
         document.getElementById('char-content').innerHTML = 
-          `<div class="char-error">Error loading ${config.file}: ${err.message}</div>`;
+          `<div class="char-error">Failed to load character data.<br><br>Error: ${err.message}<br><br>Make sure the server is running and the file ${config.file} exists.</div>`;
+        document.getElementById('card-name').textContent = 'Error';
+        document.getElementById('card-role').textContent = 'Failed to load';
+        document.getElementById('char-avatar').textContent = '❌';
       }
     }
 
