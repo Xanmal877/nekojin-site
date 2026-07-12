@@ -152,28 +152,12 @@
   <script>
     // Character config - maps URL to file
     const CHARACTERS = {
-      // The Entities (system-level)
-      'admin-creation': {
-        file: 'Admin Creation.md',
-        emoji: '👑',
-        backLink: '/xanrean/characters/admins'
-      },
-      'admin-destruction': {
-        file: 'Admin Destruction.md',
-        emoji: '🔥',
-        backLink: '/xanrean/characters/admins'
-      },
-      // The Incarnations (mortal forms)
-      'tama': {
-        file: 'Fuyuki Tamaneko.md',
-        emoji: '🐱',
-        backLink: '/xanrean/characters/admins'
-      },
-      'saki': {
-        file: 'Autumnal Sakilera.md',
-        emoji: '🔥',
-        backLink: '/xanrean/characters/admins'
-      }
+      'admin-creation': { file: 'admin-creation.md', emoji: '👑' },
+      'admin-destruction': { file: 'admin-destruction.md', emoji: '🔥' },
+      'tama': { file: 'tama.md', emoji: '🐱' },
+      'saki': { file: 'saki.md', emoji: '🔥' },
+      'anna': { file: 'moderator-time.md', emoji: '💧' },
+      'xanari': { file: 'moderator-space.md', emoji: '⚡' }
     };
 
     function getCharName() {
@@ -229,10 +213,10 @@
       }
 
       // Update back link
-      document.querySelector('.back-link').href = config.backLink;
+      document.querySelector('.back-link').href = '/xanrean/characters/admins';
 
       try {
-        const response = await fetch(`/data/characters/${encodeURIComponent(config.file)}`);
+        const response = await fetch(`/data/characters/${config.file}`);
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
