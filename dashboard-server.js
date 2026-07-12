@@ -664,13 +664,24 @@ const server = http.createServer(async (req, res) => {
             const image = sharp(file.data);
             const metadata = await image.metadata();
             
-            // Resize if too large (max 1200px width/height)
-            const maxDimension = 1200;
-            if (metadata.width > maxDimension || metadata.height > maxDimension) {
-                image.resize(maxDimension, maxDimension, { 
-                    fit: 'inside', 
-                    withoutEnlargement: true 
+            // Panel backgrounds get portrait resize (800x1200), books get standard resize
+            const isPanelBg = bookId.startsWith('homepage-cover-') || bookId.startsWith('xanrean-cover-');
+            
+            if (isPanelBg) {
+                // Force portrait 800x1200 for panel backgrounds
+                image.resize(800, 1200, { 
+                    fit: 'cover',
+                    position: 'center'
                 });
+            } else {
+                // Standard resize for book covers (max 1200px)
+                const maxDimension = 1200;
+                if (metadata.width > maxDimension || metadata.height > maxDimension) {
+                    image.resize(maxDimension, maxDimension, { 
+                        fit: 'inside', 
+                        withoutEnlargement: true 
+                    });
+                }
             }
             
             // Save optimized WebP
@@ -678,11 +689,18 @@ const server = http.createServer(async (req, res) => {
                 .webp({ quality: 85, effort: 4 })
                 .toFile(path.join(COVERS_DIR, fname));
             
-            // Generate thumbnail (400px)
-            await sharp(file.data)
-                .resize(400, 400, { fit: 'inside', withoutEnlargement: true })
-                .webp({ quality: 80, effort: 4 })
-                .toFile(path.join(COVERS_DIR, thumbFname));
+            // Generate thumbnail - panels get portrait thumb, books get square
+            if (isPanelBg) {
+                await sharp(file.data)
+                    .resize(400, 600, { fit: 'cover', position: 'center' })
+                    .webp({ quality: 80, effort: 4 })
+                    .toFile(path.join(COVERS_DIR, thumbFname));
+            } else {
+                await sharp(file.data)
+                    .resize(400, 400, { fit: 'inside', withoutEnlargement: true })
+                    .webp({ quality: 80, effort: 4 })
+                    .toFile(path.join(COVERS_DIR, thumbFname));
+            }
             
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ 
