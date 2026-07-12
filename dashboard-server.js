@@ -392,7 +392,7 @@ const server = http.createServer(async (req, res) => {
     // Static assets with whitelist validation
     // Security: Only serve allowed file types from safe directories
     const ALLOWED_EXTENSIONS = new Set([
-        '.html', '.css', '.js', '.xml', '.txt', '.json',
+        '.html', '.css', '.js', '.xml', '.txt', '.json', '.md',
         '.png', '.jpg', '.jpeg', '.ico', '.svg', '.webp', '.gif'
     ]);
     
