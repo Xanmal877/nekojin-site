@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Character - Xanrean Chronicles</title>
+  <link rel="stylesheet" href="/style.css">
+  <script>
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+  </script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.7;
+    }
+    
+    /* Nav */
+    .char-nav {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    
+    .char-nav-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .char-nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      color: var(--royal);
+      text-decoration: none;
+    }
+    
+    .char-nav-logo span {
+      color: var(--text);
+      font-weight: 400;
+    }
+    
+    .char-breadcrumb {
+      display: flex;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+    
+    .char-breadcrumb a {
+      color: var(--royal-light);
+      text-decoration: none;
+    }
+    
+    .char-breadcrumb a:hover {
+      text-decoration: underline;
+    }
+    
+    /* Layout */
+    .char-layout {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 2rem;
+      padding: 2rem;
+    }
+    
+    /* Sidebar */
+    .char-sidebar {
+      position: sticky;
+      top: 100px;
+      height: fit-content;
+    }
+    
+    .char-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      text-align: center;
+    }
+    
+    .char-avatar {
+      width: 120px;
+      height: 120px;
+      background: var(--surface2);
+      border-radius: 50%;
+      margin: 0 auto 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+    }
+    
+    .char-card h2 {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      margin-bottom: 0.25rem;
+    }
+    
+    .char-card .subtitle {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .char-stat {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.6rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+    
+    .char-stat:last-child {
+      border-bottom: none;
+    }
+    
+    .char-stat-label {
+      color: var(--muted);
+    }
+    
+    .char-nav-links {
+      margin-top: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    
+    .char-nav-links a {
+      display: block;
+      padding: 0.75rem 1rem;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      text-decoration: none;
+      font-size: 0.95rem;
+      transition: all 0.2s;
+    }
+    
+    .char-nav-links a:hover {
+      border-color: var(--royal);
+      color: var(--royal-light);
+    }
+    
+    /* Main Content */
+    .char-main {
+      min-height: calc(100vh - 200px);
+    }
+    
+    .char-section {
+      margin-bottom: 2.5rem;
+    }
+    
+    .char-section h3 {
+      font-family: var(--font-display);
+      font-size: 1.4rem;
+      color: var(--royal-light);
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid var(--border);
+    }
+    
+    .char-section p {
+      margin-bottom: 1rem;
+      line-height: 1.8;
+    }
+    
+    .char-section ul {
+      margin-left: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    
+    .char-section li {
+      margin-bottom: 0.5rem;
+    }
+    
+    .char-section strong {
+      color: var(--royal-light);
+    }
+    
+    /* Footer */
+    .char-footer {
+      margin-top: 4rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .char-footer a {
+      color: var(--royal-light);
+      text-decoration: none;
+    }
+    
+    .char-footer a:hover {
+      text-decoration: underline;
+    }
+    
+    /* Loading */
+    .char-loading {
+      text-align: center;
+      padding: 4rem;
+      color: var(--muted);
+    }
+    
+    /* Error */
+    .char-error {
+      text-align: center;
+      padding: 4rem;
+      color: var(--muted);
+    }
+    
+    /* Mobile */
+    @media (max-width: 900px) {
+      .char-layout {
+        grid-template-columns: 1fr;
+      }
+      .char-sidebar {
+        position: static;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="char-nav">
+    <div class="char-nav-inner">
+      <a href="/xanrean" class="char-nav-logo">
+        <div style="width: 28px; height: 28px; background: url('/images/tama-icon.png') center/contain no-repeat;"></div>
+        Xanrean <span>Chronicles</span>
+      </a>
+      <div class="char-breadcrumb" id="breadcrumb">
+        <a href="/xanrean">Home</a>
+        <span>/</span>
+        <a href="/xanrean/characters">Characters</a>
+        <span>/</span>
+        <span id="char-name">Loading...</span>
+      </div>
+    </div>
+  </nav>
+
+  <div class="char-layout">
+    <aside class="char-sidebar">
+      <div class="char-card" id="char-card">
+        <div class="char-avatar" id="char-avatar">👤</div>
+        <h2 id="card-name">Loading...</h2>
+        <div class="subtitle" id="card-role">Character</div>
+        <div id="card-stats"></div>
+      </div>
+      
+      <div class="char-nav-links">
+        <a href="/xanrean/characters/admins">← The Admins</a>
+        <a href="/xanrean/characters/tama">Admin Creation</a>
+        <a href="/xanrean/characters/saki">Admin Destruction</a>
+      </div>
+    </aside>
+
+    <main class="char-main" id="char-content">
+      <div class="char-loading">Loading character data...</div>
+    </main>
+  </div>
+
+  <script>
+    // Character config - maps URL names to files
+    const CHARACTERS = {
+      'tama': {
+        file: 'admin-creation.md',
+        name: 'Fuyuki "Tama" Tamaneko',
+        shortName: 'Tama',
+        role: 'Administrator of Creation',
+        avatar: '👑',
+        stats: ['Level', 'Element', 'Titles', 'Species']
+      },
+      'admin-creation': {
+        file: 'admin-creation.md',
+        name: 'Fuyuki "Tama" Tamaneko',
+        shortName: 'Tama',
+        role: 'Administrator of Creation',
+        avatar: '👑',
+        stats: ['Level', 'Element', 'Titles', 'Species']
+      },
+      'saki': {
+        file: 'admin-destruction.md',
+        name: 'Sakilera "Saki" Voldaren',
+        shortName: 'Saki',
+        role: 'Administrator of Destruction',
+        avatar: '🔥',
+        stats: ['Level', 'Element', 'Titles', 'Species']
+      },
+      'admin-destruction': {
+        file: 'admin-destruction.md',
+        name: 'Sakilera "Saki" Voldaren',
+        shortName: 'Saki',
+        role: 'Administrator of Destruction',
+        avatar: '🔥',
+        stats: ['Level', 'Element', 'Titles', 'Species']
+      }
+    };
+
+    function getCharName() {
+      const path = window.location.pathname;
+      const match = path.match(/\/characters\/([^\/]+)/);
+      return match ? match[1] : 'tama';
+    }
+
+    function parseMarkdown(md) {
+      // Extract sections based on headers
+      const sections = {};
+      let currentSection = 'overview';
+      const lines = md.split('\n');
+      let buffer = [];
+      
+      lines.forEach(line => {
+        if (line.startsWith('## ')) {
+          sections[currentSection] = buffer.join('\n');
+          buffer = [];
+          const header = line.replace('## ', '').toLowerCase();
+          if (header.includes('tragic') || header.includes('origin')) currentSection = 'origin';
+          else if (header.includes('combat') || header.includes('ability')) currentSection = 'abilities';
+          else if (header.includes('relationship')) currentSection = 'relationships';
+          else if (header.includes('sensei') || header.includes('training')) currentSection = 'training';
+          else if (header.includes('void') || header.includes('lore')) currentSection = 'lore';
+          else currentSection = header.replace(/[^a-z]/g, '');
+        } else {
+          buffer.push(line);
+        }
+      });
+      sections[currentSection] = buffer.join('\n');
+      
+      return sections;
+    }
+
+    function mdToHtml(text) {
+      return text
+        .replace(/^### (.*$)/gim, '<h4>$1</h4>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/^- (.*$)/gim, '<li>$1</li>')
+        .replace(/\n\n+/g, '</p><p>')
+        .replace(/^(?!<[hlu])/gim, '<p>')
+        .replace(/$(?!\<\/)/gim, '</p>')
+        .replace(/(<li>.*<\/li>)+/gs, '<ul>$&</ul>');
+    }
+
+    function extractStats(md, wantedStats) {
+      const stats = {};
+      wantedStats.forEach(stat => {
+        const regex = new RegExp(`\\*\\*${stat}:\\*\\*\\s*([^\\n]+)`, 'i');
+        const match = md.match(regex);
+        if (match) stats[stat] = match[1].trim();
+      });
+      return stats;
+    }
+
+    async function loadCharacter() {
+      const charKey = getCharName();
+      const config = CHARACTERS[charKey];
+      
+      if (!config) {
+        document.getElementById('char-content').innerHTML = 
+          '<div class="char-error">Character not found</div>';
+        return;
+      }
+
+      // Update header
+      document.getElementById('char-name').textContent = config.shortName;
+      document.getElementById('card-name').textContent = config.name;
+      document.getElementById('card-role').textContent = config.role;
+      document.getElementById('char-avatar').textContent = config.avatar;
+      document.title = `${config.name} - Xanrean Chronicles`;
+
+      try {
+        const response = await fetch(`/data/characters/${config.file}`);
+        const md = await response.text();
+        
+        // Extract and display stats
+        const stats = extractStats(md, config.stats);
+        const statsHtml = Object.entries(stats).map(([key, val]) => 
+          `<div class="char-stat"><span class="char-stat-label">${key}</span><span>${val}</span></div>`
+        ).join('');
+        document.getElementById('card-stats').innerHTML = statsHtml;
+        
+        // Parse content sections
+        const sections = parseMarkdown(md);
+        
+        // Build content
+        let contentHtml = '';
+        
+        const sectionOrder = ['overview', 'origin', 'training', 'abilities', 'relationships', 'lore'];
+        const sectionTitles = {
+          overview: 'Overview',
+          origin: 'Origin Story',
+          training: "Sensei's Training",
+          abilities: 'Combat Abilities',
+          relationships: 'Relationships',
+          lore: 'Lore & Trivia'
+        };
+        
+        sectionOrder.forEach(key => {
+          if (sections[key] && sections[key].trim()) {
+            contentHtml += `
+              <div class="char-section">
+                <h3>${sectionTitles[key] || key}</h3>
+                ${mdToHtml(sections[key])}
+              </div>
+            `;
+          }
+        });
+        
+        // Add footer
+        contentHtml += `
+          <div class="char-footer">
+            <a href="/xanrean/characters/admins">← Back to The Admins</a>
+            <span>Xanrean Chronicles</span>
+          </div>
+        `;
+        
+        document.getElementById('char-content').innerHTML = contentHtml;
+        
+      } catch (err) {
+        document.getElementById('char-content').innerHTML = 
+          `<div class="char-error">Error loading character: ${err.message}</div>`;
+      }
+    }
+
+    loadCharacter();
+  </script>
+</body>
+</html>
