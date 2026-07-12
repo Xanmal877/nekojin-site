@@ -17,50 +17,256 @@
   </script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; overflow: hidden; }
     
-    nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; background: rgba(255,255,255,0.9); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(124,58,237,0.1); }
-    [data-theme="dark"] nav { background: rgba(10,6,20,0.9); border-bottom-color: rgba(124,58,237,0.2); }
-    .nav-logo { display: flex; align-items: center; gap: 0.75rem; font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; color: var(--royal); text-decoration: none; }
-    .nav-tama { width: 32px; height: 32px; background: url('/images/tama-icon.png') center/contain no-repeat; image-rendering: pixelated; }
-    .theme-toggle { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.25rem; color: var(--text); }
+    /* Nav - fixed overlay */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 2rem;
+      background: rgba(255,255,255,0.9);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(124,58,237,0.1);
+    }
+    
+    [data-theme="dark"] nav {
+      background: rgba(10,6,20,0.9);
+      border-bottom-color: rgba(124,58,237,0.2);
+    }
+    
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--royal);
+      text-decoration: none;
+    }
+    
+    .nav-tama {
+      width: 32px;
+      height: 32px;
+      background: url('/images/tama-icon.png') center/contain no-repeat;
+      image-rendering: pixelated;
+    }
+    
+    .theme-toggle {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1.25rem;
+      color: var(--text);
+    }
+    
     .theme-toggle:hover { background: var(--surface2); }
     
-    main { padding-top: 6rem; min-height: 100vh; }
+    /* Split layout - EXACTLY like homepage */
+    .admins-container {
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+    }
     
-    .page-hero { text-align: center; padding: 4rem 2rem; background: linear-gradient(180deg, rgba(139,92,246,0.1) 0%, transparent 100%); }
-    .page-hero h1 { font-family: var(--font-display); font-size: clamp(2.5rem, 6vw, 4rem); background: linear-gradient(135deg, #c4b5fd, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .page-hero p { max-width: 600px; margin: 1rem auto 0; color: var(--muted); }
+    .admin-panel {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      color: white;
+      position: relative;
+      overflow: hidden;
+      transition: flex 0.4s ease;
+    }
     
-    .admin-intro { max-width: 800px; margin: 0 auto; padding: 2rem; text-align: center; }
-    .admin-intro p { color: var(--muted); line-height: 1.8; font-size: 1.1rem; }
+    .admin-panel:hover {
+      flex: 1.15;
+    }
     
-    .character-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 2rem; max-width: 1200px; margin: 0 auto; padding: 2rem; }
+    .admin-panel::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.3);
+      transition: background 0.3s;
+    }
     
-    .character-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; transition: transform 0.3s, box-shadow 0.3s; }
-    .character-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
+    .admin-panel:hover::after {
+      background: rgba(0,0,0,0.2);
+    }
     
-    .char-image { aspect-ratio: 16/9; background: var(--surface2); background-size: cover; background-position: center; position: relative; }
-    .char-image::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.6) 100%); }
+    /* Panel backgrounds */
+    .panel-creation {
+      background: linear-gradient(180deg, rgba(139,92,246,0.2) 0%, rgba(10,6,20,0.95) 100%),
+                  url('/images/tama-bg.png') center bottom / contain no-repeat;
+      border-right: 1px solid rgba(139,92,246,0.3);
+    }
     
-    .char-info { padding: 1.5rem; }
-    .char-name { font-family: var(--font-display); font-size: 1.75rem; margin-bottom: 0.25rem; }
-    .char-title { color: var(--royal-light); font-size: 0.9rem; font-weight: 600; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em; }
-    .char-desc { color: var(--text); font-size: 0.95rem; line-height: 1.7; }
-    .char-desc p + p { margin-top: 1rem; }
+    .panel-destruction {
+      background: linear-gradient(180deg, rgba(220,38,38,0.2) 0%, rgba(10,6,20,0.95) 100%),
+                  url('/images/tama-bg.png') center bottom / contain no-repeat;
+    }
     
-    .char-abilities { margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
-    .char-abilities h4 { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 0.75rem; }
-    .ability-list { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-    .ability-tag { background: rgba(139,92,246,0.15); color: #c4b5fd; padding: 0.35rem 0.75rem; border-radius: 100px; font-size: 0.8rem; }
+    [data-theme="light"] .panel-creation {
+      background: linear-gradient(180deg, rgba(139,92,246,0.25) 0%, rgba(20,10,40,0.8) 100%),
+                  url('/images/tama-bg.png') center bottom / contain no-repeat;
+    }
     
-    footer { background: var(--surface); border-top: 1px solid var(--border); padding: 0.75rem 1.5rem; margin-top: 4rem; }
-    .footer-inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
-    .footer-brand { display: flex; align-items: center; gap: 0.5rem; font-family: var(--font-display); font-size: 1rem; color: var(--royal); }
-    .footer-tama { width: 24px; height: 24px; background: url('/images/tama-icon.png') center/contain no-repeat; image-rendering: pixelated; }
-    .footer-link { color: var(--muted); text-decoration: none; font-size: 0.9rem; }
-    .footer-link:hover { color: var(--royal-light); }
+    [data-theme="light"] .panel-destruction {
+      background: linear-gradient(180deg, rgba(220,38,38,0.25) 0%, rgba(40,10,10,0.8) 100%),
+                  url('/images/tama-bg.png') center bottom / contain no-repeat;
+    }
     
-    @media (max-width: 768px) { .footer-inner { flex-direction: column; text-align: center; } }
+    .panel-content {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 2rem;
+      max-width: 400px;
+    }
+    
+    .panel-badge {
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      border-radius: 100px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+    }
+    
+    .panel-badge.creation {
+      background: rgba(139,92,246,0.3);
+      border: 1px solid rgba(139,92,246,0.5);
+      color: #c4b5fd;
+    }
+    
+    .panel-badge.destruction {
+      background: rgba(220,38,38,0.3);
+      border: 1px solid rgba(220,38,38,0.5);
+      color: #fca5a5;
+    }
+    
+    .panel-title {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      margin-bottom: 1rem;
+      text-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    
+    .panel-title.creation {
+      background: linear-gradient(135deg, #c4b5fd, #8b5cf6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .panel-title.destruction {
+      background: linear-gradient(135deg, #fca5a5, #dc2626);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .panel-desc {
+      font-size: 1.1rem;
+      opacity: 0.9;
+      line-height: 1.7;
+      margin-bottom: 2rem;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    }
+    
+    .panel-cta {
+      display: inline-block;
+      padding: 0.75rem 1.5rem;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 8px;
+      color: white;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+    
+    .panel-cta:hover {
+      background: rgba(255,255,255,0.1);
+      border-color: rgba(255,255,255,0.5);
+    }
+    
+    /* Footer */
+    footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      background: rgba(10,6,20,0.9);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid rgba(124,58,237,0.2);
+      padding: 0.75rem 1.5rem;
+    }
+    
+    [data-theme="light"] footer {
+      background: rgba(255,255,255,0.9);
+      border-top-color: rgba(124,58,237,0.1);
+    }
+    
+    .footer-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    
+    .footer-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: var(--font-display);
+      font-size: 1rem;
+      color: var(--royal);
+    }
+    
+    .footer-tama {
+      width: 24px;
+      height: 24px;
+      background: url('/images/tama-icon.png') center/contain no-repeat;
+      image-rendering: pixelated;
+    }
+    
+    .footer-link {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+    
+    .footer-link:hover {
+      color: var(--royal-light);
+    }
+    
+    @media (max-width: 768px) {
+      .admins-container { flex-direction: column; }
+      .admin-panel { border-right: none; border-bottom: 1px solid rgba(124,58,237,0.3); }
+      .admin-panel:hover { flex: 1; }
+      .footer-inner { flex-direction: column; text-align: center; }
+    }
   </style>
 </head>
 <body>
@@ -72,62 +278,24 @@
   </button>
 </nav>
 
-<main>
-  <section class="page-hero">
-    <p style="font-size: 0.75rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--royal-light); margin-bottom: 1rem;">👑 The Admins</p>
-    <h1>The Administrators</h1>
-    <p>At the absolute top of the Xanrea system. Two administrators who function more like an IT department than a pantheon of gods.</p>
-  </section>
-
-  <section class="admin-intro">
-    <p>The divine hierarchy functions as infrastructure management. The Admins detect corruption and repair affected servers from within. Destruction of damaged server clusters and reconstruction from scratch remains the last resort—but they chose to enter the world as mortals instead.</p>
-  </section>
-
-  <section class="character-grid">
-    <div class="character-card">
-      <div class="char-image" style="background-image: url('/images/tama-bg.png')"></div>
-      <div class="char-info">
-        <h2 class="char-name">Admin Creation</h2>
-        <p class="char-title">The Architect / Tama</p>
-        <div class="char-desc">
-          <p>Authority to create, modify, and restructure anything in the system. Often takes the form of <strong>Tama</strong>—a nekojin with purple hair, blue eyes, and a sword named <strong>Serenity</strong>.</p>
-          <p>In her true form, Admin Creation stands over six feet tall with brilliant blonde hair and golden eyes that shift red when genuinely furious. Tama is not a separate being, but one of the forms Admin Creation took and still sometimes assumes.</p>
-          <p>Her admin memories were deliberately suppressed so she could experience the world as a person, including its suffering and growth. She can lock entities into "No-No boxes"—divine-tier system quarantine.</p>
-        </div>
-        <div class="char-abilities">
-          <h4>Authority</h4>
-          <div class="ability-list">
-            <span class="ability-tag">Creation</span>
-            <span class="ability-tag">Modification</span>
-            <span class="ability-tag">System Quarantine</span>
-            <span class="ability-tag">Teleportation ("Blinking")</span>
-          </div>
-        </div>
-      </div>
+<main class="admins-container">
+  <a href="/xanrean/characters/tama" class="admin-panel panel-creation">
+    <div class="panel-content">
+      <div class="panel-badge creation">👑 The Architect</div>
+      <h2 class="panel-title creation">Admin<br>Creation</h2>
+      <p class="panel-desc">Tama. Authority to create, modify, and restructure anything in the system. Wields Serenity.</p>
+      <span class="panel-cta">View Bio →</span>
     </div>
-    
-    <div class="character-card">
-      <div class="char-image" style="background-image: url('/images/tama-bg.png')"></div>
-      <div class="char-info">
-        <h2 class="char-name">Admin Destruction</h2>
-        <p class="char-title">The Rollback / Saki</p>
-        <div class="char-desc">
-          <p>Where Creation builds and modifies, Destruction deletes and erases. Admin Destruction took the form of <strong>Saki</strong> and entered the rollback timeline alongside Tama with the same deliberate suppression of administrative memory.</p>
-          <p>A kitsune who spent her entire life hiding her true nature and ignoring the voice in her head that whispers <em>erase</em>. She thought she was beyond caring about anyone—then she met Tama.</p>
-          <p>Together, the two administrators function as an antivirus system. Their purpose is to detect corruption and repair affected servers from within when possible.</p>
-        </div>
-        <div class="char-abilities">
-          <h4>Authority</h4>
-          <div class="ability-list">
-            <span class="ability-tag">Deletion</span>
-            <span class="ability-tag">Rollback</span>
-            <span class="ability-tag">System Repair</span>
-            <span class="ability-tag">Server Reconstruction</span>
-          </div>
-        </div>
-      </div>
+  </a>
+  
+  <a href="/xanrean/characters/saki" class="admin-panel panel-destruction">
+    <div class="panel-content">
+      <div class="panel-badge destruction">🔥 The Rollback</div>
+      <h2 class="panel-title destruction">Admin<br>Destruction</h2>
+      <p class="panel-desc">Saki. Where Creation builds, Destruction deletes. Void heir with erasure authority.</p>
+      <span class="panel-cta">View Bio →</span>
     </div>
-  </section>
+  </a>
 </main>
 
 <footer>
