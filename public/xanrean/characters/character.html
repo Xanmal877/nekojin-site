@@ -283,8 +283,7 @@
         
         // Intro (before first ##)
         if (sections[0]) {
-          const intro = sections[0].replace(/^#.+
-/, '').trim();
+          const intro = sections[0].replace(/^#.+\n/, '').trim();
           if (intro) contentHtml += mdToHtml(intro);
         }
         contentHtml += '</div>';
