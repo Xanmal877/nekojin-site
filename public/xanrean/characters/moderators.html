@@ -53,6 +53,8 @@
     .char-relations { margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
     .char-relations h4 { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 0.75rem; }
     .relation-tag { display: inline-block; background: rgba(59,130,246,0.15); color: #93c5fd; padding: 0.35rem 0.75rem; border-radius: 100px; font-size: 0.8rem; margin-right: 0.5rem; }
+    .relation-tag a { color: inherit; text-decoration: none; }
+    .relation-tag a:hover { text-decoration: underline; }
     
     .minor-mods { max-width: 1200px; margin: 0 auto; padding: 2rem; }
     .minor-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 1.5rem; }
@@ -96,6 +98,7 @@
   <h2 class="section-title">The Moderators</h2>
 
   <section class="character-grid">
+    <!-- Moderator Time - links to the entity profile -->
     <a href="/xanrean/characters/moderator-time" class="character-card" style="text-decoration: none; color: inherit;">
       <div class="char-image" style="background-image: url('/images/tama-bg.png')"></div>
       <div class="char-info">
@@ -105,31 +108,14 @@
           <p>Responsible for Time itself. Manages the soul stream and functions as the system's CPU-like processor, coordinating timing, routing, continuity, and sequence of soul activity throughout the system.</p>
         </div>
         <div class="char-relations">
-          <h4>Known Incarnation</h4>
-          <span class="relation-tag">💧 Anna</span>
+          <h4>Incarnation</h4>
+          <span class="relation-tag"><a href="/xanrean/characters/anna">💧 Anna Trissaile</a></span>
         </div>
-        <span class="view-link">View Profile →</span>
+        <span class="view-link">View Entity Profile →</span>
       </div>
     </a>
     
-    <a href="/xanrean/characters/anna" class="character-card" style="text-decoration: none; color: inherit;">
-      <div class="char-image" style="background-image: url('/images/tama-bg.png')"></div>
-      <div class="char-info">
-        <h2 class="char-name">Anna</h2>
-        <p class="char-title">Incarnation of Moderator Time</p>
-        <div class="char-desc">
-          <p>Annabelle "Anna" Trissaile is a divine water spirit and shapeshifter. Incarnated as a water spirit who can change forms—appearing as a young girl, living water, mist, clothing, armor, or other shapes.</p>
-          <p>Subservient specifically and exclusively to Admin Creation, most often encountered as Tama.</p>
-        </div>
-        <div class="char-relations">
-          <h4>Relationships</h4>
-          <span class="relation-tag">👑 Devoted to Tama</span>
-          <span class="relation-tag">🎮 Created the Toybox</span>
-        </div>
-        <span class="view-link">View Profile →</span>
-      </div>
-    </a>
-    
+    <!-- Moderator Space - links to the entity profile -->
     <a href="/xanrean/characters/moderator-space" class="character-card" style="text-decoration: none; color: inherit;">
       <div class="char-image" style="background-image: url('/images/tama-bg.png')"></div>
       <div class="char-info">
@@ -139,20 +125,44 @@
           <p>Responsible for Spatial continuity, position and distance, connections between regions, and movement across the system. Maintains coherent relationships between locations.</p>
         </div>
         <div class="char-relations">
-          <h4>Known Incarnation</h4>
-          <span class="relation-tag">⚡ Xanari Telis</span>
+          <h4>Former Traveler Who Ascended</h4>
+          <span class="relation-tag"><a href="/xanrean/characters/xanari">⚡ Xanari Telis</a></span>
         </div>
-        <span class="view-link">View Profile →</span>
+        <span class="view-link">View Entity Profile →</span>
+      </div>
+    </a>
+  </section>
+
+  <h2 class="section-title">The Incarnations</h2>
+
+  <section class="character-grid">
+    <!-- Anna - the incarnation of Moderator Time -->
+    <a href="/xanrean/characters/anna" class="character-card" style="text-decoration: none; color: inherit;">
+      <div class="char-image" style="background-image: url('/images/tama-bg.png')"></div>
+      <div class="char-info">
+        <h2 class="char-name">Anna Trissaile</h2>
+        <p class="char-title">Incarnation of Moderator Time</p>
+        <div class="char-desc">
+          <p>Annabelle "Anna" Trissaile is a divine water spirit and shapeshifter. She IS Moderator Time living as this incarnation—not a vessel carrying something separate.</p>
+          <p>Subservient specifically and exclusively to Admin Creation (Tama). Created the <em>Toybox Chronicles</em> simulation.</p>
+        </div>
+        <div class="char-relations">
+          <h4>Relationships</h4>
+          <span class="relation-tag"><a href="/xanrean/characters/tama">👑 Devoted to Tama</a></span>
+          <span class="relation-tag"><a href="/xanrean/characters/moderator-time">⏰ Is Moderator Time</a></span>
+        </div>
+        <span class="view-link">View Incarnation Profile →</span>
       </div>
     </a>
     
+    <!-- Xanari - who became Moderator Space -->
     <a href="/xanrean/characters/xanari" class="character-card" style="text-decoration: none; color: inherit;">
       <div class="char-image" style="background-image: url('/images/tama-bg.png')"></div>
       <div class="char-info">
         <h2 class="char-name">Xanari "Xan" Telis</h2>
-        <p class="char-title">Minor Moderator / Former Traveler</p>
+        <p class="char-title">Traveler Who Became Moderator Space</p>
         <div class="char-desc">
-          <p>A Traveler whose Earth name is unknown. After arriving in Xanrea, he renamed himself Xanari, and others later shortened it to Xan. His eventual ascension to Moderator of Space established that the system can promote a mortal into the administrative hierarchy.</p>
+          <p>A Traveler whose Earth name is unknown. After arriving in Xanrea, he renamed himself Xanari. His ascension to Moderator of Space proved the system can promote mortals into the administrative hierarchy.</p>
           <p>A copy of his soul remains as the Moderator while the original moved on.</p>
         </div>
         <div class="char-relations">
