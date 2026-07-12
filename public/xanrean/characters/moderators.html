@@ -29,18 +29,36 @@
     
     .page-hero { text-align: center; padding: 4rem 2rem; background: linear-gradient(180deg, rgba(59,130,246,0.1) 0%, transparent 100%); }
     .page-hero h1 { font-family: var(--font-display); font-size: clamp(2.5rem, 6vw, 4rem); background: linear-gradient(135deg, #93c5fd, #3b82f6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .page-hero p { max-width: 600px; margin: 1rem auto 0; color: var(--muted); }
+    .page-hero p { max-width: 700px; margin: 1rem auto 0; color: var(--muted); }
     
-    .character-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 2rem; max-width: 1200px; margin: 0 auto; padding: 2rem; }
+    .mod-intro { max-width: 800px; margin: 0 auto; padding: 2rem; text-align: center; }
+    .mod-intro p { color: var(--muted); line-height: 1.8; font-size: 1.1rem; }
+    
+    .section-title { font-family: var(--font-display); font-size: 1.5rem; text-align: center; margin: 3rem 0 1.5rem; color: var(--text); }
+    
+    .character-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 2rem; max-width: 1400px; margin: 0 auto; padding: 2rem; }
     
     .character-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; transition: transform 0.3s, box-shadow 0.3s; }
     .character-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
     
-    .char-image { aspect-ratio: 1; background: var(--surface2); background-size: cover; background-position: center; }
+    .char-image { aspect-ratio: 16/9; background: var(--surface2); background-size: cover; background-position: center; position: relative; }
+    .char-image::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.6) 100%); }
+    
     .char-info { padding: 1.5rem; }
     .char-name { font-family: var(--font-display); font-size: 1.5rem; margin-bottom: 0.25rem; }
-    .char-title { color: var(--royal-light); font-size: 0.9rem; font-weight: 600; margin-bottom: 0.75rem; }
-    .char-desc { color: var(--muted); font-size: 0.95rem; line-height: 1.6; }
+    .char-title { color: var(--royal-light); font-size: 0.85rem; font-weight: 600; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .char-desc { color: var(--text); font-size: 0.95rem; line-height: 1.7; }
+    .char-desc p + p { margin-top: 1rem; }
+    
+    .char-relations { margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+    .char-relations h4 { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 0.75rem; }
+    .relation-tag { display: inline-block; background: rgba(59,130,246,0.15); color: #93c5fd; padding: 0.35rem 0.75rem; border-radius: 100px; font-size: 0.8rem; margin-right: 0.5rem; }
+    
+    .minor-mods { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+    .minor-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 1.5rem; }
+    
+    .minor-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; }
+    .minor-card .char-name { font-size: 1.25rem; }
     
     footer { background: var(--surface); border-top: 1px solid var(--border); padding: 0.75rem 1.5rem; margin-top: 4rem; }
     .footer-inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
@@ -65,16 +83,101 @@
   <section class="page-hero">
     <p style="font-size: 0.75rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--royal-light); margin-bottom: 1rem;">🛡️ The Moderators</p>
     <h1>The Moderators</h1>
-    <p>The allies, companions, and important souls who support the Administrators and inhabit the Server Clusters.</p>
+    <p>System-level moderators with defined responsibilities in the operation of the wider infrastructure. Not merely local gods—they are fundamental system domains.</p>
   </section>
 
+  <section class="mod-intro">
+    <p>Below the Admins are moderators responsible for fundamental system operations. Pantheons that emerge inside individual worlds may be extremely powerful within their own environment, but possess no administrative authority compared to these system-level moderators.</p>
+  </section>
+
+  <h2 class="section-title">The Four Elements</h2>
+
   <section class="character-grid">
-    <div class="character-card" style="opacity: 0.6;">
-      <div class="char-image" style="background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 4rem;">🔮</div>
+    <div class="character-card">
+      <div class="char-image" style="background-image: url('/images/tama-bg.png')"></div>
       <div class="char-info">
-        <h2 class="char-name">Coming Soon</h2>
-        <p class="char-title">The Supporting Cast</p>
-        <p class="char-desc">Moderators and key characters will be revealed as the story progresses. Check back for updates!</p>
+        <h2 class="char-name">Fire</h2>
+        <p class="char-title">Major Moderator / Destruction-Aligned</p>
+        <div class="char-desc">
+          <p>Hates Tama because Creation cares about what she makes, which Fire considers weakness. At the same time, Fire loves Tama's raw attitude and chaos—a contradiction Fire lives in comfortably.</p>
+          <p>Gets along very well with Saki (Admin Destruction).</p>
+        </div>
+        <div class="char-relations">
+          <h4>Relationships</h4>
+          <span class="relation-tag">💙 Adores Saki</span>
+          <span class="relation-tag">🔥 Conflicted on Tama</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="character-card">
+      <div class="char-image" style="background-image: url('/images/tama-bg.png')"></div>
+      <div class="char-info">
+        <h2 class="char-name">Earth</h2>
+        <p class="char-title">Major Moderator / Stability Domain</p>
+        <div class="char-desc">
+          <p>Thinks Tama is too simple-minded. Practical, grounded, and patient—but unimpressed by Tama's childlike energy and chaos.</p>
+          <p>Gets along well with Saki, who shares Earth's more calculating and controlled approach to problems.</p>
+        </div>
+        <div class="char-relations">
+          <h4>Relationships</h4>
+          <span class="relation-tag">⚖️ Respects Saki</span>
+          <span class="relation-tag">😐 Skeptical of Tama</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="character-card">
+      <div class="char-image" style="background-image: url('/images/tama-bg.png')"></div>
+      <div class="char-info">
+        <h2 class="char-name">Air / Drake</h2>
+        <p class="char-title">Major Moderator / Freedom Domain</p>
+        <div class="char-desc">
+          <p>A close friend of Tama who gets along reasonably well with Saki. Drake represents the free, unbound aspects of the system—the movement of data, the breath of change.</p>
+          <p>Unlike Fire and Earth, Drake enjoys Tama's chaos without needing to oppose it.</p>
+        </div>
+        <div class="char-relations">
+          <h4>Relationships</h4>
+          <span class="relation-tag">✨ Friend of Tama</span>
+          <span class="relation-tag">🤝 Allied with Saki</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="character-card">
+      <div class="char-image" style="background-image: url('/images/tama-bg.png')"></div>
+      <div class="char-info">
+        <h2 class="char-name">Water / Anna</h2>
+        <p class="char-title">Major Moderator / Creation-Bound</p>
+        <div class="char-desc">
+          <p>Subservient specifically and exclusively to Admin Creation, most often addressed in the form of Tama. Anna does not extend that deference to Admin Destruction, despite the two administrators being equals.</p>
+          <p>Created <em>Toybox Chronicles</em>—a simulation powered by excess energy from Xanrea's primary server cluster.</p>
+        </div>
+        <div class="char-relations">
+          <h4>Relationships</h4>
+          <span class="relation-tag">👑 Devoted to Tama</span>
+          <span class="relation-tag">🎮 Created the Toybox</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <h2 class="section-title">Minor Moderators</h2>
+
+  <section class="minor-mods">
+    <p style="text-align: center; color: var(--muted); margin-bottom: 1rem;">Mortal beings who ascended through effort and impact. Proof that the system can promote from within.</p>
+    
+    <div class="minor-grid">
+      <div class="minor-card">
+        <h3 class="char-name">Xanari "Xan" Telis</h3>
+        <p class="char-title">Minor Moderator / Earth & Water</p>
+        <p class="char-desc">A Traveler whose Earth name is unknown. After arriving in Xanrea, he renamed himself Xanari, and others later shortened it to Xan. His eventual ascension to minor moderator status established that the system can promote a mortal into the administrative hierarchy. His primary element is Earth, Water secondary.</p>
+      </div>
+      
+      <div class="minor-card" style="opacity: 0.6;">
+        <h3 class="char-name">More Ascending...</h3>
+        <p class="char-title">The System Expands</p>
+        <p class="char-desc">The administration is understaffed. Across Xanrea and adjacent servers, exceptional people repeatedly exceed their assigned roles. Some are recruited rather than discarded. More moderators will be revealed as the macro-story unfolds.</p>
       </div>
     </div>
   </section>

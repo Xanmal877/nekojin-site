@@ -31,16 +31,27 @@
     .page-hero h1 { font-family: var(--font-display); font-size: clamp(2.5rem, 6vw, 4rem); background: linear-gradient(135deg, #c4b5fd, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     .page-hero p { max-width: 600px; margin: 1rem auto 0; color: var(--muted); }
     
-    .character-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 2rem; max-width: 1200px; margin: 0 auto; padding: 2rem; }
+    .admin-intro { max-width: 800px; margin: 0 auto; padding: 2rem; text-align: center; }
+    .admin-intro p { color: var(--muted); line-height: 1.8; font-size: 1.1rem; }
+    
+    .character-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 2rem; max-width: 1200px; margin: 0 auto; padding: 2rem; }
     
     .character-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; transition: transform 0.3s, box-shadow 0.3s; }
     .character-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
     
-    .char-image { aspect-ratio: 1; background: var(--surface2); background-size: cover; background-position: center; }
+    .char-image { aspect-ratio: 16/9; background: var(--surface2); background-size: cover; background-position: center; position: relative; }
+    .char-image::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.6) 100%); }
+    
     .char-info { padding: 1.5rem; }
-    .char-name { font-family: var(--font-display); font-size: 1.5rem; margin-bottom: 0.25rem; }
-    .char-title { color: var(--royal-light); font-size: 0.9rem; font-weight: 600; margin-bottom: 0.75rem; }
-    .char-desc { color: var(--muted); font-size: 0.95rem; line-height: 1.6; }
+    .char-name { font-family: var(--font-display); font-size: 1.75rem; margin-bottom: 0.25rem; }
+    .char-title { color: var(--royal-light); font-size: 0.9rem; font-weight: 600; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .char-desc { color: var(--text); font-size: 0.95rem; line-height: 1.7; }
+    .char-desc p + p { margin-top: 1rem; }
+    
+    .char-abilities { margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+    .char-abilities h4 { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 0.75rem; }
+    .ability-list { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .ability-tag { background: rgba(139,92,246,0.15); color: #c4b5fd; padding: 0.35rem 0.75rem; border-radius: 100px; font-size: 0.8rem; }
     
     footer { background: var(--surface); border-top: 1px solid var(--border); padding: 0.75rem 1.5rem; margin-top: 4rem; }
     .footer-inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
@@ -65,34 +76,55 @@
   <section class="page-hero">
     <p style="font-size: 0.75rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--royal-light); margin-bottom: 1rem;">👑 The Admins</p>
     <h1>The Administrators</h1>
-    <p>The immortal Administrators who govern the Xanrean Server Clusters, managing reincarnation and the flow of souls.</p>
+    <p>At the absolute top of the Xanrea system. Two administrators who function more like an IT department than a pantheon of gods.</p>
+  </section>
+
+  <section class="admin-intro">
+    <p>The divine hierarchy functions as infrastructure management. The Admins detect corruption and repair affected servers from within. Destruction of damaged server clusters and reconstruction from scratch remains the last resort—but they chose to enter the world as mortals instead.</p>
   </section>
 
   <section class="character-grid">
     <div class="character-card">
       <div class="char-image" style="background-image: url('/images/tama-bg.png')"></div>
       <div class="char-info">
-        <h2 class="char-name">Fuyuki "Tama" Tamaneko</h2>
-        <p class="char-title">Queen Administrator</p>
-        <p class="char-desc">A reincarnated admin who awakens as a catgirl monarch in a world that runs on rules she wrote. The primary protagonist of the main storyline.</p>
+        <h2 class="char-name">Admin Creation</h2>
+        <p class="char-title">The Architect / Tama</p>
+        <div class="char-desc">
+          <p>Authority to create, modify, and restructure anything in the system. Often takes the form of <strong>Tama</strong>—a nekojin with purple hair, blue eyes, and a sword named <strong>Serenity</strong>.</p>
+          <p>In her true form, Admin Creation stands over six feet tall with brilliant blonde hair and golden eyes that shift red when genuinely furious. Tama is not a separate being, but one of the forms Admin Creation took and still sometimes assumes.</p>
+          <p>Her admin memories were deliberately suppressed so she could experience the world as a person, including its suffering and growth. She can lock entities into "No-No boxes"—divine-tier system quarantine.</p>
+        </div>
+        <div class="char-abilities">
+          <h4>Authority</h4>
+          <div class="ability-list">
+            <span class="ability-tag">Creation</span>
+            <span class="ability-tag">Modification</span>
+            <span class="ability-tag">System Quarantine</span>
+            <span class="ability-tag">Teleportation ("Blinking")</span>
+          </div>
+        </div>
       </div>
     </div>
     
     <div class="character-card">
       <div class="char-image" style="background-image: url('/images/tama-bg.png')"></div>
       <div class="char-info">
-        <h2 class="char-name">Autumnal "Saki" Sakilera</h2>
-        <p class="char-title">Princess Administrator</p>
-        <p class="char-desc">Tama's counterpart and fellow administrator, navigating mortality alongside the souls they protect. Second only to Tama in the hierarchy.</p>
-      </div>
-    </div>
-    
-    <div class="character-card" style="opacity: 0.6;">
-      <div class="char-image" style="background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 4rem;">🔮</div>
-      <div class="char-info">
-        <h2 class="char-name">More Coming Soon</h2>
-        <p class="char-title">The Council</p>
-        <p class="char-desc">Additional Administrators will be revealed as the story unfolds.</p>
+        <h2 class="char-name">Admin Destruction</h2>
+        <p class="char-title">The Rollback / Saki</p>
+        <div class="char-desc">
+          <p>Where Creation builds and modifies, Destruction deletes and erases. Admin Destruction took the form of <strong>Saki</strong> and entered the rollback timeline alongside Tama with the same deliberate suppression of administrative memory.</p>
+          <p>A kitsune who spent her entire life hiding her true nature and ignoring the voice in her head that whispers <em>erase</em>. She thought she was beyond caring about anyone—then she met Tama.</p>
+          <p>Together, the two administrators function as an antivirus system. Their purpose is to detect corruption and repair affected servers from within when possible.</p>
+        </div>
+        <div class="char-abilities">
+          <h4>Authority</h4>
+          <div class="ability-list">
+            <span class="ability-tag">Deletion</span>
+            <span class="ability-tag">Rollback</span>
+            <span class="ability-tag">System Repair</span>
+            <span class="ability-tag">Server Reconstruction</span>
+          </div>
+        </div>
       </div>
     </div>
   </section>
