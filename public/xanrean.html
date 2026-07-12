@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Xanrean Chronicles - Nekojin Interactive</title>
+  <meta name="description" content="Enter the Xanrean Server Clusters. Follow Admin Creation and Destruction through interconnected stories of reincarnation, magic, and digital souls.">
+  <meta name="keywords" content="xanrea, xanrean chronicles, her majesty tamaneko, nekojin, fantasy, progression fiction, litrpg, reincarnation">
+  <meta property="og:title" content="Xanrean Chronicles - Nekojin Interactive">
+  <meta property="og:description" content="Enter the Xanrean Server Clusters. Follow Admin Creation and Destruction through interconnected stories.">
+  <meta property="og:image" content="https://worldofxanrea.com/covers/sb-cover.png">
+  <meta property="og:url" content="https://worldofxanrea.com/xanrean">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#0a0614">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/images/tama-icon.png">
+  <link rel="alternate" type="application/atom+xml" title="Nekojin Interactive Feed" href="https://worldofxanrea.com/rss.xml">
+  <link rel="stylesheet" href="/style.css">
+  <script>
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+  </script>
+  <style>
+    /* Nav - matches homepage */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 2rem;
+      background: rgba(255,255,255,0.9);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(124,58,237,0.1);
+    }
+    
+    [data-theme="dark"] nav {
+      background: rgba(10,6,20,0.9);
+      border-bottom-color: rgba(124,58,237,0.2);
+    }
+    
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: var(--font-display);
+      font-size: 1.4rem;
+      color: var(--royal);
+      text-decoration: none;
+    }
+    
+    .nav-tama {
+      width: 32px;
+      height: 32px;
+      image-rendering: pixelated;
+      background: url('/images/tama-idle.png') 0 0 / 256px 32px;
+      animation: tama-nav 1.2s steps(8) infinite;
+    }
+    
+    @keyframes tama-nav {
+      from { background-position: 0 0; }
+      to { background-position: -256px 0; }
+    }
+    
+    @media (prefers-reduced-motion: reduce) {
+      .nav-tama { animation: none; }
+    }
+    
+    .theme-toggle {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 1.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    
+    .theme-toggle:hover {
+      border-color: var(--royal);
+      transform: scale(1.05);
+    }
+    
+    /* Hero */
+    .xanrean-hero {
+      min-height: 70vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 6rem 2rem 3rem;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .xanrean-hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: 
+        radial-gradient(ellipse at 30% 20%, rgba(124,58,237,0.15), transparent 50%),
+        radial-gradient(ellipse at 70% 80%, rgba(139,92,246,0.1), transparent 50%);
+      pointer-events: none;
+    }
+    
+    .xanrean-hero-eyebrow {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--royal-light);
+      margin-bottom: 1rem;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .xanrean-hero-title {
+      font-family: var(--font-display);
+      font-size: clamp(3rem, 8vw, 6rem);
+      line-height: 1.05;
+      margin-bottom: 1rem;
+      position: relative;
+      z-index: 1;
+      background: linear-gradient(135deg, #c4b5fd, #a78bfa, #8b5cf6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    [data-theme="light"] .xanrean-hero-title {
+      background: linear-gradient(135deg, #6d28d9, #7c3aed);
+      -webkit-background-clip: text;
+      background-clip: text;
+    }
+    
+    .xanrean-hero-tagline {
+      font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+      color: var(--text);
+      opacity: 0.9;
+      max-width: 600px;
+      line-height: 1.6;
+      position: relative;
+      z-index: 1;
+    }
+    
+    /* Hub Grid */
+    .hub-section {
+      padding: 4rem 2rem;
+    }
+    
+    .hub-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .hub-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2rem;
+      text-decoration: none;
+      color: inherit;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .hub-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    
+    .hub-card:hover {
+      transform: translateY(-8px);
+      border-color: var(--border2);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+    }
+    
+    .hub-card.books::before {
+      background: radial-gradient(ellipse at top, rgba(124,58,237,0.1), transparent 70%);
+    }
+    
+    .hub-card.characters::before {
+      background: radial-gradient(ellipse at top, rgba(59,130,246,0.1), transparent 70%);
+    }
+    
+    .hub-card.lore::before {
+      background: radial-gradient(ellipse at top, rgba(16,185,129,0.1), transparent 70%);
+    }
+    
+    .hub-card.game::before {
+      background: radial-gradient(ellipse at top, rgba(245,158,11,0.1), transparent 70%);
+    }
+    
+    .hub-card:hover::before {
+      opacity: 1;
+    }
+    
+    .hub-card-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .hub-card-title {
+      font-family: var(--font-display);
+      font-size: 1.75rem;
+      margin-bottom: 0.75rem;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .hub-card.books .hub-card-title {
+      background: linear-gradient(135deg, #c4b5fd, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .hub-card.characters .hub-card-title {
+      background: linear-gradient(135deg, #93c5fd, #60a5fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .hub-card.lore .hub-card-title {
+      background: linear-gradient(135deg, #6ee7b7, #34d399);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .hub-card.game .hub-card-title {
+      background: linear-gradient(135deg, #fcd34d, #f59e0b);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .hub-card-desc {
+      font-size: 0.95rem;
+      color: var(--muted);
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .hub-card-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--royal-light);
+      position: relative;
+      z-index: 1;
+      transition: gap 0.2s;
+    }
+    
+    .hub-card:hover .hub-card-cta {
+      gap: 0.75rem;
+    }
+    
+    /* Books Preview Section */
+    .books-section {
+      padding: 4rem 2rem;
+      background: var(--surface);
+    }
+    
+    .section-header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+    
+    .section-eyebrow {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--royal-light);
+      margin-bottom: 0.75rem;
+    }
+    
+    .section-title {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 4vw, 3rem);
+      margin-bottom: 1rem;
+    }
+    
+    .books-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 2rem;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    
+    .book-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      transition: all 0.3s;
+      text-decoration: none;
+      color: inherit;
+    }
+    
+    .book-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--border2);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.3);
+    }
+    
+    .book-cover {
+      aspect-ratio: 2/3;
+      background: var(--surface2);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .book-cover img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .book-info {
+      padding: 1.25rem;
+    }
+    
+    .book-title {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      margin-bottom: 0.25rem;
+      color: var(--ink);
+    }
+    
+    .book-volume {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    
+    /* Footer - matches homepage */
+    footer {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 0.75rem 1.5rem;
+    }
+    
+    .footer-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    
+    .footer-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: var(--font-display);
+      font-size: 1rem;
+      color: var(--royal);
+    }
+    
+    .footer-tama {
+      width: 24px;
+      height: 24px;
+      background: url('/images/tama-icon.png') center/contain no-repeat;
+      image-rendering: pixelated;
+    }
+    
+    .footer-text {
+      color: var(--text);
+    }
+    
+    .footer-copy {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin: 0;
+    }
+    
+    .footer-actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    
+    .footer-link {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: color 0.2s;
+      padding: 0.5rem;
+    }
+    
+    .footer-link:hover {
+      color: var(--royal-light);
+    }
+    
+    .footer-patreon {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.65rem 1.25rem;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #7c3aed, #6d28d9);
+      color: white;
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    
+    .footer-patreon:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(124,58,237,0.4);
+    }
+    
+    .footer-newsletter {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .footer-newsletter input {
+      padding: 0.6rem 0.875rem;
+      border: 1px solid rgba(124,58,237,0.4);
+      border-radius: 8px;
+      background: rgba(255,255,255,0.05);
+      color: white;
+      font-size: 0.9rem;
+      width: 180px;
+    }
+    
+    .footer-newsletter input::placeholder {
+      color: rgba(255,255,255,0.5);
+    }
+    
+    .footer-newsletter button {
+      padding: 0.6rem 1rem;
+      border: none;
+      border-radius: 8px;
+      background: var(--royal-light);
+      color: #0a0614;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .footer-newsletter button:hover {
+      background: #c4b5fd;
+    }
+    
+    @media (max-width: 768px) {
+      .footer-inner {
+        flex-direction: column;
+        text-align: center;
+        gap: 0.75rem;
+      }
+      
+      .footer-actions {
+        flex-direction: column;
+        width: 100%;
+      }
+      
+      .footer-newsletter {
+        width: 100%;
+      }
+      
+      .footer-newsletter input {
+        flex: 1;
+      }
+      
+      .hub-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo">
+    <div class="nav-tama"></div>
+    Nekojin Interactive
+  </a>
+  <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+    <span id="theme-icon">☀️</span>
+  </button>
+</nav>
+
+<main>
+  <section class="xanrean-hero">
+    <p class="xanrean-hero-eyebrow">✦ The Main Universe</p>
+    <h1 class="xanrean-hero-title">Xanrean Chronicles</h1>
+    <p class="xanrean-hero-tagline">Follow Admin Creation and Destruction and their adventures through the Xanrean Server Clusters. A digital consciousness preservation system running billions of uploaded lives.</p>
+  </section>
+
+  <section class="hub-section">
+    <div class="hub-grid">
+      <a href="/books" class="hub-card books">
+        <div class="hub-card-icon">📚</div>
+        <h2 class="hub-card-title">The Books</h2>
+        <p class="hub-card-desc">Her Majesty Tamaneko and the complete series. Start reading the main storyline and discover the universe from the beginning.</p>
+        <span class="hub-card-cta">Browse Books →</span>
+      </a>
+      
+      <a href="/xanrean/characters" class="hub-card characters">
+        <div class="hub-card-icon">👥</div>
+        <h2 class="hub-card-title">Characters</h2>
+        <p class="hub-card-desc">Meet Tama, Saki, Petalia, Xanari, and the cast of the Xanrean Server Clusters. Learn their stories and connections.</p>
+        <span class="hub-card-cta">Meet the Cast →</span>
+      </a>
+      
+      <a href="/xanrean/lore" class="hub-card lore">
+        <div class="hub-card-icon">🌍</div>
+        <h2 class="hub-card-title">Lore & World</h2>
+        <p class="hub-card-desc">The Xanrea Framework, Server Clusters, magic systems, races, and the deep worldbuilding behind the stories.</p>
+        <span class="hub-card-cta">Explore Lore →</span>
+      </a>
+      
+      <a href="/games" class="hub-card game">
+        <div class="hub-card-icon">🎮</div>
+        <h2 class="hub-card-title">The Game</h2>
+        <p class="hub-card-desc">Autumn's Dungeoneering. Experience the Xanrean universe firsthand in this cozy tactical dungeon-crawling RPG.</p>
+        <span class="hub-card-cta">View Game →</span>
+      </a>
+    </div>
+  </section>
+
+  <section class="books-section" id="books-section">
+    <div class="section-header">
+      <p class="section-eyebrow">✦ Her Majesty, Tamaneko</p>
+      <h2 class="section-title">The Series</h2>
+    </div>
+    <div class="books-grid" id="books-grid">
+      <!-- Books loaded from database -->
+      <p style="text-align: center; color: var(--muted); grid-column: 1/-1;">Loading books...</p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <div class="footer-tama"></div>
+      <span class="footer-text">Nekojin Interactive</span>
+    </div>
+    
+    <p class="footer-copy">© 2025 Nekojin Interactive LLC. All rights reserved.</p>
+    
+    <div class="footer-actions">
+      <a href="/about" class="footer-link">About</a>
+      <a href="https://www.patreon.com/purplexanmal" target="_blank" rel="noopener" class="footer-patreon">
+        ☕ Support on Patreon
+      </a>
+      
+      <form class="footer-newsletter" onsubmit="subscribe(event)">
+        <input type="email" placeholder="your@email.com" required>
+        <button type="submit">Subscribe</button>
+      </form>
+    </div>
+  </div>
+</footer>
+
+<div class="nl-message" id="nl-message"></div>
+
+<script>
+// Theme toggle
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme') || 'light';
+  const next = current === 'light' ? 'dark' : 'light';
+  html.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+  document.getElementById('theme-icon').textContent = next === 'light' ? '☀️' : '🌙';
+}
+
+// Initialize theme icon
+document.getElementById('theme-icon').textContent = 
+  (document.documentElement.getAttribute('data-theme') || 'light') === 'light' ? '☀️' : '🌙';
+
+// Newsletter subscribe
+async function subscribe(e) {
+  e.preventDefault();
+  const form = e.target;
+  const email = form.querySelector('input[type="email"]').value;
+  const btn = form.querySelector('button');
+  const msg = document.getElementById('nl-message');
+  
+  btn.disabled = true;
+  btn.textContent = '...';
+  
+  try {
+    const res = await fetch('/newsletter', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    
+    if (res.ok) {
+      showToast('Subscribed! Welcome aboard.', 'success');
+      form.reset();
+    } else {
+      const data = await res.json().catch(() => ({}));
+      showToast(data.message || 'Subscription failed', 'error');
+    }
+  } catch (err) {
+    showToast('Network error. Please try again.', 'error');
+  }
+  
+  btn.disabled = false;
+  btn.textContent = 'Subscribe';
+}
+
+function showToast(message, type = 'success') {
+  const msg = document.getElementById('nl-message');
+  msg.textContent = message;
+  msg.className = 'nl-message ' + type;
+  msg.classList.add('visible');
+  setTimeout(() => msg.classList.remove('visible'), 3000);
+}
+
+// Load Xanrean books from database
+async function loadXanreanBooks() {
+  try {
+    const res = await fetch('/content');
+    if (!res.ok) throw new Error('Failed to load');
+    const data = await res.json();
+    
+    const grid = document.getElementById('books-grid');
+    const books = (data.books || []).filter(b => b.visible !== false);
+    
+    if (books.length === 0) {
+      grid.innerHTML = '<p style="text-align: center; color: var(--muted); grid-column: 1/-1;">No books available yet.</p>';
+      return;
+    }
+    
+    grid.innerHTML = books.map(book => `
+      <a href="/book?id=${encodeURIComponent(book.id)}" class="book-card">
+        <div class="book-cover">
+          ${book.cover ? `<img src="${book.cover}" alt="${book.title}">` : '<div style="width:100%;height:100%;background:linear-gradient(160deg,#2d1065,#1e1b4b);display:flex;align-items:center;justify-content:center;color:var(--muted);">No Cover</div>'}
+        </div>
+        <div class="book-info">
+          <h3 class="book-title">${book.title}</h3>
+          ${book.volume ? `<p class="book-volume">${book.volume}</p>` : ''}
+        </div>
+      </a>
+    `).join('');
+    
+  } catch (e) {
+    console.error('Failed to load books:', e);
+    document.getElementById('books-grid').innerHTML = '<p style="text-align: center; color: var(--muted); grid-column: 1/-1;">Failed to load books.</p>';
+  }
+}
+
+// Initialize
+loadXanreanBooks();
+</script>
+
+</body>
+</html>

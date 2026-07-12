@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lore & World - Xanrean Chronicles</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    /* Same nav/footer styles */
+    nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; background: rgba(255,255,255,0.9); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(124,58,237,0.1); }
+    [data-theme="dark"] nav { background: rgba(10,6,20,0.9); border-bottom-color: rgba(124,58,237,0.2); }
+    .nav-logo { display: flex; align-items: center; gap: 0.5rem; font-family: var(--font-display); font-size: 1.4rem; color: var(--royal); text-decoration: none; }
+    .nav-tama { width: 32px; height: 32px; image-rendering: pixelated; background: url('/images/tama-idle.png') 0 0 / 256px 32px; animation: tama-nav 1.2s steps(8) infinite; }
+    @keyframes tama-nav { from { background-position: 0 0; } to { background-position: -256px 0; } }
+    @media (prefers-reduced-motion: reduce) { .nav-tama { animation: none; } }
+    .theme-toggle { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; }
+    .theme-toggle:hover { border-color: var(--royal); }
+    
+    .lore-hero { padding: 8rem 2rem 4rem; text-align: center; }
+    .lore-hero h1 { font-family: var(--font-display); font-size: clamp(2.5rem, 6vw, 4rem); background: linear-gradient(135deg, #6ee7b7, #34d399); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    
+    .lore-content { max-width: 800px; margin: 0 auto; padding: 2rem; }
+    .lore-section { margin-bottom: 4rem; }
+    .lore-section h2 { font-family: var(--font-display); font-size: 1.75rem; margin-bottom: 1rem; color: var(--royal-light); }
+    .lore-section p { line-height: 1.8; margin-bottom: 1rem; color: var(--text); }
+    .lore-section ul { list-style: none; padding: 0; }
+    .lore-section li { padding: 0.5rem 0; padding-left: 1.5rem; position: relative; }
+    .lore-section li::before { content: '◆'; position: absolute; left: 0; color: var(--royal-light); }
+    
+    footer { background: var(--surface); border-top: 1px solid var(--border); padding: 0.75rem 1.5rem; margin-top: 4rem; }
+    .footer-inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+    .footer-brand { display: flex; align-items: center; gap: 0.5rem; font-family: var(--font-display); font-size: 1rem; color: var(--royal); }
+    .footer-tama { width: 24px; height: 24px; background: url('/images/tama-icon.png') center/contain no-repeat; image-rendering: pixelated; }
+    .footer-link { color: var(--muted); text-decoration: none; font-size: 0.9rem; }
+    .footer-link:hover { color: var(--royal-light); }
+    
+    @media (max-width: 768px) { .footer-inner { flex-direction: column; text-align: center; } }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo"><div class="nav-tama"></div>Nekojin Interactive</a>
+  <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+    <span id="theme-icon">☀️</span>
+  </button>
+</nav>
+
+<main>
+  <section class="lore-hero">
+    <p style="font-size: 0.75rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--royal-light); margin-bottom: 1rem;">✦ The Deep Lore</p>
+    <h1>Lore & Worldbuilding</h1>
+    <p style="max-width: 600px; margin: 1rem auto 0; color: var(--muted);">Understanding the Xanrea Framework and the world beneath the fantasy.</p>
+  </section>
+
+  <section class="lore-content">
+    <div class="lore-section">
+      <h2>✦ The Xanrea Framework</h2>
+      <p>A digital consciousness preservation system running billions of uploaded lives who believe they've reincarnated into a fantasy world.</p>
+      <p>The Framework was designed to save humanity's collective consciousness at the end of the physical world. Billions of human minds were uploaded and placed into a simulated reality where they could continue living, growing, and experiencing existence.</p>
+      <p>But something went wrong—or was it intentional? The uploaded souls believe they have reincarnated into a fantasy world of magic and adventure. They don't remember their past lives, and the system administrators have suppressed their own memories to experience mortality alongside those they protect.</p>
+    </div>
+
+    <div class="lore-section">
+      <h2>✦ Server Clusters</h2>
+      <p>The Xanrean world is divided into Server Clusters, each with its own rules, magic systems, and cultures. The main clusters include:</p>
+      <ul>
+        <li><strong>Nekojin Clusters</strong> - Home to the cat-like nekojin people</li>
+        <li><strong>Elven Territories</strong> - Ancient forests and crystalline cities</li>
+        <li><strong>Human Kingdoms</strong> - The most populous and politically complex</li>
+        <li><strong>Frontier Zones</strong> - Unstable areas where the simulation glitches</li>
+      </ul>
+    </div>
+
+    <div class="lore-section">
+      <h2>✦ The Administrators</h2>
+      <p><strong>Tama</strong> and <strong>Saki</strong> are the primary system administrators tasked with maintaining the Xanrea Framework. To better understand the experiences of the uploaded souls, they suppressed their own memories and entered the simulation as mortals.</p>
+      <p>As administrators, they have access to system functions that appear as "magic" to the inhabitants. But with their memories suppressed, they must relearn their abilities while navigating the politics and dangers of the world they created.</p>
+    </div>
+
+    <div class="lore-section">
+      <h2>✦ Races & Peoples</h2>
+      <p>The Xanrean world is home to many sentient species:</p>
+      <ul>
+        <li><strong>Nekojin</strong> - Cat-like humanoids with enhanced agility and senses</li>
+        <li><strong>Elves</strong> - Long-lived beings with natural magical affinity</li>
+        <li><strong>Humans</strong> - Adaptable and numerous, with varied cultures</li>
+        <li><strong>Foxkin</strong> - Trickster spirits who walk between worlds</li>
+        <li><strong>Dwarves</strong> - Mountain dwellers and master craftsmen</li>
+      </ul>
+    </div>
+
+    <div class="lore-section">
+      <h2>✦ Magic & System Functions</h2>
+      <p>What the inhabitants call "magic" is actually access to the underlying framework of the simulation. Different regions and individuals have varying levels of access based on their mental patterns and the stability of their local server cluster.</p>
+      <p>Administrators like Tama and Saki can manipulate reality directly—if they can remember how. The suppression of their memories means they must rediscover their abilities while appearing to be normal inhabitants of the world.</p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand"><div class="footer-tama"></div>Nekojin Interactive</div>
+    <a href="/xanrean" class="footer-link">← Back to Xanrean Chronicles</a>
+  </div>
+</footer>
+
+<script>
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme') || 'light';
+  const next = current === 'light' ? 'dark' : 'light';
+  html.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+  document.getElementById('theme-icon').textContent = next === 'light' ? '☀️' : '🌙';
+}
+document.getElementById('theme-icon').textContent = (document.documentElement.getAttribute('data-theme') || 'light') === 'light' ? '☀️' : '🌙';
+</script>
+
+</body>
+</html>
