@@ -140,7 +140,7 @@
   </style>
 </head>
 <body>
-  <a href="/xanrean/characters/admins" class="back-link">← Back to The Admins</a>
+  <a href="/xanrean/characters/admins" class="back-link" id="back-link">← Back to The Admins</a>
 
   <div class="char-layout">
     <aside class="char-sidebar">
@@ -158,30 +158,60 @@
   </div>
 
   <script>
-    // Character config
+    // Character config - maps URL to file
     const CHARACTERS = {
+      // Admins - Entities
       'admin-creation': { 
         file: 'admin-creation.md', 
         emoji: '👑',
-        image: '/images/tama-bg.png'
+        backLink: '/xanrean/characters/admins',
+        type: 'Admin'
       },
       'admin-destruction': { 
         file: 'admin-destruction.md', 
         emoji: '🔥',
-        image: '/images/saki-bg.png'
+        backLink: '/xanrean/characters/admins',
+        type: 'Admin'
       },
+      // Admins - Incarnations  
       'tama': { 
         file: 'tama.md', 
         emoji: '🐱',
-        image: '/images/tama-bg.png'
+        backLink: '/xanrean/characters/admins',
+        type: 'Incarnation'
       },
       'saki': { 
         file: 'saki.md', 
         emoji: '🔥',
-        image: '/images/saki-bg.png'
+        backLink: '/xanrean/characters/admins',
+        type: 'Incarnation'
       },
-      'anna': { file: 'moderator-time.md', emoji: '💧' },
-      'xanari': { file: 'moderator-space.md', emoji: '⚡' }
+      // Moderators - Entities
+      'moderator-time': { 
+        file: 'moderator-time.md', 
+        emoji: '⏰',
+        backLink: '/xanrean/characters/moderators',
+        type: 'Moderator'
+      },
+      'moderator-space': { 
+        file: 'moderator-space.md', 
+        emoji: '🌌',
+        backLink: '/xanrean/characters/moderators',
+        type: 'Moderator'
+      },
+      // Moderators - Incarnations
+      'anna': { 
+        file: 'anna.md', 
+        emoji: '💧',
+        backLink: '/xanrean/characters/moderators',
+        type: 'Incarnation'
+      },
+      'xanari': { 
+        file: 'xanari.md', 
+        emoji: '⚡',
+        backLink: '/xanrean/characters/moderators',
+        type: 'Incarnation'
+      }
     };
 
     function getCharName() {
@@ -190,19 +220,31 @@
       return match ? match[1] : 'tama';
     }
 
-    function extractFromSection(md, sectionName) {
-      const regex = new RegExp(`##\\s*${sectionName}([\\s\\S]*?)(?=##|\\Z)`, 'i');
-      const match = md.match(regex);
-      if (!match) return {};
-      
+    function extractInfoFromContent(md) {
       const info = {};
-      const lines = match[1].split('\n');
-      lines.forEach(line => {
-        const bullet = line.match(/-\s*\*\*(.+?):\*\*\s*(.+)/);
-        if (bullet) {
-          info[bullet[1].toLowerCase().replace(/\s+/g, '')] = bullet[2].trim();
-        }
-      });
+      
+      // Try to find key info from the content
+      // Look for patterns like "**Age:**" or "age:" etc.
+      const ageMatch = md.match(/\*\*Age:\*\*\s*(.+?)(?:\n|$)/i) || md.match(/-?\s*\*\*Age\*\*:\s*(.+?)(?:\n|$)/i);
+      if (ageMatch) info.age = ageMatch[1].trim();
+      
+      const speciesMatch = md.match(/\*\*Species:\*\*\s*(.+?)(?:\n|$)/i) || md.match(/species is\s+(.+?)(?:\n|\.|,|$)/i);
+      if (speciesMatch) info.species = speciesMatch[1].trim();
+      
+      // Look for Primary/Secondary Element
+      const primaryElementMatch = md.match(/\*\*Primary element:\*\*\s*(.+?)(?:\n|$)/i) || md.match(/primary element is\s+(.+?)(?:\n|\.|,|$)/i);
+      const secondaryElementMatch = md.match(/\*\*Secondary element:\*\*\s*(.+?)(?:\n|$)/i) || md.match(/secondary element is\s+(.+?)(?:\n|\.|,|$)/i);
+      if (primaryElementMatch) info.primaryelement = primaryElementMatch[1].trim();
+      if (secondaryElementMatch) info.secondaryelement = secondaryElementMatch[1].trim();
+      
+      // Look for role/identity
+      const roleMatch = md.match(/\*\*Role:\*\*\s*(.+?)(?:\n|$)/i) || md.match(/is (?:a|an) \*\*(.+?)\*\*(?:\n|\.|,|$)/i);
+      if (roleMatch) info.role = roleMatch[1].trim();
+      
+      // Look for underlying identity (for incarnations)
+      const identityMatch = md.match(/\*\*Underlying identity:\*\*\s*(.+?)(?:\n|$)/i) || md.match(/incarnation of \*\*(.+?)\*\*(?:\n|\.|,|$)/i);
+      if (identityMatch) info.underlyingidentity = identityMatch[1].trim();
+      
       return info;
     }
 
@@ -215,6 +257,7 @@
         .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
         .replace(/\*(.+?)\*/g, '<em>$1</em>')
         .replace(/`([^`]+)`/g, '<code>$1</code>')
+        // Handle MD links [text](url)
         .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
         .replace(/^-\s+(.+)$/gim, '<li>$1</li>')
         .replace(/\n\n+/g, '</p><p>')
@@ -225,14 +268,16 @@
 
     async function loadCharacter() {
       const charKey = getCharName();
-      console.log('URL:', window.location.pathname, '| Detected charKey:', charKey);
       const config = CHARACTERS[charKey];
       
       if (!config) {
         document.getElementById('char-content').innerHTML = 
-          `<div class="char-error">Character "${charKey}" not found. URL: ${window.location.pathname}</div>`;
+          `<div class="char-error">Character "${charKey}" not found.</div>`;
         return;
       }
+
+      // Update back link
+      document.getElementById('back-link').href = config.backLink;
 
       try {
         const response = await fetch(`/data/characters/${config.file}`);
@@ -245,39 +290,38 @@
         const nameMatch = md.match(/^#\s+(.+?)(?:\n|$)/m);
         const name = nameMatch ? nameMatch[1] : 'Unknown';
         
-        // Get Core Information
-        let info = extractFromSection(md, 'Core Information');
-        if (Object.keys(info).length === 0) {
-          info = extractFromSection(md, 'Basic Information');
-        }
+        // Extract info from content
+        const info = extractInfoFromContent(md);
         
         // Update sidebar
-        const avatarEl = document.getElementById('char-avatar');
-        if (config.image) {
-          avatarEl.innerHTML = `<img src="${config.image}" alt="${name}">`;
-        } else {
-          avatarEl.textContent = config.emoji;
-        }
-        
+        document.getElementById('char-avatar').textContent = config.emoji;
         document.getElementById('card-name').textContent = name;
-        document.getElementById('card-role').textContent = info.fundamentalidentity || info.role || 'Character';
+        
+        // Set role/type
+        let roleText = config.type;
+        if (info.underlyingidentity) {
+          roleText = `${config.type} of ${info.underlyingidentity}`;
+        } else if (info.role) {
+          roleText = info.role;
+        }
+        document.getElementById('card-role').textContent = roleText;
         document.title = `${name} - Xanrean Chronicles`;
         
-        // Build stats - NO Level (changes too often)
+        // Build stats
         const stats = [];
         if (info.age) stats.push({label: 'Age', value: info.age});
         if (info.species) stats.push({label: 'Species', value: info.species});
-        // Combine primary and secondary element
+        
+        // Elements (without "Level")
         if (info.primaryelement || info.secondaryelement) {
           const primary = info.primaryelement || 'None';
           const secondary = info.secondaryelement || 'None';
-          if (secondary !== 'None') {
+          if (secondary !== 'None' && secondary !== 'None currently established' && secondary !== '') {
             stats.push({label: 'Elements', value: `${primary} / ${secondary}`});
           } else {
             stats.push({label: 'Element', value: primary});
           }
         }
-        if (info.knownincarnation) stats.push({label: 'Incarnation', value: info.knownincarnation});
         
         const statsHtml = stats.map(s => 
           `<div class="char-stat"><span class="char-stat-label">${s.label}</span><span>${s.value}</span></div>`
@@ -287,19 +331,26 @@
         // Split and render content
         const sections = md.split(/##\s+/);
         
-        let contentHtml = `<div class="char-section"><h1>${name}</h1>`;
+        let contentHtml = '';
         
-        // Intro (before first ##)
-        if (sections[0]) {
-          const intro = sections[0].replace(/^#.+\n/, '').trim();
-          if (intro) contentHtml += mdToHtml(intro);
-        }
-        contentHtml += '</div>';
-        
-        // Other sections
-        for (let i = 1; i < sections.length; i++) {
+        // Process each section
+        for (let i = 0; i < sections.length; i++) {
+          if (!sections[i].trim()) continue;
+          
           const lines = sections[i].split('\n');
-          const title = lines[0].trim();
+          const firstLine = lines[0].trim();
+          
+          // Skip if this is just the title (starts with #)
+          if (firstLine.startsWith('# ')) {
+            const body = sections[i].replace(/^#\s+.+\n?/, '').trim();
+            if (body) {
+              contentHtml += `<div class="char-section">${mdToHtml(body)}</div>`;
+            }
+            continue;
+          }
+          
+          // Regular section with header
+          const title = firstLine;
           const body = lines.slice(1).join('\n').trim();
           
           if (body) {
@@ -317,7 +368,7 @@
       } catch (err) {
         console.error('Failed to load:', err);
         document.getElementById('char-content').innerHTML = 
-          `<div class="char-error">Failed to load character data.<br><br>Error: ${err.message}<br><br>Make sure the server is running and the file ${config.file} exists.</div>`;
+          `<div class="char-error">Failed to load character data.<br><br>Error: ${err.message}</div>`;
         document.getElementById('card-name').textContent = 'Error';
         document.getElementById('card-role').textContent = 'Failed to load';
         document.getElementById('char-avatar').textContent = '❌';
