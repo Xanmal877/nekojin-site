@@ -20,8 +20,9 @@
     .characters-hero h1 { font-family: var(--font-display); font-size: clamp(2.5rem, 6vw, 4rem); background: linear-gradient(135deg, #93c5fd, #60a5fa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     
     .characters-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 2rem; max-width: 1200px; margin: 0 auto; padding: 2rem; }
-    .character-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 2rem; text-align: center; }
-    .character-avatar { width: 120px; height: 120px; border-radius: 50%; background: var(--surface2); margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; font-size: 3rem; }
+    .character-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 2rem; text-align: center; display: flex; flex-direction: column; }
+    .character-avatar { width: 120px; height: 120px; border-radius: 50%; background: var(--surface2); margin: 1.5rem auto 0; display: flex; align-items: center; justify-content: center; font-size: 3rem; order: 1; }
+    .character-content { order: 0; }
     .character-name { font-family: var(--font-display); font-size: 1.5rem; margin-bottom: 0.5rem; }
     .character-role { color: var(--muted); font-size: 0.9rem; margin-bottom: 1rem; }
     .character-desc { color: var(--text); font-size: 0.95rem; line-height: 1.6; }
@@ -54,38 +55,48 @@
 
   <section class="characters-grid">
     <div class="character-card">
+      <div class="character-content">
+        <h2 class="character-name">Fuyuki "Tama" Tamaneko</h2>
+        <p class="character-role">Administrator / Queen</p>
+        <p class="character-desc">A reincarnated admin who awakens as a catgirl monarch in a world that runs on rules she wrote.</p>
+      </div>
       <div class="character-avatar">🐱</div>
-      <h2 class="character-name">Fuyuki "Tama" Tamaneko</h2>
-      <p class="character-role">Administrator / Queen</p>
-      <p class="character-desc">A reincarnated admin who awakens as a catgirl monarch in a world that runs on rules she wrote.</p>
     </div>
     
     <div class="character-card">
+      <div class="character-content">
+        <h2 class="character-name">Autumnal "Saki" Sakilera</h2>
+        <p class="character-role">Administrator / Princess</p>
+        <p class="character-desc">Tama's counterpart and fellow administrator, navigating mortality alongside the souls they protect.</p>
+      </div>
       <div class="character-avatar">🦊</div>
-      <h2 class="character-name">Autumnal "Saki" Sakilera</h2>
-      <p class="character-role">Administrator / Princess</p>
-      <p class="character-desc">Tama's counterpart and fellow administrator, navigating mortality alongside the souls they protect.</p>
     </div>
     
     <div class="character-card">
+      <div class="character-content">
+        <h2 class="character-name">Petalia "Talia" Corundurum</h2>
+        <p class="character-role">Noble / Ally</p>
+        <p class="character-desc">A key figure in the political landscape of the Xanrean world with her own hidden depths.</p>
+      </div>
       <div class="character-avatar">💎</div>
-      <h2 class="character-name">Petalia "Talia" Corundurum</h2>
-      <p class="character-role">Noble / Ally</p>
-      <p class="character-desc">A key figure in the political landscape of the Xanrean world with her own hidden depths.</p>
     </div>
     
     <div class="character-card">
+      <div class="character-content">
+        <h2 class="character-name">Xanari "Xan" Telis</h2>
+        <p class="character-role">Warrior / Protector</p>
+        <p class="character-desc">A skilled fighter with connections to the deeper mysteries of the Server Clusters.</p>
+      </div>
       <div class="character-avatar">⚔️</div>
-      <h2 class="character-name">Xanari "Xan" Telis</h2>
-      <p class="character-role">Warrior / Protector</p>
-      <p class="character-desc">A skilled fighter with connections to the deeper mysteries of the Server Clusters.</p>
     </div>
     
     <div class="character-card">
+      <div class="character-content">
+        <h2 class="character-name">More Coming Soon</h2>
+        <p class="character-role">The World Expands</p>
+        <p class="character-desc">Additional character profiles will be added as the series grows.</p>
+      </div>
       <div class="character-avatar">🔮</div>
-      <h2 class="character-name">More Coming Soon</h2>
-      <p class="character-role">The World Expands</p>
-      <p class="character-desc">Additional character profiles will be added as the series grows.</p>
     </div>
   </section>
 </main>
