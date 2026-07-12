@@ -4,67 +4,75 @@
 
 ---
 
-## ✅ Recently Fixed (Last Session)
+## 🔴 Open Issues (4 Found)
+
+### 1. Duplicate Route in Server
+**Status:** ✅ Fixed 2026-07-11 (removed duplicate)  
+**Impact:** Low
+
+`moderator-chaos` appeared twice in PUBLIC_ROUTES (lines 364 and 368).
+JavaScript objects allow duplicate keys, but last one wins.
+
+**Fix:** Removed duplicate entry.
+
+---
+
+### 2. Legacy JSON Files in data/
+**Status:** Open  
+**Impact:** Low
+
+Two legacy files remain from pre-SQLite migration:
+- `data/site-content.json` (16KB)
+- `data/site-content.json.backup` (16KB)
+
+These are the old content storage files before database migration. Safe to delete since database is working.
+
+**Action:** Can be removed after confirming database has all data.
+
+---
+
+### 3. Most Moderator Pages Use Template
+**Status:** Open  
+**Impact:** Medium
+
+Currently only have dedicated pages for:
+- ✅ Moderator Time
+
+Still using dynamic template (`character.html`) for:
+- ❌ Moderator Chaos
+- ❌ Moderator Order
+- ❌ Moderator Space
+- ❌ Moderator Devotion
+- ❌ Tama (incarnation)
+- ❌ Saki (incarnation)
+- ❌ Acros (incarnation)
+- ❌ Sarah (character)
+
+**Action:** Create dedicated HTML pages for each as content is finalized.
+
+---
+
+### 4. Worlds Page is Placeholder
+**Status:** Open  
+**Impact:** Low
+
+`/xanrean/lore/world` has basic placeholder content.
+Needs actual worldbuilding content: Server Clusters, magic systems, etc.
+
+**Action:** Populate with actual worldbuilding content.
+
+---
+
+## 📋 Recently Fixed
 
 | Issue | Date | Commit |
 |-------|------|--------|
+| **Duplicate moderator-chaos route** | 2026-07-11 | `fix: remove duplicate route` |
+| **Character folder restructure** | 2026-07-11 | Multiple commits |
+| **Lore system architecture** | 2026-07-11 | Complete rebuild |
+| **VBox layout** | 2026-07-11 | Header/Cards/Footer |
 | **Service Worker Caching Issues** | 2026-07-11 | `fix: completely remove service worker` |
 | **Homepage Settings Save Not Working** | 2026-07-11 | `CRITICAL FIX: GET handler method check` |
-| Homepage Background Customization | 2026-07-11 | `feat: complete homepage redesign` |
-| Image optimization (WebP, thumbnails) | 2026-07-11 | `feat: image optimization with sharp` |
-| Database path hardcoded | 2026-07-11 | `fix: move database from ~/Documents to local data/` |
-| Saki icon orientation | 2026-07-11 | `fix: use saki_idle_down.png` |
-| API rate limiting | 2026-07-11 | `feat: add rate limiting to protect endpoints` |
-| Admin user management | 2026-07-11 | `feat: admin user management panel` |
-| Homepage redesign | 2026-07-11 | Multiple commits |
-
----
-
-## 📋 Fixed Issue Details
-
-### Critical Bug: Homepage Settings Not Saving
-**Status:** ✅ Fixed 2026-07-11  
-**Root Cause:** The GET handler for `/api/homepage` didn't check HTTP method, so it was catching POST requests and returning cached data instead of updating the database.
-
-**Fix:** Added `req.method === 'GET' &&` check to the GET handler at line 578 of dashboard-server.js.
-
-```javascript
-// Before (broken):
-if (url === '/api/homepage') {
-
-// After (fixed):
-if (req.method === 'GET' && url === '/api/homepage') {
-```
-
-**Impact:** Admin could upload homepage background images but clicking "Save" would not persist changes to database.
-
----
-
-## 🔴 Open Issues (1 Remaining)
-
-### Low Priority
-
-#### 1. Manuscript System — DISABLED (Option 1)
-**Status:** Disabled 2026-07-11  
-**Impact:** None (system hidden)
-
-- Manuscript reading/upload disabled
-- Can re-enable by setting `MANUSCRIPTS_ENABLED = true`
-- Focusing on external platform links instead
-
----
-
-## ✅ Fixed Issues (Recently)
-
-| Issue | Date | Status |
-|-------|------|--------|
-| Service Worker Caching | 2026-07-11 | ✅ Removed - was intercepting API calls |
-| Homepage Settings Save | 2026-07-11 | ✅ Fixed - GET handler was catching POST |
-| Content Backup System | 2026-07-11 | ✅ Complete - auto backups daily, keeps 7 days |
-| Data Storage Migration | 2026-07-11 | ✅ Complete |
-| Static Asset Serving | 2026-07-11 | ✅ Fixed |
-| Session Cleanup | 2026-07-11 | ✅ Fixed |
-| Newsletter Database | 2026-07-11 | ✅ Migrated to SQLite |
 
 ---
 

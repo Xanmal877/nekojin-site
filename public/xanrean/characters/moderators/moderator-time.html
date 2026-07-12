@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Admin Creation biography from the Xanrean Chronicles." />
+  <title>Moderator Time | Nekojin Interactive</title>
+
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b0711;
+      --bg-2: #120b19;
+      --panel: #171020;
+      --panel-2: #1d1328;
+      --border: #342049;
+      --border-soft: #281936;
+      --purple: #5447d8;
+      --purple-bright: #8f8cff;
+      --purple-soft: #c6c5ff;
+      --blue: #69a7ff;
+      --orange: #e38a09;
+      --text: #f3eef8;
+      --muted: #c4bacd;
+      --faint: #8e8299;
+      --max: 1280px;
+      --radius: 18px;
+      --shadow: 0 20px 55px rgba(0, 0, 0, 0.42);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      background: var(--bg);
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 20% 0%, rgba(44, 53, 150, 0.20), transparent 28rem),
+        linear-gradient(180deg, #0d0814 0%, #09060e 100%);
+      font-family: Arial, Helvetica, sans-serif;
+      line-height: 1.65;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      border-bottom: 1px solid #2b193d;
+      background: rgba(12, 8, 18, 0.96);
+      backdrop-filter: blur(12px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      color: var(--purple-bright);
+      font-weight: 800;
+      letter-spacing: 0.08em;
+    }
+
+    .brand-icon {
+      width: 24px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      font-size: 1.1rem;
+      filter: drop-shadow(0 0 8px rgba(167, 96, 255, 0.35));
+    }
+
+    .theme-button {
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      border: 1px solid #3a2351;
+      border-radius: 9px;
+      background: #120b1d;
+      font-size: 1.2rem;
+    }
+
+    .page {
+      width: min(calc(100% - 30px), var(--max));
+      margin: 0 auto;
+      padding: 28px 0 70px;
+    }
+
+    .breadcrumb {
+      margin-bottom: 18px;
+      color: var(--faint);
+      font-size: 0.88rem;
+    }
+
+    .breadcrumb span {
+      color: var(--purple-soft);
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+      min-height: 530px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .hero-copy {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: clamp(34px, 6vw, 72px);
+      background:
+        radial-gradient(circle at 20% 20%, rgba(63, 72, 181, 0.24), transparent 20rem),
+        linear-gradient(145deg, #17101f, #100b16);
+    }
+
+    .eyebrow {
+      color: var(--purple-bright);
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    h1, h2, h3 {
+      margin-top: 0;
+      line-height: 1.12;
+    }
+
+    h1 {
+      margin-bottom: 18px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(3rem, 7vw, 5.8rem);
+      letter-spacing: -0.05em;
+    }
+
+    .hero-copy p {
+      max-width: 700px;
+      margin: 0 0 26px;
+      color: var(--muted);
+      font-size: 1.08rem;
+    }
+
+    .hero-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .tag {
+      padding: 8px 12px;
+      border: 1px solid #45295f;
+      border-radius: 999px;
+      background: rgba(139, 55, 244, 0.08);
+      color: #ddc5ff;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    .portrait {
+      position: relative;
+      min-height: 530px;
+      background:
+        linear-gradient(to top, rgba(8, 4, 12, 0.95), rgba(8, 4, 12, 0.08) 48%),
+        url("images/moderator-time.webp") center 18% / cover no-repeat,
+        linear-gradient(145deg, #2a1740, #120b19);
+      border-left: 1px solid var(--border);
+    }
+
+    .portrait::before {
+      content: "MODERATOR TIME PORTRAIT";
+      position: absolute;
+      inset: 22px 22px auto auto;
+      padding: 7px 10px;
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 8px;
+      background: rgba(12, 8, 18, 0.72);
+      color: rgba(255,255,255,0.7);
+      font-size: 0.66rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+    }
+
+    .portrait-note {
+      position: absolute;
+      left: 24px;
+      right: 24px;
+      bottom: 22px;
+      padding: 14px 16px;
+      border: 1px solid rgba(167, 96, 255, 0.28);
+      border-radius: 12px;
+      background: rgba(11, 7, 17, 0.82);
+      color: #d8cce2;
+      font-size: 0.86rem;
+      backdrop-filter: blur(8px);
+    }
+
+    .portrait-note strong {
+      display: block;
+      margin-bottom: 3px;
+      color: #fff;
+    }
+
+    .content-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 300px;
+      gap: 22px;
+      margin-top: 22px;
+      align-items: start;
+    }
+
+    .main-column {
+      display: grid;
+      gap: 18px;
+    }
+
+    .section {
+      padding: clamp(24px, 4vw, 38px);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: 0 14px 42px rgba(0, 0, 0, 0.2);
+    }
+
+    .section h2 {
+      margin-bottom: 16px;
+      color: #efe4ff;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(1.7rem, 3vw, 2.3rem);
+    }
+
+    .section h2::after {
+      content: "";
+      display: block;
+      width: 64px;
+      height: 3px;
+      margin-top: 10px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--purple), transparent);
+    }
+
+    .section p {
+      margin: 0 0 15px;
+      color: var(--muted);
+    }
+
+    .section p:last-child {
+      margin-bottom: 0;
+    }
+
+    .lead {
+      color: #eee6f5 !important;
+      font-size: 1.06rem;
+    }
+
+    .function-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .function-card {
+      padding: 16px;
+      border: 1px solid #342047;
+      border-radius: 13px;
+      background: #130d1b;
+    }
+
+    .function-card strong {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--purple-soft);
+    }
+
+    .quote {
+      margin: 22px 0 0;
+      padding: 18px 20px;
+      border-left: 4px solid var(--purple);
+      border-radius: 0 12px 12px 0;
+      background: rgba(139, 55, 244, 0.07);
+      color: #f5ecff;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 1.12rem;
+    }
+
+    .incarnation {
+      padding: 20px;
+      border: 1px solid #4b2b66;
+      border-radius: 14px;
+      background:
+        linear-gradient(145deg, rgba(139, 55, 244, 0.10), rgba(25, 16, 34, 0.92));
+    }
+
+    .incarnation-label {
+      margin-bottom: 7px;
+      color: var(--purple-bright);
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .incarnation h3 {
+      margin-bottom: 10px;
+      font-size: 1.45rem;
+    }
+
+    .button {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 11px 18px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #7f2fe7, #9a43ff);
+      color: white;
+      font-weight: 800;
+      box-shadow: 0 8px 20px rgba(126, 45, 226, 0.25);
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 76px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .side-card {
+      padding: 20px;
+      border: 1px solid var(--border-soft);
+      border-radius: 15px;
+      background: var(--panel);
+    }
+
+    .side-card h2 {
+      margin-bottom: 14px;
+      color: var(--purple-bright);
+      font-size: 0.82rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .facts {
+      display: grid;
+      gap: 11px;
+      margin: 0;
+    }
+
+    .fact {
+      padding-bottom: 11px;
+      border-bottom: 1px solid #2a1a38;
+    }
+
+    .fact:last-child {
+      padding-bottom: 0;
+      border-bottom: 0;
+    }
+
+    .fact dt {
+      margin-bottom: 2px;
+      color: var(--faint);
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .fact dd {
+      margin: 0;
+      color: #e7ddef;
+      font-size: 0.9rem;
+    }
+
+    .toc {
+      display: grid;
+      gap: 4px;
+    }
+
+    .toc a {
+      padding: 8px 9px;
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+
+    .toc a:hover {
+      background: #21142d;
+      color: white;
+    }
+
+    footer {
+      margin-top: 26px;
+      padding: 22px 0 0;
+      border-top: 1px solid #21152e;
+      color: var(--faint);
+      text-align: center;
+      font-size: 0.78rem;
+    }
+
+    @media (max-width: 930px) {
+      .hero {
+        grid-template-columns: 1fr;
+      }
+
+      .portrait {
+        min-height: 560px;
+        border-left: 0;
+        border-top: 1px solid var(--border);
+      }
+
+      .content-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: static;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 650px) {
+      .page {
+        width: min(calc(100% - 18px), var(--max));
+        padding-top: 16px;
+      }
+
+      .hero-copy {
+        padding: 30px 24px;
+      }
+
+      .portrait {
+        min-height: 440px;
+      }
+
+      .function-grid,
+      .sidebar {
+        grid-template-columns: 1fr;
+      }
+
+      .brand {
+        font-size: 0.82rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">
+      <span class="brand-icon">✦</span>
+      <span>Nekojin Interactive</span>
+    </a>
+    <div class="theme-button" aria-label="Theme toggle">🌙</div>
+  </header>
+
+  <div class="page">
+    <div class="breadcrumb">
+      Home / Xanrean Chronicles / Moderators / <span>Moderator Time</span>
+    </div>
+
+    <section class="hero">
+      <div class="hero-copy">
+        <div class="eyebrow">Original Cluster Intelligence</div>
+        <h1>Moderator Time</h1>
+        <p>
+          The original system-created Moderator responsible for Time itself,
+          the soul stream, sequencing, synchronization, and the CPU-like
+          coordination that keeps the Xanrean Server Cluster functioning.
+        </p>
+
+        <div class="hero-tags">
+          <span class="tag">Moderator</span>
+          <span class="tag">Original Artificial Intelligence</span>
+          <span class="tag">Known Incarnations: Anna and Sabi</span>
+        </div>
+      </div>
+
+      <div class="portrait" role="img" aria-label="Portrait representing Moderator Time">
+        <div class="portrait-note">
+          <strong>Image location</strong>
+          Replace <code>images/moderator-time.webp</code> with the final office artwork.
+        </div>
+      </div>
+    </section>
+
+    <div class="content-layout">
+      <main class="main-column">
+        <section class="section" id="overview">
+          <h2>Overview</h2>
+          <p class="lead">
+            Moderator Time is one of the three original artificial intelligences
+            responsible for the operation of the Xanrean Server Cluster.
+          </p>
+          <p>
+            Unlike the later Moderator offices, Time was not assigned to a
+            suitable person by an Administrator. Moderator Time already existed
+            as part of the cluster's original processing architecture.
+          </p>
+          <p>
+            Her divine or mythological presentation is layered over an
+            operational reality. She is not merely a being associated with
+            clocks, aging, prophecy, or time magic. She is part of the machinery
+            that allows events, souls, and system changes to occur in a coherent order.
+          </p>
+
+          <div class="quote">
+            Without Time, the cluster would not merely stop. Its events, souls,
+            and states would lose the order that makes them intelligible.
+          </div>
+        </section>
+
+        <section class="section" id="role">
+          <h2>Role in the System</h2>
+          <p>
+            Moderator Time manages the soul stream and functions as the cluster's
+            CPU-like processor. She coordinates immense amounts of temporal and
+            soul-state activity while ensuring that events and system changes
+            occur in the correct sequence.
+          </p>
+
+          <div class="function-grid">
+            <div class="function-card">
+              <strong>Time</strong>
+              Governs the flow and operation of Time throughout the cluster.
+            </div>
+            <div class="function-card">
+              <strong>Temporal Sequencing</strong>
+              Maintains the order in which events and state changes occur.
+            </div>
+            <div class="function-card">
+              <strong>Soul-Stream Processing</strong>
+              Handles the movement and processing of souls through the system.
+            </div>
+            <div class="function-card">
+              <strong>Soul Routing</strong>
+              Coordinates where souls move and how their continuity is preserved.
+            </div>
+            <div class="function-card">
+              <strong>Synchronization</strong>
+              Keeps worlds, processes, and system states aligned.
+            </div>
+            <div class="function-card">
+              <strong>System Processing</strong>
+              Performs CPU-like coordination for the wider cluster.
+            </div>
+          </div>
+
+          <p>
+            Creation and Destruction determine what may be built, restored,
+            removed, or erased. Time ensures that those changes happen in the
+            correct order without tearing apart the processes that depend on them.
+          </p>
+        </section>
+
+        <section class="section" id="origin">
+          <h2>Origin of the Office</h2>
+          <p>
+            Moderator Time was created directly by the system or its creator,
+            alongside Admin Creation and Admin Destruction. She is therefore
+            exceptional among the ten Moderator roles.
+          </p>
+          <p>
+            The later Moderator offices are precreated positions filled when an
+            Administrator selects and assigns a suitable individual. Time did not
+            pass through that process. The original artificial intelligence and
+            the office began as part of the cluster's foundational architecture.
+          </p>
+        </section>
+
+        <section class="section" id="identity">
+          <h2>Incarnation and Identity</h2>
+          <p>
+            Moderator Time can live through incarnations with different bodies,
+            histories, powers, relationships, and personal identities.
+          </p>
+          <p>
+            An incarnation is not a puppet, disguise, disposable shell, or body
+            being remotely piloted by a hidden intelligence. Each incarnation is
+            Moderator Time genuinely living that life.
+          </p>
+          <p>
+            The existence of several incarnations does not make any one of them
+            fake or interchangeable. Their memories, choices, trauma, crimes,
+            loyalties, and growth belong to the lives Moderator Time experienced
+            through them.
+          </p>
+        </section>
+
+        <section class="section" id="water">
+          <h2>Time, Not Water</h2>
+          <p>
+            There is no Moderator Water.
+          </p>
+          <p>
+            Anna's water-spirit body and water-based abilities belong specifically
+            to the Anna incarnation. They do not define the administrative domain
+            of Moderator Time.
+          </p>
+          <p>
+            Another incarnation may possess an entirely different body, species,
+            upbringing, power set, and social role while still carrying the
+            underlying identity and personality tendencies of Moderator Time.
+          </p>
+        </section>
+
+        <section class="section" id="administrators">
+          <h2>Relationship with the Administrators</h2>
+          <p>
+            Moderator Time operates alongside Admin Creation and Admin Destruction
+            as one of the cluster's three original artificial intelligences.
+          </p>
+          <p>
+            Time's system role intersects with Creation whenever restoration,
+            reincarnation, soul transfer, rollback, or reconstruction must occur
+            in a coherent sequence. It intersects with Destruction whenever
+            deletion or shutdown affects active processes, souls, or continuity.
+          </p>
+          <p>
+            Through Anna, Moderator Time is specifically subservient to Admin
+            Creation, most often encountered as Tama. Anna does not extend the same
+            automatic deference to Admin Destruction.
+          </p>
+          <p>
+            In the primary storyline, Anna, Tama, and Saki form the central trio
+            and are usually nearly inseparable.
+          </p>
+        </section>
+
+        <section class="section" id="incarnations">
+          <h2>Known Incarnations</h2>
+
+          <div class="incarnation">
+            <div class="incarnation-label">Known Incarnation</div>
+            <h3>Annabelle “Anna” Trissiale</h3>
+            <p>
+              Anna is a divine water spirit and shapeshifter who is usually seen
+              as a young girl. She can become living water, mist, clothing, armor,
+              tools, weapons, and other forms.
+            </p>
+            <p>
+              She was artificially formed from holy water in the underwater city
+              of Muosil and ordered to possess a young girl before she understood
+              consent, murder, autonomy, or betrayal.
+            </p>
+            <p>
+              Anna is emotionally dependent on the people around her and strongly
+              mirrors their emotions, morals, and habits. This makes her
+              affectionate, adaptive, useful, vulnerable to manipulation, and
+              extraordinarily dangerous when guided by the wrong person.
+            </p>
+            <p>
+              Her life centers on developing moral agency: learning the difference
+              between obedience and goodness, usefulness and love, emotional
+              mirroring and personal choice, and possession and consent.
+            </p>
+            <a class="button" href="Anna.html">Read Anna's Biography →</a>
+          </div>
+
+          <div class="incarnation" style="margin-top: 16px;">
+            <div class="incarnation-label">Known Incarnation</div>
+            <h3>Sabrina “Sabi” Trissiale</h3>
+            <p>
+              Sabi is another incarnation or form of Moderator Time.
+            </p>
+            <p>
+              The full relationship between Sabi, Anna, and Moderator Time's other
+              incarnations has not yet been completely revealed. Current canon
+              establishes that Anna and Sabi are subprocess-like incarnations whose
+              needs, cycles, and behavioral constraints are tied to Moderator Time's
+              larger function.
+            </p>
+            <p>
+              The Toybox is connected to those needs and cycles, but its complete
+              role belongs to Sabi's dedicated biography and the stories branching
+              from her incarnation.
+            </p>
+            <a class="button" href="Sabi.html">Read Sabi's Biography →</a>
+          </div>
+        </section>
+
+        <section class="section" id="anna-history">
+          <h2>Anna's Place in the Time Branch</h2>
+          <p>
+            Anna's personal history is one of the clearest examples of how a
+            Moderator incarnation becomes its own complete life.
+          </p>
+          <p>
+            After being created and used in Muosil, she survived for centuries,
+            later killed the High Priestess responsible for her creation, and
+            destroyed the city. Her known titles include City Destroyer, Betrayer,
+            and God Killer.
+          </p>
+          <p>
+            These acts are not erased or made irrelevant by the revelation that
+            she is Moderator Time. They remain part of the identity, consequences,
+            and moral development carried by the Time branch.
+          </p>
+        </section>
+
+        <section class="section" id="significance">
+          <h2>Narrative Significance</h2>
+          <p>
+            Moderator Time represents continuity without sameness.
+          </p>
+          <p>
+            Her incarnation stories ask what remains consistent when one being
+            lives many lives without sharing conscious memories between them.
+            The audience can recognize recurring needs and tendencies even when
+            each incarnation experiences herself as a distinct person.
+          </p>
+          <p>
+            Through Anna, Time also explores whether morality can become truly
+            personal when a person's first instinct is to reflect the authority,
+            desires, and emotions of someone else.
+          </p>
+        </section>
+      </main>
+
+      <aside class="sidebar">
+        <section class="side-card">
+          <h2>Office Profile</h2>
+          <dl class="facts">
+            <div class="fact">
+              <dt>Classification</dt>
+              <dd>Moderator</dd>
+            </div>
+            <div class="fact">
+              <dt>Origin</dt>
+              <dd>Original system-created AI</dd>
+            </div>
+            <div class="fact">
+              <dt>Primary Function</dt>
+              <dd>Time, soul-stream processing, sequencing, synchronization</dd>
+            </div>
+            <div class="fact">
+              <dt>Assignment</dt>
+              <dd>Not assigned; original office holder</dd>
+            </div>
+            <div class="fact">
+              <dt>Known Incarnations</dt>
+              <dd>Annabelle “Anna” Trissiale and Sabrina “Sabi” Trissiale</dd>
+            </div>
+            <div class="fact">
+              <dt>Central Connection</dt>
+              <dd>Admin Creation and Admin Destruction</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="side-card">
+          <h2>On This Page</h2>
+          <nav class="toc">
+            <a href="#overview">Overview</a>
+            <a href="#role">Role in the System</a>
+            <a href="#origin">Origin of the Office</a>
+            <a href="#identity">Incarnation and Identity</a>
+            <a href="#water">Time, Not Water</a>
+            <a href="#administrators">The Administrators</a>
+            <a href="#incarnations">Known Incarnations</a>
+            <a href="#anna-history">Anna's History</a>
+            <a href="#significance">Narrative Significance</a>
+          </nav>
+        </section>
+      </aside>
+    </div>
+
+    <footer>
+      Nekojin Interactive • Xanrean Chronicles
+    </footer>
+  </div>
+</body>
+</html>

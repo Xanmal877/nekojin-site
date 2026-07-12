@@ -349,13 +349,30 @@
       // First, handle the Canon Status Key section specially
       let html = text
         // Remove the Canon Status Key block entirely (it's metadata)
-        .replace(/## Canon Status Key[\s\S]*?---\n*/i, '')
-        // Handle headers - order matters (longest first)
-        .replace(/^####\s*(.+)$/gim, '<h4>$1</h4>')
-        .replace(/^###\s*(.+)$/gim, '<h3>$1</h3>')
-        .replace(/^##\s*(.+)$/gim, '<h2>$1</h2>')
-        .replace(/^#\s*(.+)$/gim, '<h1>$1</h1>')
-        // Bold/italic
+        .replace(/## Canon Status Key[\s\S]*?---\n*/i, '');
+      
+      // Remove the main title (h1) since we show it in the sidebar
+      const nameMatch = html.match(/^#\s+(.+?)(?:\n|$)/m);
+      if (nameMatch) {
+        html = html.replace(/^#\s+.+?\n*/, '');
+      }
+      
+      // Handle Canon status markers FIRST (before general bold)
+      html = html
+        .replace(/\*\*Confirmed:\*\*/g, '<span class="canon-confirmed">Confirmed:</span>')
+        .replace(/\*\*Not yet established:\*\*/g, '<span class="canon-unconfirmed">Not yet established:</span>')
+        .replace(/\*\*Possible:\*\*/g, '<span class="canon-possible">Possible:</span>')
+        .replace(/\*\*Requires manuscript verification:\*\*/g, '<span class="canon-verify">Requires manuscript verification:</span>');
+      
+      // Now handle remaining Markdown
+      html = html
+        // Headers - order matters (longest first), make content optional (.* not .+)
+        .replace(/^####\s*(.*)$/gim, '<h4>$1</h4>')
+        .replace(/^###\s*(.*)$/gim, '<h3>$1</h3>')
+        .replace(/^##\s*(.*)$/gim, '<h2>$1</h2>')
+        // Remove empty h1/h4 tags that are just decorative
+        .replace(/<h[14]><\/h[14]>/g, '')
+        // Bold/italic (won't match the canon markers anymore)
         .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
         .replace(/\*(.+?)\*/g, '<em>$1</em>')
         // Code
@@ -370,21 +387,15 @@
       // Wrap list items in ul
       html = html.replace(/(<li>.*<\/li>\n*)+/gs, match => `<ul>${match}</ul>`);
       
-      // Handle Canon status markers with styling
-      html = html
-        .replace(/\*\*Confirmed:\*\*/g, '<span class="canon-confirmed">Confirmed:</span>')
-        .replace(/\*\*Not yet established:\*\*/g, '<span class="canon-unconfirmed">Not yet established:</span>')
-        .replace(/\*\*Possible:\*\*/g, '<span class="canon-possible">Possible:</span>')
-        .replace(/\*\*Requires manuscript verification:\*\*/g, '<span class="canon-verify">Requires manuscript verification:</span>');
-      
       // Paragraphs - but preserve existing HTML tags
       html = html
         .replace(/\n\n+/g, '</p><p>')
         .replace(/^(?!<[hlu])/gim, '<p>')
         .replace(/$(?!<\/)/gim, '</p>');
       
-      // Clean up empty paragraphs
+      // Clean up empty paragraphs and multiple newlines
       html = html.replace(/<p><\/p>/g, '');
+      html = html.replace(/\n/g, ' ');
       
       return html;
     }
