@@ -343,9 +343,9 @@
 <body>
   <header class="wiki-header">
     <nav class="wiki-nav">
-      <a href="/xanrean/wiki" class="wiki-logo">
+      <a href="/xanrean/characters/admins" class="wiki-logo">
         <div class="nav-tama" style="width: 32px; height: 32px; background: url('/images/tama-icon.png') center/contain no-repeat;"></div>
-        Xanrea <span>Wiki</span>
+        Xanrea <span>Characters</span>
       </a>
       <button class="theme-toggle" onclick="toggleTheme()">
         <span id="theme-icon">☀️</span>
@@ -378,9 +378,11 @@
       <div class="wiki-breadcrumb">
         <a href="/xanrean">Xanrean Chronicles</a>
         <span>/</span>
-        <a href="/xanrean/wiki">Wiki</a>
+        <a href="/xanrean/characters">Characters</a>
         <span>/</span>
-        <span>Characters</span>
+        <a href="/xanrean/characters/admins">The Admins</a>
+        <span>/</span>
+        <span>Admin Creation</span>
       </div>
       
       <article class="wiki-article" id="article-content">
@@ -396,11 +398,11 @@
   <script>
     // Wiki link database
     const wikiLinks = {
-      'Tama': { type: 'character', title: 'Admin Creation (Tama)' },
-      'Admin Creation': { type: 'character', title: 'Admin Creation' },
-      'Saki': { type: 'character', title: 'Admin Destruction (Saki)' },
-      'Admin Destruction': { type: 'character', title: 'Admin Destruction' },
-      'Anna': { type: 'character', title: 'Water/Anna' },
+      'Tama': { type: 'character', url: '/xanrean/characters/tama' },
+      'Admin Creation': { type: 'character', url: '/xanrean/characters/tama' },
+      'Saki': { type: 'character', url: '/xanrean/characters/saki' },
+      'Admin Destruction': { type: 'character', url: '/xanrean/characters/saki' },
+      'Anna': { type: 'character', url: '/xanrean/wiki#anna' },
       'Serenity': { type: 'concept', title: 'Serenity (Sword)' },
       'Nekojin': { type: 'species', url: '/xanrean/lore/reader.html#nekojin' },
       'Travelers': { type: 'species', url: '/xanrean/lore/reader.html#travelers' },
@@ -414,7 +416,8 @@
         if (page?.url) {
           return `<a href="${page.url}" class="wiki-link">${link}</a>`;
         }
-        return `<a href="/xanrean/wiki#${link.toLowerCase().replace(/\s+/g, '-')}" class="wiki-link">${link}</a>`;
+        // For unknown links, just make them plain text (no redirect to wiki)
+        return `<span class="wiki-link-placeholder">${link}</span>`;
       });
     }
     
