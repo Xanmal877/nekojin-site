@@ -105,12 +105,15 @@
     .hub-choice {
       display: flex;
       flex: 1;
+      width: 100%;
       margin-top: 60px;
-      min-height: calc(100vh - 60px - 60px); /* viewport - nav - footer */
+      min-height: calc(100vh - 60px - 60px);
+      align-items: stretch;
     }
     
     .hub-panel {
       flex: 1;
+      align-self: stretch;
       position: relative;
       display: flex;
       flex-direction: column;
