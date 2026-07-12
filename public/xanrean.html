@@ -96,10 +96,14 @@
     }
     
     /* Hub Panels - like homepage */
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+    
     body {
       display: flex;
       flex-direction: column;
-      min-height: 100vh;
     }
     
     .hub-choice {
@@ -107,13 +111,13 @@
       flex: 1;
       width: 100%;
       margin-top: 60px;
-      min-height: calc(100vh - 60px - 60px);
+      height: calc(100vh - 60px - 60px);
       align-items: stretch;
     }
     
     .hub-panel {
       flex: 1;
-      align-self: stretch;
+      height: 100%;
       position: relative;
       display: flex;
       flex-direction: column;
@@ -284,17 +288,19 @@
     }
     
     @media (max-width: 768px) {
-      body {
+      html, body {
         overflow: auto;
+        height: auto;
       }
       
       .hub-choice {
         flex-direction: column;
-        min-height: auto;
+        height: auto;
       }
       
       .hub-panel {
-        min-height: calc((100vh - 120px) / 4);
+        height: calc((100vh - 120px) / 4);
+        min-height: 200px;
         border-right: none;
         border-bottom: 1px solid rgba(124,58,237,0.3);
       }
