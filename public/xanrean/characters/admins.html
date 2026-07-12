@@ -74,16 +74,15 @@
     
     .theme-toggle:hover { background: var(--surface2); }
     
-    /* Grid layout for 4 admins */
+    /* Split layout */
     .admins-container {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      grid-template-rows: 1fr 1fr;
+      display: flex;
       height: 100vh;
       width: 100vw;
     }
     
     .admin-panel {
+      flex: 1;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -91,12 +90,11 @@
       color: white;
       position: relative;
       overflow: hidden;
-      transition: transform 0.3s ease;
+      transition: flex 0.4s ease;
     }
     
     .admin-panel:hover {
-      transform: scale(1.02);
-      z-index: 10;
+      flex: 1.15;
     }
     
     .admin-panel::after {
@@ -116,23 +114,10 @@
       background: linear-gradient(180deg, rgba(139,92,246,0.2) 0%, rgba(10,6,20,0.95) 100%),
                   url('/images/tama-bg.png') center bottom / contain no-repeat;
       border-right: 1px solid rgba(139,92,246,0.3);
-      border-bottom: 1px solid rgba(139,92,246,0.3);
     }
     
     .panel-destruction {
       background: linear-gradient(180deg, rgba(220,38,38,0.2) 0%, rgba(10,6,20,0.95) 100%),
-                  url('/images/tama-bg.png') center bottom / contain no-repeat;
-      border-bottom: 1px solid rgba(220,38,38,0.3);
-    }
-    
-    .panel-chaos {
-      background: linear-gradient(180deg, rgba(245,158,11,0.2) 0%, rgba(10,6,20,0.95) 100%),
-                  url('/images/tama-bg.png') center bottom / contain no-repeat;
-      border-right: 1px solid rgba(245,158,11,0.3);
-    }
-    
-    .panel-order {
-      background: linear-gradient(180deg, rgba(16,185,129,0.2) 0%, rgba(10,6,20,0.95) 100%),
                   url('/images/tama-bg.png') center bottom / contain no-repeat;
     }
     
@@ -143,16 +128,6 @@
     
     [data-theme="light"] .panel-destruction {
       background: linear-gradient(180deg, rgba(220,38,38,0.25) 0%, rgba(40,10,10,0.8) 100%),
-                  url('/images/tama-bg.png') center bottom / contain no-repeat;
-    }
-    
-    [data-theme="light"] .panel-chaos {
-      background: linear-gradient(180deg, rgba(245,158,11,0.25) 0%, rgba(40,30,10,0.8) 100%),
-                  url('/images/tama-bg.png') center bottom / contain no-repeat;
-    }
-    
-    [data-theme="light"] .panel-order {
-      background: linear-gradient(180deg, rgba(16,185,129,0.25) 0%, rgba(10,40,30,0.8) 100%),
                   url('/images/tama-bg.png') center bottom / contain no-repeat;
     }
     
@@ -187,18 +162,6 @@
       color: #fca5a5;
     }
     
-    .panel-badge.chaos {
-      background: rgba(245,158,11,0.3);
-      border: 1px solid rgba(245,158,11,0.5);
-      color: #fcd34d;
-    }
-    
-    .panel-badge.order {
-      background: rgba(16,185,129,0.3);
-      border: 1px solid rgba(16,185,129,0.5);
-      color: #6ee7b7;
-    }
-    
     .panel-title {
       font-family: var(--font-display);
       font-size: clamp(2rem, 5vw, 3.5rem);
@@ -214,18 +177,6 @@
     
     .panel-title.destruction {
       background: linear-gradient(135deg, #fca5a5, #dc2626);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    
-    .panel-title.chaos {
-      background: linear-gradient(135deg, #fcd34d, #f59e0b);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    
-    .panel-title.order {
-      background: linear-gradient(135deg, #6ee7b7, #10b981);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
@@ -302,18 +253,12 @@
     
     @media (max-width: 768px) {
       .admins-container {
-        grid-template-columns: 1fr;
-        grid-template-rows: repeat(4, 1fr);
+        flex-direction: column;
       }
       
       .panel-creation {
         border-right: none;
         border-bottom: 1px solid rgba(139,92,246,0.3);
-      }
-      
-      .panel-chaos {
-        border-right: none;
-        border-bottom: 1px solid rgba(245,158,11,0.3);
       }
     }
   </style>
@@ -342,24 +287,6 @@
       <div class="panel-badge destruction">🔥 The Rollback</div>
       <h2 class="panel-title destruction">Admin<br>Destruction</h2>
       <p class="panel-desc">The entity with authority to delete, remove, and erase from the system.</p>
-      <span class="panel-cta">View Entity Profile →</span>
-    </div>
-  </a>
-  
-  <a href="/xanrean/characters/admin-chaos" class="admin-panel panel-chaos">
-    <div class="panel-content">
-      <div class="panel-badge chaos">⚡ The Entropy</div>
-      <h2 class="panel-title chaos">Admin<br>Chaos</h2>
-      <p class="panel-desc">The entity governing entropy, randomness, and the breakdown of predictable systems.</p>
-      <span class="panel-cta">View Entity Profile →</span>
-    </div>
-  </a>
-  
-  <a href="/xanrean/characters/admin-order" class="admin-panel panel-order">
-    <div class="panel-content">
-      <div class="panel-badge order">⚖️ The Structure</div>
-      <h2 class="panel-title order">Admin<br>Order</h2>
-      <p class="panel-desc">The entity governing structure, pattern, and the maintenance of stable systems.</p>
       <span class="panel-cta">View Entity Profile →</span>
     </div>
   </a>
