@@ -35,13 +35,13 @@ These are the old content storage files before database migration. Safe to delet
 **Status:** Open  
 **Impact:** Medium
 
-Currently only have dedicated pages for:
+Currently have dedicated pages for:
 - ✅ Moderator Time
+- ✅ Moderator Space
 
 Still using dynamic template (`character.html`) for:
 - ❌ Moderator Chaos
 - ❌ Moderator Order
-- ❌ Moderator Space
 - ❌ Moderator Devotion
 - ❌ Tama (incarnation)
 - ❌ Saki (incarnation)

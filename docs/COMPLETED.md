@@ -12,7 +12,7 @@
 **What:** Complete reorganization of Admins and Moderators
 - Admins moved to `/characters/admins/` folder
 - Moderators moved to `/characters/moderators/` folder
-- Dedicated pages: Admin Creation, Admin Destruction, Moderator Time
+- Dedicated pages: Admin Creation, Admin Destruction, Moderator Time, Moderator Space
 - Template-based pages for remaining characters
 - All server routes updated
 
