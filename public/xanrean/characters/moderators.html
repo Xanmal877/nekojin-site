@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>The Moderators - Characters | Xanrean Chronicles</title>
+  <title>The Moderators - Xanrean Chronicles</title>
   <link rel="stylesheet" href="/style.css">
   <script>
     const savedTheme = localStorage.getItem('theme');
@@ -17,30 +17,33 @@
   </script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { height: 100%; overflow: hidden; }
     
-    /* Nav - fixed overlay */
-    nav {
-      position: fixed;
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    
+    /* Nav */
+    .mod-nav {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      position: sticky;
       top: 0;
-      left: 0;
-      right: 0;
       z-index: 100;
+    }
+    
+    .mod-nav-inner {
+      max-width: 1400px;
+      margin: 0 auto;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 1rem 2rem;
-      background: rgba(255,255,255,0.9);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid rgba(59,130,246,0.1);
     }
     
-    [data-theme="dark"] nav {
-      background: rgba(10,6,20,0.9);
-      border-bottom-color: rgba(59,130,246,0.2);
-    }
-    
-    .nav-logo {
+    .mod-nav-logo {
       display: flex;
       align-items: center;
       gap: 0.75rem;
@@ -51,340 +54,363 @@
       text-decoration: none;
     }
     
-    .nav-tama {
-      width: 32px;
-      height: 32px;
-      background: url('/images/tama-icon.png') center/contain no-repeat;
-      image-rendering: pixelated;
+    .mod-nav-logo span {
+      color: var(--text);
+      font-weight: 400;
     }
     
-    .theme-toggle {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      font-size: 1.25rem;
+    /* Hero */
+    .mod-hero {
+      background: linear-gradient(180deg, rgba(59,130,246,0.1) 0%, transparent 100%);
+      padding: 4rem 2rem;
+      text-align: center;
+    }
+    
+    .mod-hero h1 {
+      font-family: var(--font-display);
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .mod-hero p {
+      max-width: 700px;
+      margin: 0 auto;
+      color: var(--muted);
+      font-size: 1.1rem;
+      line-height: 1.7;
+    }
+    
+    /* Opposites Grid */
+    .opposites-section {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 3rem 2rem;
+    }
+    
+    .opposites-title {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      text-align: center;
+      margin-bottom: 0.5rem;
       color: var(--text);
     }
     
-    .theme-toggle:hover { background: var(--surface2); }
+    .opposites-subtitle {
+      text-align: center;
+      color: var(--muted);
+      margin-bottom: 2rem;
+    }
     
-    /* Grid layout for 4 moderators */
-    .mods-container {
+    .opposites-pair {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      grid-template-rows: 1fr 1fr;
-      height: 100vh;
-      width: 100vw;
-    }
-    
-    .mod-panel {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-decoration: none;
-      color: white;
-      position: relative;
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 16px;
       overflow: hidden;
-      transition: transform 0.3s ease;
+      margin-bottom: 2rem;
     }
     
-    .mod-panel:hover {
-      transform: scale(1.02);
-      z-index: 10;
-    }
-    
-    .mod-panel::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: rgba(0,0,0,0.3);
-      transition: background 0.3s;
-    }
-    
-    .mod-panel:hover::after {
-      background: rgba(0,0,0,0.2);
-    }
-    
-    /* Panel backgrounds */
-    .panel-time {
-      background: linear-gradient(180deg, rgba(59,130,246,0.2) 0%, rgba(10,6,20,0.95) 100%),
-                  url('/images/tama-bg.png') center bottom / contain no-repeat;
-      border-right: 1px solid rgba(59,130,246,0.3);
-      border-bottom: 1px solid rgba(59,130,246,0.3);
-    }
-    
-    .panel-space {
-      background: linear-gradient(180deg, rgba(16,185,129,0.2) 0%, rgba(10,6,20,0.95) 100%),
-                  url('/images/tama-bg.png') center bottom / contain no-repeat;
-      border-bottom: 1px solid rgba(16,185,129,0.3);
-    }
-    
-    .panel-chaos {
-      background: linear-gradient(180deg, rgba(245,158,11,0.2) 0%, rgba(10,6,20,0.95) 100%),
-                  url('/images/tama-bg.png') center bottom / contain no-repeat;
-      border-right: 1px solid rgba(245,158,11,0.3);
-    }
-    
-    .panel-order {
-      background: linear-gradient(180deg, rgba(139,92,246,0.2) 0%, rgba(10,6,20,0.95) 100%),
-                  url('/images/tama-bg.png') center bottom / contain no-repeat;
-    }
-    
-    [data-theme="light"] .panel-time {
-      background: linear-gradient(180deg, rgba(59,130,246,0.25) 0%, rgba(10,20,40,0.8) 100%),
-                  url('/images/tama-bg.png') center bottom / contain no-repeat;
-    }
-    
-    [data-theme="light"] .panel-space {
-      background: linear-gradient(180deg, rgba(16,185,129,0.25) 0%, rgba(10,40,20,0.8) 100%),
-                  url('/images/tama-bg.png') center bottom / contain no-repeat;
-    }
-    
-    [data-theme="light"] .panel-chaos {
-      background: linear-gradient(180deg, rgba(245,158,11,0.25) 0%, rgba(40,30,10,0.8) 100%),
-                  url('/images/tama-bg.png') center bottom / contain no-repeat;
-    }
-    
-    [data-theme="light"] .panel-order {
-      background: linear-gradient(180deg, rgba(139,92,246,0.25) 0%, rgba(20,10,40,0.8) 100%),
-                  url('/images/tama-bg.png') center bottom / contain no-repeat;
-    }
-    
-    .panel-content {
-      position: relative;
-      z-index: 1;
-      text-align: center;
+    .mod-card {
+      background: var(--surface);
       padding: 2rem;
-      max-width: 400px;
-    }
-    
-    .panel-badge {
-      display: inline-block;
-      padding: 0.5rem 1rem;
-      border-radius: 100px;
-      font-size: 0.75rem;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      margin-bottom: 1.5rem;
-    }
-    
-    .panel-badge.time {
-      background: rgba(59,130,246,0.3);
-      color: #93c5fd;
-      border: 1px solid rgba(59,130,246,0.5);
-    }
-    
-    .panel-badge.space {
-      background: rgba(16,185,129,0.3);
-      color: #6ee7b7;
-      border: 1px solid rgba(16,185,129,0.5);
-    }
-    
-    .panel-badge.chaos {
-      background: rgba(245,158,11,0.3);
-      color: #fcd34d;
-      border: 1px solid rgba(245,158,11,0.5);
-    }
-    
-    .panel-badge.order {
-      background: rgba(139,92,246,0.3);
-      color: #c4b5fd;
-      border: 1px solid rgba(139,92,246,0.5);
-    }
-    
-    .panel-title {
-      font-family: var(--font-display);
-      font-size: clamp(2rem, 5vw, 3.5rem);
-      font-weight: 700;
-      line-height: 1.1;
-      margin-bottom: 1rem;
-      text-shadow: 0 2px 20px rgba(0,0,0,0.5);
-    }
-    
-    .panel-title.time {
-      background: linear-gradient(135deg, #bfdbfe, #3b82f6);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    
-    .panel-title.space {
-      background: linear-gradient(135deg, #a7f3d0, #10b981);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    
-    .panel-title.chaos {
-      background: linear-gradient(135deg, #fcd34d, #f59e0b);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    
-    .panel-title.order {
-      background: linear-gradient(135deg, #c4b5fd, #8b5cf6);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    
-    .panel-desc {
-      font-size: 1rem;
-      line-height: 1.7;
-      opacity: 0.95;
-      margin-bottom: 1.5rem;
-    }
-    
-    .panel-cta {
-      display: inline-block;
-      padding: 0.75rem 1.5rem;
-      background: rgba(255,255,255,0.1);
-      border: 1px solid rgba(255,255,255,0.2);
-      border-radius: 8px;
-      color: white;
-      font-weight: 600;
-      transition: all 0.2s;
-    }
-    
-    .mod-panel:hover .panel-cta {
-      background: rgba(255,255,255,0.2);
-      border-color: rgba(255,255,255,0.4);
-    }
-    
-    footer {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      z-index: 100;
-      background: rgba(10,6,20,0.9);
-      backdrop-filter: blur(12px);
-      border-top: 1px solid rgba(255,255,255,0.1);
-      padding: 0.75rem 1.5rem;
-    }
-    
-    .footer-inner {
-      max-width: 1200px;
-      margin: 0 auto;
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
+      flex-direction: column;
+      min-height: 280px;
+      transition: all 0.3s;
     }
     
-    .footer-brand {
+    .mod-card:hover {
+      background: var(--surface2);
+    }
+    
+    .mod-card.assigned {
+      cursor: pointer;
+      text-decoration: none;
+      color: inherit;
+    }
+    
+    .mod-card.unassigned {
+      opacity: 0.6;
+    }
+    
+    .mod-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+    
+    .mod-name {
+      font-family: var(--font-display);
+      font-size: 1.75rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .mod-domain {
+      font-size: 0.875rem;
+      color: var(--muted);
+      margin-bottom: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    
+    .mod-desc {
+      color: var(--text);
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+      flex-grow: 1;
+    }
+    
+    .mod-incarnation {
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      font-family: var(--font-display);
-      font-size: 1rem;
-      color: var(--royal);
-    }
-    
-    .footer-tama {
-      width: 24px;
-      height: 24px;
-      background: url('/images/tama-icon.png') center/contain no-repeat;
-      image-rendering: pixelated;
-    }
-    
-    .footer-link {
-      color: rgba(255,255,255,0.7);
-      text-decoration: none;
+      padding: 0.75rem 1rem;
+      background: var(--bg);
+      border-radius: 8px;
       font-size: 0.9rem;
     }
     
-    .footer-link:hover {
-      color: white;
+    .mod-incarnation.assigned {
+      border-left: 3px solid var(--royal);
     }
     
+    .mod-incarnation.empty {
+      color: var(--muted);
+      font-style: italic;
+    }
+    
+    .mod-link {
+      margin-top: 1rem;
+      color: var(--royal-light);
+      text-decoration: none;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .mod-link:hover {
+      text-decoration: underline;
+    }
+    
+    /* Status badges */
+    .status-badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 100px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+    
+    .status-assigned {
+      background: rgba(16, 185, 129, 0.2);
+      color: #10b981;
+    }
+    
+    .status-empty {
+      background: rgba(107, 114, 128, 0.2);
+      color: #6b7280;
+    }
+    
+    /* Mobile */
     @media (max-width: 768px) {
-      .mods-container {
+      .opposites-pair {
         grid-template-columns: 1fr;
-        grid-template-rows: repeat(4, 1fr);
       }
-      
-      .panel-time {
-        border-right: none;
-        border-bottom: 1px solid rgba(59,130,246,0.3);
-      }
-      
-      .panel-chaos {
-        border-right: none;
-        border-bottom: 1px solid rgba(245,158,11,0.3);
-      }
+    }
+    
+    /* Footer */
+    footer {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 2rem;
+      text-align: center;
+    }
+    
+    .footer-link {
+      color: var(--royal-light);
+      text-decoration: none;
+    }
+    
+    .footer-link:hover {
+      text-decoration: underline;
     }
   </style>
 </head>
 <body>
 
-<nav>
-  <a href="/" class="nav-logo"><div class="nav-tama"></div>Nekojin Interactive</a>
-  <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
-    <span id="theme-icon">☀️</span>
-  </button>
+<nav class="mod-nav">
+  <div class="mod-nav-inner">
+    <a href="/xanrean" class="mod-nav-logo">
+      <span>⬅</span> Xanrean Chronicles
+    </a>
+    <span style="color: var(--muted);">The Moderators</span>
+  </div>
 </nav>
 
-<main class="mods-container">
-  <a href="/xanrean/characters/moderator-time" class="mod-panel panel-time">
-    <div class="panel-content">
-      <div class="panel-badge time">⏰ Time Domain</div>
-      <h2 class="panel-title time">Moderator<br>Time</h2>
-      <p class="panel-desc">Manages the soul stream and functions as the system's CPU-like processor.</p>
-      <span class="panel-cta">View Entity Profile →</span>
-    </div>
-  </a>
+<section class="mod-hero">
+  <h1>The Twelve Moderators</h1>
+  <p>System-level AIs maintaining the Xanrean Server Cluster. Each governs a fundamental aspect of reality across all worlds. Some seats are filled. Others await their incarnations.</p>
+</section>
+
+<section class="opposites-section">
   
-  <a href="/xanrean/characters/moderator-space" class="mod-panel panel-space">
-    <div class="panel-content">
-      <div class="panel-badge space">🌌 Space Domain</div>
-      <h2 class="panel-title space">Moderator<br>Space</h2>
-      <p class="panel-desc">Responsible for spatial continuity, position, distance, and movement.</p>
-      <span class="panel-cta">View Entity Profile →</span>
-    </div>
-  </a>
+  <!-- Time & Space -->
+  <h2 class="opposites-title">The Fundamental Continuum</h2>
+  <p class="opposites-subtitle">Without these, existence itself cannot persist</p>
   
-  <a href="/xanrean/characters/moderator-chaos" class="mod-panel panel-chaos">
-    <div class="panel-content">
-      <div class="panel-badge chaos">⚡ Chaos Domain</div>
-      <h2 class="panel-title chaos">Moderator<br>Chaos</h2>
-      <p class="panel-desc">Governs change, deviation, unpredictability, and emergent outcomes.</p>
-      <span class="panel-cta">View Entity Profile →</span>
-    </div>
-  </a>
+  <div class="opposites-pair">
+    <a href="/xanrean/characters/moderator-time" class="mod-card assigned" style="border-right: 1px solid var(--border);">
+      <div class="status-badge status-assigned">● Assigned</div>
+      <div class="mod-icon">⏰</div>
+      <div class="mod-name">Moderator Time</div>
+      <div class="mod-domain">Temporal Continuity</div>
+      <div class="mod-desc">Manages the soul stream and functions as the system's CPU-like processor. Without Time, events have no sequence.</div>
+      <div class="mod-incarnation assigned">
+        <span>👤</span> Anna Trissaile
+      </div>
+      <span class="mod-link">View Profile →</span>
+    </a>
+    
+    <a href="/xanrean/characters/moderator-space" class="mod-card assigned">
+      <div class="status-badge status-assigned">● Assigned</div>
+      <div class="mod-icon">🌌</div>
+      <div class="mod-name">Moderator Space</div>
+      <div class="mod-domain">Spatial Continuity</div>
+      <div class="mod-desc">Governs position, distance, connections between regions, and movement across the system. Without Space, there is no "where."</div>
+      <div class="mod-incarnation assigned">
+        <span>👤</span> Xanari Telis
+      </div>
+      <span class="mod-link">View Profile →</span>
+    </a>
+  </div>
   
-  <a href="/xanrean/characters/moderator-order" class="mod-panel panel-order">
-    <div class="panel-content">
-      <div class="panel-badge order">⚖️ Order Domain</div>
-      <h2 class="panel-title order">Moderator<br>Order</h2>
-      <p class="panel-desc">Governs structure, pattern, stability, and maintenance of systems.</p>
-      <span class="panel-cta">View Entity Profile →</span>
+  <!-- Order & Chaos -->
+  <h2 class="opposites-title">The Dynamic Balance</h2>
+  <p class="opposites-subtitle">Structure and transformation—the endless cycle</p>
+  
+  <div class="opposites-pair">
+    <a href="/xanrean/characters/moderator-order" class="mod-card assigned" style="border-right: 1px solid var(--border);">
+      <div class="status-badge status-assigned">● Assigned</div>
+      <div class="mod-icon">⚖️</div>
+      <div class="mod-name">Moderator Order</div>
+      <div class="mod-domain">Structure & Pattern</div>
+      <div class="mod-desc">Governs stability, maintenance of systems, and the patterns that allow civilization to exist. Order prevents collapse into entropy.</div>
+      <div class="mod-incarnation assigned">
+        <span>👤</span> Timothy "Acros" Dramtheir
+      </div>
+      <span class="mod-link">View Profile →</span>
+    </a>
+    
+    <a href="/xanrean/characters/moderator-chaos" class="mod-card assigned">
+      <div class="status-badge status-assigned">● Assigned</div>
+      <div class="mod-icon">⚡</div>
+      <div class="mod-name">Moderator Chaos</div>
+      <div class="mod-domain">Change & Transformation</div>
+      <div class="mod-desc">Governs deviation, unpredictability, and emergent outcomes. Chaos prevents stagnation and allows the new to arise.</div>
+      <div class="mod-incarnation assigned">
+        <span>👤</span> Marissa Richmond
+      </div>
+      <span class="mod-link">View Profile →</span>
+    </a>
+  </div>
+  
+  <!-- Light & Dark -->
+  <h2 class="opposites-title">The Visible Spectrum</h2>
+  <p class="opposites-subtitle">Illumination and shadow—both necessary for perception</p>
+  
+  <div class="opposites-pair">
+    <div class="mod-card unassigned" style="border-right: 1px solid var(--border);">
+      <div class="status-badge status-empty">○ Unassigned</div>
+      <div class="mod-icon">☀️</div>
+      <div class="mod-name">Moderator Light</div>
+      <div class="mod-domain">Illumination & Revelation</div>
+      <div class="mod-desc">Governs visibility, truth, and the forces that bring what is hidden into awareness. Light makes knowledge possible.</div>
+      <div class="mod-incarnation empty">
+        <span>👤</span> Awaiting incarnation...
+      </div>
     </div>
-  </a>
-</main>
+    
+    <div class="mod-card unassigned">
+      <div class="status-badge status-empty">○ Unassigned</div>
+      <div class="mod-icon">🌑</div>
+      <div class="mod-name">Moderator Dark</div>
+      <div class="mod-domain">Shadow & Obscurity</div>
+      <div class="mod-desc">Governs concealment, mystery, and the spaces between knowledge. Dark is not evil—it is potential unrealized.</div>
+      <div class="mod-incarnation empty">
+        <span>👤</span> Awaiting incarnation...
+      </div>
+    </div>
+  </div>
+  
+  <!-- Hope & Despair -->
+  <h2 class="opposites-title">The Emotional Forces</h2>
+  <p class="opposites-subtitle">What drives souls forward—or stops them cold</p>
+  
+  <div class="opposites-pair">
+    <div class="mod-card unassigned" style="border-right: 1px solid var(--border);">
+      <div class="status-badge status-empty">○ Unassigned</div>
+      <div class="mod-icon">🕊️</div>
+      <div class="mod-name">Moderator Hope</div>
+      <div class="mod-domain">Aspiration & Possibility</div>
+      <div class="mod-desc">Governs the belief in better outcomes, the will to continue, and the visions that pull souls toward tomorrow.</div>
+      <div class="mod-incarnation empty">
+        <span>👤</span> Awaiting incarnation...
+      </div>
+    </div>
+    
+    <div class="mod-card unassigned">
+      <div class="status-badge status-empty">○ Unassigned</div>
+      <div class="mod-icon">💀</div>
+      <div class="mod-name">Moderator Despair</div>
+      <div class="mod-domain">Hopelessness & Finality</div>
+      <div class="mod-desc">Governs the acceptance of endings, the weight of futility, and the gravity that pulls souls toward surrender.</div>
+      <div class="mod-incarnation empty">
+        <span>👤</span> Awaiting incarnation...
+      </div>
+    </div>
+  </div>
+  
+  <!-- Devotion & Animosity -->
+  <h2 class="opposites-title">The Social Bonds</h2>
+  <p class="opposites-subtitle">Connection and division—what binds or breaks</p>
+  
+  <div class="opposites-pair">
+    <a href="/xanrean/characters/moderator-devotion" class="mod-card assigned" style="border-right: 1px solid var(--border);">
+      <div class="status-badge status-assigned">● Assigned</div>
+      <div class="mod-icon">❤️</div>
+      <div class="mod-name">Moderator Devotion</div>
+      <div class="mod-domain">Loyalty & Attachment</div>
+      <div class="mod-desc">Governs commitment, sacrifice for others, and the bonds that make individual souls part of something greater.</div>
+      <div class="mod-incarnation assigned">
+        <span>👤</span> Alia
+      </div>
+      <span class="mod-link">View Profile →</span>
+    </a>
+    
+    <div class="mod-card unassigned">
+      <div class="status-badge status-empty">○ Unassigned</div>
+      <div class="mod-icon">⚔️</div>
+      <div class="mod-name">Moderator Animosity</div>
+      <div class="mod-domain">Conflict & Opposition</div>
+      <div class="mod-desc">Governs division, rivalry, and the forces that push souls apart. Not evil—merely the space necessary for identity.</div>
+      <div class="mod-incarnation empty">
+        <span>👤</span> Awaiting incarnation...
+      </div>
+    </div>
+  </div>
+  
+</section>
 
 <footer>
-  <div class="footer-inner">
-    <div class="footer-brand"><div class="footer-tama"></div>Nekojin Interactive</div>
-    <a href="/xanrean/characters" class="footer-link">← Back to Characters</a>
-  </div>
+  <a href="/xanrean/characters" class="footer-link">← Back to Characters</a>
 </footer>
-
-<script>
-function toggleTheme() {
-  const html = document.documentElement;
-  const current = html.getAttribute('data-theme') || 'light';
-  const next = current === 'light' ? 'dark' : 'light';
-  html.setAttribute('data-theme', next);
-  localStorage.setItem('theme', next);
-  document.getElementById('theme-icon').textContent = next === 'dark' ? '🌙' : '☀️';
-}
-document.getElementById('theme-icon').textContent = (document.documentElement.getAttribute('data-theme') === 'dark') ? '🌙' : '☀️';
-</script>
 
 </body>
 </html>
