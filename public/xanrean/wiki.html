@@ -416,11 +416,11 @@
       <div class="sidebar-section">
         <div class="sidebar-title">Species</div>
         <ul class="sidebar-list">
-          <li><a href="#nekojin" data-page="nekojin" class="wiki-nav-link">Nekojin</a></li>
-          <li><a href="#foxkin" data-page="foxkin" class="wiki-nav-link">Foxkin</a></li>
-          <li><a href="#elves" data-page="elves" class="wiki-nav-link">Elves</a></li>
-          <li><a href="#kitsune" data-page="kitsune" class="wiki-nav-link">Kitsune</a></li>
-          <li><a href="#travelers" data-page="travelers" class="wiki-nav-link">Travelers</a></li>
+          <li><a href="/xanrean/lore/reader.html#nekojin">Nekojin</a></li>
+          <li><a href="/xanrean/lore/reader.html#foxkin">Foxkin</a></li>
+          <li><a href="/xanrean/lore/reader.html#elves">Elves</a></li>
+          <li><a href="/xanrean/lore/reader.html#kitsune">Kitsune</a></li>
+          <li><a href="/xanrean/lore/reader.html#travelers">Travelers</a></li>
         </ul>
       </div>
       
@@ -664,8 +664,14 @@
         const page = e.target.dataset.wiki || e.target.textContent;
         const pageKey = Object.keys(wikiLinks).find(k => k.toLowerCase() === page.toLowerCase());
         if (pageKey) {
-          loadWikiPage(pageKey.toLowerCase().replace(/\s+/g, '-'));
-          history.pushState({ page: pageKey }, '', `#${pageKey.toLowerCase().replace(/\s+/g, '-')}`);
+          const link = wikiLinks[pageKey];
+          if (link.type === 'species') {
+            // Redirect species to lore reader
+            window.location.href = `/xanrean/lore/reader.html#${link.section}`;
+          } else {
+            loadWikiPage(pageKey.toLowerCase().replace(/\s+/g, '-'));
+            history.pushState({ page: pageKey }, '', `#${pageKey.toLowerCase().replace(/\s+/g, '-')}`);
+          }
         }
       }
     });
