@@ -573,6 +573,19 @@ const server = http.createServer(async (req, res) => {
         }
     }
 
+    // ── PUBLIC HOMEPAGE SETTINGS API ──────────────────────
+    // Get homepage settings (public, no auth required)
+    if (req.method === 'GET' && url === '/api/homepage') {
+        try {
+            const settings = await contentDB.SelectHomepageSettings();
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify(settings));
+        } catch (e) {
+            res.writeHead(500);
+            return res.end(JSON.stringify({ error: e.message }));
+        }
+    }
+
     // ── AUTH GATE ─────────────────────────────────────────
     if (!accounts.isAuthenticated(req)) {
         if (req.method === 'GET') {
@@ -640,9 +653,10 @@ const server = http.createServer(async (req, res) => {
             if (!file || !file.data) { res.writeHead(400); return res.end('No file'); }
             
             const bookId = parts['bookId'] || 'cover';
-            const timestamp = Date.now();
-            const fname = `${bookId}-${timestamp}.webp`;
-            const thumbFname = `${bookId}-${timestamp}-thumb.webp`;
+            // Use fixed filename for homepage backgrounds (overwrite), timestamp for others
+            const isHomepage = bookId.startsWith('homepage-');
+            const fname = isHomepage ? `${bookId}.webp` : `${bookId}-${Date.now()}.webp`;
+            const thumbFname = isHomepage ? `${bookId}-thumb.webp` : `${bookId}-${Date.now()}-thumb.webp`;
             
             // Process image with sharp
             const image = sharp(file.data);
@@ -747,6 +761,36 @@ const server = http.createServer(async (req, res) => {
         } catch (e) { 
             res.writeHead(500); 
             return res.end(JSON.stringify({ error: e.message })); 
+        }
+    }
+
+    console.log(`>>> REQUEST: ${req.method} ${url}`);
+    
+    // ── HOMEPAGE SETTINGS API (POST - admin only) ─────────
+    // Update homepage settings (admin only)
+    if (req.method === 'POST' && url === '/api/homepage') {
+        console.log('>>> POST /api/homepage HIT');
+        if (!accounts.isAdmin(req)) { 
+            console.log('>>> AUTH FAILED');
+            res.writeHead(403); 
+            return res.end('Forbidden'); 
+        }
+        try {
+            const body = await readRawBody(req);
+            console.log('>>> Raw body:', body.toString());
+            const data = JSON.parse(body.toString());
+            console.log('>>> Parsed data:', data);
+            const result = await contentDB.UpdateHomepageSettings(data);
+            console.log('>>> DB update result:', result);
+            // Check what's actually in the database
+            const before = await contentDB.SelectHomepageSettings();
+            console.log('>>> DB after update:', before);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify(before));
+        } catch (e) {
+            console.error('>>> POST /api/homepage ERROR:', e);
+            res.writeHead(500);
+            return res.end(JSON.stringify({ error: e.message }));
         }
     }
 

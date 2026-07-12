@@ -38,30 +38,39 @@
     }
     .books-hero-orbs { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
     .books-hero-orbs .orb { opacity: 0.11; }
-    .books-hero-eyebrow {
-      font-size: 0.72rem; font-weight: 700;
-      letter-spacing: 0.24em; text-transform: uppercase;
-      color: var(--royal-light); margin-bottom: 1rem;
-      animation: fadeup 0.6s 0.1s both;
-      display: inline-flex; align-items: center; gap: 0.65rem;
-    }
-    .books-hero-eyebrow::before, .books-hero-eyebrow::after {
-      content: ''; display: inline-block;
-      width: 28px; height: 1px;
-      background: var(--royal-light); opacity: 0.45;
-    }
     .books-hero-title {
       font-family: var(--font-display);
-      font-size: clamp(2.8rem, 6vw, 5rem);
-      color: var(--ink); line-height: 1.05;
-      animation: fadeup 0.6s 0.2s both; margin-bottom: 0.75rem;
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      color: var(--ink);
+      line-height: 1.1;
+      animation: fadeup 0.6s 0.2s both;
+      margin-bottom: 0.75rem;
+    }
+    .books-hero-title .accent {
+      color: var(--royal);
+      -webkit-text-fill-color: var(--royal);
+    }
+    [data-theme="dark"] .books-hero-title {
+      color: #ffffff;
+      text-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    [data-theme="dark"] .books-hero-title .accent {
+      background: linear-gradient(135deg, #c084fc, #818cf8, #60a5fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
     .books-hero-sub {
-      font-size: 0.95rem; font-weight: 300;
-      color: rgba(212,200,240,0.72);
-      max-width: 460px; margin: 0 auto;
-      line-height: 1.75;
+      font-size: clamp(1rem, 2vw, 1.25rem);
+      font-weight: 400;
+      color: var(--text);
+      max-width: 600px;
+      margin: 0 auto;
+      line-height: 1.6;
       animation: fadeup 0.6s 0.35s both;
+    }
+    [data-theme="dark"] .books-hero-sub {
+      color: rgba(230, 225, 255, 0.95);
     }
 
     /* ── SERIES BLOCK ── */
@@ -77,18 +86,15 @@
       flex-wrap: wrap;
       gap: 1rem;
     }
-    .series-eyebrow {
-      font-size: 0.65rem; font-weight: 700;
-      letter-spacing: 0.2em; text-transform: uppercase;
-      color: var(--royal-light); margin-bottom: 0.35rem; display: block;
-    }
+    .series-eyebrow { display: none; }
     .series-name {
       font-family: var(--font-display);
       font-size: clamp(1.5rem, 3vw, 2rem);
       color: var(--ink); line-height: 1.1;
     }
     .series-desc {
-      font-size: 0.85rem; color: rgba(212,200,240,0.72);
+      font-size: 0.85rem; color: var(--text);
+      opacity: 0.8;
       max-width: 440px; line-height: 1.7; font-weight: 300;
       text-align: right;
     }
@@ -220,63 +226,11 @@
       padding-bottom: 1.25rem;
       border-bottom: 1px solid var(--border);
     }
-    .standalone-eyebrow {
-      font-size: 0.65rem; font-weight: 700;
-      letter-spacing: 0.2em; text-transform: uppercase;
-      color: var(--muted); margin-bottom: 0.35rem; display: block;
-    }
+    .standalone-eyebrow { display: none; }
     .standalone-title {
       font-family: var(--font-display);
       font-size: clamp(1.4rem, 2.5vw, 1.8rem);
       color: var(--ink);
-    }
-
-    /* ── PATREON BANNER ── */
-    .patreon-banner {
-      background: linear-gradient(135deg, rgba(76,29,149,0.4), rgba(30,58,138,0.35));
-      border: 1px solid rgba(124,58,237,0.25);
-      border-radius: 24px; padding: 3.5rem;
-      text-align: center; position: relative;
-      overflow: hidden; margin-top: 4rem;
-    }
-    .patreon-banner::before {
-      content: ''; position: absolute; inset: 0;
-      background: radial-gradient(ellipse at 50% 0%, rgba(124,58,237,0.15), transparent 60%);
-      pointer-events: none;
-    }
-    .patreon-eyebrow {
-      font-size: 0.68rem; font-weight: 700;
-      letter-spacing: 0.2em; text-transform: uppercase;
-      color: rgba(167,139,250,0.6);
-      margin-bottom: 0.75rem; position: relative; z-index: 1;
-    }
-    .patreon-title {
-      font-family: var(--font-display);
-      font-size: clamp(1.8rem, 3vw, 2.5rem);
-      color: var(--ink); margin-bottom: 0.75rem;
-      position: relative; z-index: 1;
-    }
-    .patreon-desc {
-      color: rgba(212,200,240,0.5);
-      max-width: 400px; margin: 0 auto 2rem;
-      line-height: 1.75; font-size: 0.9rem;
-      font-weight: 300; position: relative; z-index: 1;
-    }
-    .btn-patreon {
-      display: inline-flex; align-items: center; gap: 0.5rem;
-      padding: 0.75rem 1.75rem; border-radius: 10px;
-      background: linear-gradient(135deg, #d4900a, #a06808);
-      color: white; text-decoration: none;
-      font-weight: 700; font-size: 0.88rem;
-      letter-spacing: 0.04em;
-      border: 1px solid rgba(212,144,10,0.4);
-      box-shadow: 0 4px 20px rgba(166,104,8,0.35);
-      transition: all 0.22s;
-      position: relative; z-index: 1;
-    }
-    .btn-patreon:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 28px rgba(166,104,8,0.5);
     }
 
     /* ── EMPTY / LOADING ── */
@@ -314,20 +268,26 @@
 <body>
 
 <nav>
-  <a href="/" class="nav-logo"><div class="paw" aria-hidden="true"></div> Nekojin Interactive</a>
-  <ul class="nav-links">
-    <li><a href="/">Home</a></li>
-    <li><a href="/books" class="active">Books</a></li>
-    <li><a href="/games">Games</a></li>
-    <li><a href="/about">About</a></li>
-  </ul>
-  <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode" onclick="toggleTheme()">
-    <span class="theme-icon sun">☀️</span>
-    <span class="theme-icon moon">🌙</span>
-  </button>
-  <div class="nav-search-wrap">
-    <input type="text" class="nav-search" id="nav-search" placeholder="Search…" autocomplete="off">
-    <div class="nav-search-results" id="nav-search-results"></div>
+  <div class="nav-left">
+    <a href="/" class="nav-logo">
+      <div class="paw" aria-hidden="true"></div> Nekojin Interactive
+    </a>
+    <ul class="nav-links">
+      <li><a href="/">Home</a></li>
+      <li><a href="/books" class="active">Books</a></li>
+      <li><a href="/games">Games</a></li>
+      
+    </ul>
+  </div>
+  <div class="nav-right">
+    <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode" onclick="toggleTheme()">
+      <span class="theme-icon sun">☀️</span>
+      <span class="theme-icon moon">🌙</span>
+    </button>
+    <div class="nav-search-wrap">
+      <input type="text" class="nav-search" id="nav-search" placeholder="Search…" autocomplete="off">
+      <div class="nav-search-results" id="nav-search-results"></div>
+    </div>
   </div>
   <button class="nav-hamburger" id="nav-hamburger" aria-label="Menu" onclick="toggleNav()">
     <span></span><span></span><span></span>
@@ -340,7 +300,7 @@
     <li><a href="/">Home</a></li>
     <li><a href="/books" class="active">Books</a></li>
     <li><a href="/games">Games</a></li>
-    <li><a href="/about">About</a></li>
+    
   </ul>
 </div>
 
@@ -352,9 +312,8 @@
       <div class="orb orb-1"></div>
       <div class="orb orb-2"></div>
     </div>
-    <p class="books-hero-eyebrow">Published Series</p>
-    <h1 class="books-hero-title">Books &amp; Serials</h1>
-    <p class="books-hero-sub">All stories set within the Xanrea universe. Read free on Royal Road and ScribbleHub.</p>
+    <h1 class="books-hero-title"><span class="accent">Books</span> &amp; Serials</h1>
+    <p class="books-hero-sub">Stories from the Xanrea universe. First published on Royal Road &amp; ScribbleHub, then refined for Kindle.</p>
   </section>
 
   <!-- CONTENT -->
@@ -371,17 +330,24 @@
 <footer>
   <div class="footer-inner">
     <div class="footer-logo"><div class="tama-icon" aria-hidden="true"></div> Nekojin Interactive</div>
-    <p class="footer-tagline" id="footer-tagline">Crafting worlds, one upload at a time.</p>
-    <div class="footer-links">
-      <a href="/">Home</a><a href="/books">Books</a>
-      <a href="/games">Games</a><a href="/about">About</a>
-    </div>
+    <p class="footer-tagline" id="footer-tagline">Crafting worlds</p>
+    <div class="footer-links"></div>
     <p class="footer-copy">© 2026 Nekojin Interactive LLC. All rights reserved.</p>
   </div>
 </footer>
 
 <script src="/common.js"></script>
 <script>
+// Load footer tagline
+fetch('/content')
+  .then(r => r.json())
+  .then(data => {
+    if (data.about && data.about.tagline) {
+      document.getElementById('footer-tagline').textContent = data.about.tagline;
+    }
+  })
+  .catch(() => {});
+
 const PLAT_LABEL = { rr: 'Royal Road', sh: 'ScribbleHub', wp: 'Wattpad', kdp: 'Kindle' };
 
 function platLabel(p) {
@@ -479,17 +445,8 @@ async function loadBooks() {
       `;
     }
 
-    // ── PATREON BANNER ──
-    html += `
-      <div class="patreon-banner reveal">
-        <p class="patreon-eyebrow">✦ Support the Work</p>
-        <h2 class="patreon-title">Read Ahead on Patreon</h2>
-        <p class="patreon-desc">Early access chapters, exclusive content, and behind-the-scenes updates. Join any tier to get ahead of the public release.</p>
-        <a href="https://www.patreon.com/purplexanmal" target="_blank" rel="noopener" class="btn-patreon">
-          ☕ Support on Patreon
-        </a>
-      </div>
-    `;
+    // ── NO PATREON BANNER HERE ──
+    // Patreon moved to home page
 
     container.innerHTML = html;
 
@@ -497,11 +454,6 @@ async function loadBooks() {
     if (data.about && data.about.tagline) {
       document.getElementById('footer-tagline').textContent = data.about.tagline;
     }
-
-    // Patreon URL from CMS
-    const patreonUrl = data.about?.links?.patreon || 'https://www.patreon.com';
-    const patreonBtn = container.querySelector('.btn-patreon');
-    if (patreonBtn) patreonBtn.href = patreonUrl;
 
     // Trigger reveal observers on new elements
     container.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
@@ -616,8 +568,3 @@ loadBooks();
 
 // Register PWA service worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js').catch(() => {});
-}
-</script>
-</body>
-</html>

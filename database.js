@@ -215,7 +215,28 @@ class ContentDB {
             )
         `);
 
-        // Create indexes
+        // Homepage settings table
+        await this._run(`
+            CREATE TABLE IF NOT EXISTS homepage_settings (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                xanrean_bg TEXT DEFAULT '/covers/sb-cover.png',
+                standalone_bg TEXT DEFAULT '/covers/book-1776403239514-1778880332704.jpg',
+                about_bg TEXT DEFAULT '/images/tama-bg.png',
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        // Insert default row if not exists
+        await this._run(`
+            INSERT OR IGNORE INTO homepage_settings (id) VALUES (1)
+        `);
+        
+        // Add about_bg column if not exists (migration)
+        try {
+            await this._get('SELECT about_bg FROM homepage_settings');
+        } catch (e) {
+            await this._run('ALTER TABLE homepage_settings ADD COLUMN about_bg TEXT DEFAULT \'/images/tama-bg.png\'');
+        }
         await this._run('CREATE INDEX IF NOT EXISTS idx_books_series ON books(series_id)');
         await this._run('CREATE INDEX IF NOT EXISTS idx_books_status ON books(status)');
         await this._run('CREATE INDEX IF NOT EXISTS idx_books_visible ON books(visible)');
@@ -571,6 +592,50 @@ class ContentDB {
     }
 
     // ============================================================
+    // HOMEPAGE SETTINGS
+    // ============================================================
+
+    async SelectHomepageSettings() {
+        const row = await this._get('SELECT * FROM homepage_settings WHERE id = 1');
+        return row || {
+            xanrean_bg: '/covers/sb-cover.png',
+            standalone_bg: '/covers/book-1776403239514-1778880332704.jpg',
+            about_bg: '/images/tama-bg.png'
+        };
+    }
+
+    async UpdateHomepageSettings(data) {
+        console.log('>>> DB UpdateHomepageSettings called with:', data);
+        const sql = `
+            INSERT INTO homepage_settings (id, xanrean_bg, standalone_bg, about_bg)
+            VALUES (1, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+                xanrean_bg = excluded.xanrean_bg,
+                standalone_bg = excluded.standalone_bg,
+                about_bg = excluded.about_bg,
+                updated_at = CURRENT_TIMESTAMP
+        `;
+        const params = [
+            data.xanrean_bg || '/covers/sb-cover.png',
+            data.standalone_bg || '/covers/book-1776403239514-1778880332704.jpg',
+            data.about_bg || '/images/tama-bg.png'
+        ];
+        console.log('>>> DB SQL:', sql);
+        console.log('>>> DB params:', params);
+        try {
+            const result = await this._run(sql, params);
+            console.log('>>> DB _run result:', result);
+            // Verify the update
+            const verify = await this._get('SELECT * FROM homepage_settings WHERE id = 1');
+            console.log('>>> DB verification:', verify);
+            return { success: true, changes: result.changes };
+        } catch (err) {
+            console.error('>>> DB ERROR:', err);
+            throw err;
+        }
+    }
+
+    // ============================================================
     // NEWSLETTER SUBSCRIBERS
     // ============================================================
 
@@ -622,18 +687,20 @@ class ContentDB {
     // ============================================================
 
     async GetAllContent() {
-        const [series, books, games, about] = await Promise.all([
+        const [series, books, games, about, homepage] = await Promise.all([
             this.SelectSeries(),
             this.SelectBooks(),
             this.SelectGames(),
-            this.SelectAbout()
+            this.SelectAbout(),
+            this.SelectHomepageSettings()
         ]);
 
         return {
             series: series || [],
             books: books || [],
             game: games || [],
-            about: about || {}
+            about: about || {},
+            homepage: homepage || {}
         };
     }
 

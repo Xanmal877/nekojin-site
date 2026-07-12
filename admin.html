@@ -401,6 +401,9 @@
     <div class="sidebar-item" data-panel="about" onclick="switchPanel('about')">
       <span class="sidebar-icon">🏛️</span> About Page
     </div>
+    <div class="sidebar-item" data-panel="homepage" onclick="switchPanel('homepage')">
+      <span class="sidebar-icon">🏠</span> Homepage
+    </div>
     <div class="sidebar-item" data-panel="visibility" onclick="switchPanel('visibility')">
       <span class="sidebar-icon">👁️</span> Visibility
     </div>
@@ -483,6 +486,44 @@
       <p class="panel-sub">Edit the studio description and universe blurb shown on the About page.</p>
       <div class="card" id="about-editor"><p style="color:var(--muted);">Loading...</p></div>
       <button class="btn btn-primary" onclick="saveContent()">💾 Save About</button>
+    </div>
+
+    <!-- HOMEPAGE PANEL -->
+    <div class="panel" id="panel-homepage">
+      <h1 class="panel-title">🏠 Homepage</h1>
+      <p class="panel-sub">Customize the background images for the homepage split panels.</p>
+      
+      <div class="card">
+        <h3 style="margin-bottom:1rem;">Xanrean Chronicles Panel</h3>
+        <div class="bg-preview" id="homepage-xanrean-preview" style="width:140px;height:200px;border-radius:10px;background:var(--surface2);background-size:cover;background-position:center;margin-bottom:0.75rem;border:2px solid var(--border);box-shadow:0 4px 12px rgba(0,0,0,0.3);"></div>
+        <div class="form-row" style="display:flex;gap:0.75rem;align-items:center;">
+          <input type="text" id="homepage-xanrean-bg" placeholder="/covers/sb-cover.png" style="flex:1;" oninput="updateHomepagePreview('xanrean', this.value)">
+          <input type="file" id="xanrean-file-input" accept="image/*" style="display:none;" onchange="handleHomepageImageUpload(this, 'xanrean')">
+          <button class="btn btn-ghost" onclick="document.getElementById('xanrean-file-input').click()">📁 Browse</button>
+        </div>
+      </div>
+      
+      <div class="card" style="margin-top:1rem;">
+        <h3 style="margin-bottom:1rem;">Standalone Works Panel</h3>
+        <div class="bg-preview" id="homepage-standalone-preview" style="width:140px;height:200px;border-radius:10px;background:var(--surface2);background-size:cover;background-position:center;margin-bottom:0.75rem;border:2px solid var(--border);box-shadow:0 4px 12px rgba(0,0,0,0.3);"></div>
+        <div class="form-row" style="display:flex;gap:0.75rem;align-items:center;">
+          <input type="text" id="homepage-standalone-bg" placeholder="/covers/book-1776403239514-1778880332704.jpg" style="flex:1;" oninput="updateHomepagePreview('standalone', this.value)">
+          <input type="file" id="standalone-file-input" accept="image/*" style="display:none;" onchange="handleHomepageImageUpload(this, 'standalone')">
+          <button class="btn btn-ghost" onclick="document.getElementById('standalone-file-input').click()">📁 Browse</button>
+        </div>
+      </div>
+      
+      <div class="card" style="margin-top:1rem;">
+        <h3 style="margin-bottom:1rem;">About Panel</h3>
+        <div class="bg-preview" id="homepage-about-preview" style="width:140px;height:200px;border-radius:10px;background:var(--surface2);background-size:cover;background-position:center;margin-bottom:0.75rem;border:2px solid var(--border);box-shadow:0 4px 12px rgba(0,0,0,0.3);"></div>
+        <div class="form-row" style="display:flex;gap:0.75rem;align-items:center;">
+          <input type="text" id="homepage-about-bg" placeholder="/images/tama-bg.png" style="flex:1;" oninput="updateHomepagePreview('about', this.value)">
+          <input type="file" id="about-file-input" accept="image/*" style="display:none;" onchange="handleHomepageImageUpload(this, 'about')">
+          <button class="btn btn-ghost" onclick="document.getElementById('about-file-input').click()">📁 Browse</button>
+        </div>
+      </div>
+      
+      <button class="btn btn-primary" onclick="saveHomepageSettings()" style="margin-top:1rem;">💾 Save Homepage</button>
     </div>
 
     <!-- VISIBILITY PANEL -->
@@ -1871,78 +1912,6 @@ function dragDrop(e, targetSi, targetBi) {
 }
 
 // ── INLINE MANUSCRIPT UPLOAD (per book) ─────────────────
-let _msCache = null;
-
-async function checkManuscript(slug) {
-  if (!_msCache) {
-    try {
-      const res = await fetch('/api/manuscripts');
-      const data = await res.json();
-      _msCache = new Set(data.manuscripts || []);
-    } catch { _msCache = new Set(); }
-  }
-  return _msCache.has(slug);
-}
-
-async function handleBookMsUpload(event, si, bi) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const book = getBook(si, bi);
-  const slug = book.slug || book.id;
-  const statusEl = document.getElementById(`ms-status-${si}-${bi}`);
-  const readBtn = document.getElementById(`ms-read-btn-${si}-${bi}`);
-
-  statusEl.innerHTML = 'Uploading…';
-  statusEl.style.color = 'var(--muted)';
-  try {
-    const body = new FormData();
-    body.append('file', file);
-    body.append('slug', slug);
-    const res = await fetch('/upload-manuscript', { method: 'POST', body });
-    if (!res.ok) throw new Error(await res.text());
-    const data = await res.json();
-    _msCache = null; // invalidate
-    showToast(`Uploaded manuscript for ${esc(book.title)}`);
-    statusEl.innerHTML = '✅ Reader enabled';
-    statusEl.style.color = 'var(--green)';
-    if (readBtn) readBtn.style.display = '';
-  } catch (err) {
-    statusEl.innerHTML = '❌ Failed';
-    statusEl.style.color = 'var(--red)';
-    showToast('Upload failed: ' + err.message, 'error');
-  }
-}
-
-// Update manuscript status indicators when books panel renders
-async function refreshMsStatus() {
-  try {
-    const res = await fetch('/api/manuscripts');
-    const data = await res.json();
-    const msSet = new Set(data.manuscripts || []);
-    document.querySelectorAll('[id^="ms-status-"]').forEach(el => {
-      const id = el.id;
-      const match = id.match(/ms-status-(-?\d+)-(\d+)/);
-      if (!match) return;
-      const si = parseInt(match[1], 10);
-      const bi = parseInt(match[2], 10);
-      const book = getBook(si, bi);
-      if (!book) return;
-      const slug = book.slug || book.id;
-      const hasMs = msSet.has(slug);
-      el.textContent = hasMs ? '✅ Reader enabled' : '❌ No manuscript';
-      el.style.color = hasMs ? 'var(--green)' : 'var(--red)';
-      const readBtn = document.getElementById(`ms-read-btn-${si}-${bi}`);
-      if (readBtn) readBtn.style.display = hasMs ? '' : 'none';
-    });
-  } catch {}
-}
-
-const _origRenderBooksPanel = renderBooksPanel;
-renderBooksPanel = function() {
-  _origRenderBooksPanel();
-  refreshMsStatus();
-};
-
 // ── USER MANAGEMENT ─────────────────────────────────────
 let usersData = [];
 
@@ -2123,11 +2092,118 @@ async function deleteUser(username) {
   }
 }
 
+// ── HOMEPAGE MANAGEMENT ─────────────────────────────────
+let homepageSettings = {};
+
+function updateHomepagePreview(panel, url) {
+  const preview = document.getElementById(`homepage-${panel}-preview`);
+  if (preview && url) {
+    preview.style.backgroundImage = `url('${url}')`;
+    preview.style.backgroundColor = 'var(--surface2)';
+  }
+}
+
+async function handleHomepageImageUpload(input, panel) {
+  const file = input.files[0];
+  if (!file) return;
+  const form = new FormData();
+  form.append('cover', file);
+  // Use fixed filename so it overwrites instead of creating new files
+  form.append('bookId', `homepage-${panel}`);
+  try {
+    const res = await fetch('/upload-cover', { method: 'POST', body: form });
+    const data = await res.json();
+    document.getElementById(`homepage-${panel}-bg`).value = data.path;
+    updateHomepagePreview(panel, data.path);
+    showToast('Image uploaded! Click Save to apply.');
+  } catch(e) {
+    showToast('Upload failed', 'error');
+  }
+}
+
+async function loadHomepageSettings() {
+  console.log('>>> loadHomepageSettings() called');
+  try {
+    console.log('>>> Fetching /api/homepage...');
+    const res = await fetch('/api/homepage?_=' + Date.now(), { cache: 'no-store' });
+    console.log('>>> Fetch response:', res.status);
+    if (!res.ok) throw new Error('Failed to load: ' + res.status);
+    homepageSettings = await res.json();
+    console.log('>>> Got settings:', homepageSettings);
+    
+    // Populate form
+    const xanreanInput = document.getElementById('homepage-xanrean-bg');
+    const standaloneInput = document.getElementById('homepage-standalone-bg');
+    const aboutInput = document.getElementById('homepage-about-bg');
+    const xanreanPreview = document.getElementById('homepage-xanrean-preview');
+    const standalonePreview = document.getElementById('homepage-standalone-preview');
+    const aboutPreview = document.getElementById('homepage-about-preview');
+    
+    if (xanreanInput) {
+      xanreanInput.value = homepageSettings.xanrean_bg || '/covers/sb-cover.png';
+      xanreanPreview.style.backgroundImage = `url('${xanreanInput.value}')`;
+    }
+    if (standaloneInput) {
+      standaloneInput.value = homepageSettings.standalone_bg || '/covers/book-1776403239514-1778880332704.jpg';
+      standalonePreview.style.backgroundImage = `url('${standaloneInput.value}')`;
+    }
+    if (aboutInput) {
+      aboutInput.value = homepageSettings.about_bg || '/images/tama-bg.png';
+      aboutPreview.style.backgroundImage = `url('${aboutInput.value}')`;
+    }
+  } catch (e) {
+    console.error('loadHomepageSettings error:', e);
+  }
+}
+
+async function saveHomepageSettings() {
+  console.log('>>> saveHomepageSettings() called');
+  const xanreanBg = document.getElementById('homepage-xanrean-bg').value.trim();
+  const standaloneBg = document.getElementById('homepage-standalone-bg').value.trim();
+  const aboutBg = document.getElementById('homepage-about-bg').value.trim();
+  console.log('>>> Values to save:', { xanrean_bg: xanreanBg, standalone_bg: standaloneBg, about_bg: aboutBg });
+  try {
+    console.log('>>> POSTing to /api/homepage...');
+    const res = await fetch('/api/homepage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store',
+      body: JSON.stringify({
+        xanrean_bg: xanreanBg,
+        standalone_bg: standaloneBg,
+        about_bg: aboutBg
+      })
+    });
+    console.log('>>> POST response status:', res.status);
+    const responseText = await res.text();
+    console.log('>>> POST response body:', responseText);
+    if (res.ok) {
+      showToast('✓ Saved!');
+    } else {
+      showToast('Save failed', 'error');
+    }
+  } catch(e) {
+    console.error('>>> POST error:', e);
+    showToast('Save failed: ' + e.message, 'error');
+  }
+}
+
+// Update preview when input changes
+document.addEventListener('input', (e) => {
+  if (e.target.id === 'homepage-xanrean-bg') {
+    document.getElementById('homepage-xanrean-preview').style.backgroundImage = `url('${e.target.value}')`;
+  }
+  if (e.target.id === 'homepage-standalone-bg') {
+    document.getElementById('homepage-standalone-preview').style.backgroundImage = `url('${e.target.value}')`;
+  }
+});
+
 // Load users when panel is shown
 const _origSwitchPanel = switchPanel;
 switchPanel = function(panelName) {
   _origSwitchPanel(panelName);
   if (panelName === 'users') loadUsers();
+  if (panelName === 'homepage') loadHomepageSettings();
 };
 
 const _origInit = init;

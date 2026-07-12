@@ -8,12 +8,33 @@
 
 | Issue | Date | Commit |
 |-------|------|--------|
+| **CRITICAL: Homepage settings save not working** | 2026-07-11 | `CRITICAL FIX: GET /api/homepage handler was catching all methods` |
 | Image optimization (WebP, thumbnails) | 2026-07-11 | `feat: image optimization with sharp` |
 | Database path hardcoded | 2026-07-11 | `fix: move database from ~/Documents to local data/` |
 | Saki icon orientation | 2026-07-11 | `fix: use saki_idle_down.png` |
 | API rate limiting | 2026-07-11 | `feat: add rate limiting to protect endpoints` |
 | Admin user management | 2026-07-11 | `feat: admin user management panel` |
 | Homepage redesign | 2026-07-11 | Multiple commits |
+
+---
+
+## 📋 Fixed Issue Details
+
+### Critical Bug: Homepage Settings Not Saving
+**Status:** ✅ Fixed 2026-07-11  
+**Root Cause:** The GET handler for `/api/homepage` didn't check HTTP method, so it was catching POST requests and returning cached data instead of updating the database.
+
+**Fix:** Added `req.method === 'GET' &&` check to the GET handler at line 578 of dashboard-server.js.
+
+```javascript
+// Before (broken):
+if (url === '/api/homepage') {
+
+// After (fixed):
+if (req.method === 'GET' && url === '/api/homepage') {
+```
+
+**Impact:** Admin could upload homepage background images but clicking "Save" would not persist changes to database.
 
 ---
 

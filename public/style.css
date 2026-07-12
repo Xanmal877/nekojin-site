@@ -669,7 +669,7 @@ footer {
   background: rgba(5,3,14,0.98);
   border-top: 1px solid var(--border);
   color: rgba(212,200,240,0.6);
-  padding: 3rem 2rem;
+  padding: 0.75rem 1rem;
   text-align: center;
   position: relative;
   overflow: hidden;
@@ -683,30 +683,30 @@ footer::before {
 }
 
 .footer-inner { position: relative; z-index: 1; max-width: 700px; margin: 0 auto; }
-.footer-logo { font-family: var(--font-display); font-size: 1.6rem; color: var(--royal-light); margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
+.footer-logo { font-family: var(--font-display); font-size: 1.1rem; color: var(--royal-light); margin-bottom: 0.15rem; display: flex; align-items: center; justify-content: center; gap: 0.4rem; }
 .footer-logo .tama-icon {
-  width: 28px; height: 28px;
+  width: 20px; height: 20px;
   display: inline-block;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
   background-image: url('/images/tama-idle.png?v=6');
-  background-size: 224px 28px;
+  background-size: 160px 20px;
   background-repeat: repeat-x;
   animation: footer-tama-idle 1.2s steps(8) infinite;
 }
 @keyframes footer-tama-idle {
   from { background-position: 0 0; }
-  to   { background-position: -224px 0; }
+  to   { background-position: -160px 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   .footer-logo .tama-icon { animation: none; }
 }
-.footer-tagline { font-size: 0.82rem; color: rgba(230,220,255,0.82); margin-bottom: 1.5rem; letter-spacing: 0.05em; }
-.footer-links { display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap; margin-bottom: 2rem; }
-.footer-links a { color: rgba(230,220,255,0.82); text-decoration: none; font-size: 0.82rem; transition: color 0.2s; }
+.footer-tagline { font-size: 0.75rem; color: rgba(230,220,255,0.82); margin-bottom: 0.5rem; letter-spacing: 0.05em; }
+.footer-links { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-bottom: 0.5rem; }
+.footer-links a { color: rgba(230,220,255,0.82); text-decoration: none; font-size: 0.75rem; transition: color 0.2s; }
 .footer-links a:hover { color: var(--text); }
 .footer-links a:hover { color: var(--royal-light); }
-.footer-copy { font-size: 0.72rem; color: rgba(212,200,240,0.4); }
+.footer-copy { font-size: 0.65rem; color: rgba(212,200,240,0.4); }
 
 /* ── HAMBURGER BUTTON ── */
 .nav-hamburger {
