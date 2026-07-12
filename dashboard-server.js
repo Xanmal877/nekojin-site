@@ -353,6 +353,8 @@ const PUBLIC_ROUTES = {
     '/read': path.join(PUBLIC_DIR, 'read.html'),
     '/games': path.join(PUBLIC_DIR, 'games.html'),
     '/about': path.join(PUBLIC_DIR, 'about.html'),
+    '/xanrean': path.join(PUBLIC_DIR, 'xanrean.html'),
+    '/standalone': path.join(PUBLIC_DIR, 'standalone.html'),
 };
 
 // ── SERVER ────────────────────────────────────────────────
