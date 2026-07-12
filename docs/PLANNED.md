@@ -1,26 +1,44 @@
 # Planned Features — Nekojin Interactive Website
 
 > Roadmap and upcoming features.  
-> **Phase 1: COMPLETE** — 2026-07-11
+> **Phase 1: COMPLETE** — 2026-07-11  
+> **Phase 2: IN PROGRESS** — 2026-07-11
 
 ---
 
-## Phase 1: Foundation ✅ COMPLETE
+## Phase 2: Content Features (Current)
 
-All foundation work completed:
-- ✅ SQLite Migration
-- ✅ Admin User Management
-- ✅ Image Optimization (Sharp)
-- ✅ Rate Limiting
-- ✅ Session Cleanup
-- ✅ Static Asset Whitelist
-- ✅ Newsletter Database Migration
+### 2.1 Character Pages
+**Status:** In Progress  
+**Priority:** High
+
+Create dedicated HTML pages for remaining characters:
+- [ ] Moderator Chaos
+- [ ] Moderator Order
+- [ ] Moderator Space
+- [ ] Moderator Devotion
+- [ ] Tama (incarnation)
+- [ ] Saki (incarnation)
+- [ ] Acros (incarnation)
+- [ ] Sarah (character)
+
+**Template:** Follow `admin-creation.html` style
 
 ---
 
-## Phase 2: Content Features
+### 2.2 Worlds Content
+**Status:** Not Started  
+**Priority:** Medium
 
-### 2.1 Games Page Polish 🎮
+Populate `/xanrean/lore/world` with actual content:
+- [ ] Server Clusters explanation
+- [ ] Xanrea (A0) details
+- [ ] Magic systems
+- [ ] Worldbuilding docs
+
+---
+
+### 2.3 Games Page Polish 🎮
 **Status:** Core Complete, Polish Remaining  
 **Priority:** Medium
 
@@ -33,7 +51,7 @@ Remaining work:
 
 ---
 
-### 2.2 Book Status Workflow
+### 2.4 Book Status Workflow
 **Priority:** Low  
 **Estimated:** 0.5 sessions
 
@@ -45,7 +63,7 @@ Better book publishing control:
 
 ---
 
-### 2.3 Series Management Improvements
+### 2.5 Series Management Improvements
 **Priority:** Low  
 **Estimated:** 1 session
 
@@ -57,7 +75,7 @@ Better book publishing control:
 
 ---
 
-### 2.4 Manuscript System — DISABLED ❌
+### 2.6 Manuscript System — DISABLED ❌
 **Status:** Disabled (Option 1)  
 **Decision:** Focus on external platform links instead
 
@@ -66,29 +84,6 @@ Manuscript reading/upload hidden. Can re-enable by setting `MANUSCRIPTS_ENABLED 
 **Reason:** Drive traffic to Royal Road, ScribbleHub, Kindle where readers already have accounts and engagement metrics help algorithm.
 
 ---
-
-### 2.5 Homepage Background Customization ✅ COMPLETE
-**Status:** Complete 2026-07-11  
-**Priority:** Low  
-**Estimated:** 0.5 sessions  
-**Actual:** ~8 sessions (included critical bug fixes)
-
-Admin-configurable homepage split-panel backgrounds:
-- ✅ Upload custom images for Xanrean Chronicles panel
-- ✅ Upload custom images for Standalone Works panel  
-- ✅ Upload custom images for About panel (added third panel)
-- ✅ Image preview in admin with live updates
-- ✅ Fallback to default book covers if not set
-- ✅ Store paths in database (homepage_settings table)
-- ✅ File overwrite system (no duplicate accumulation)
-
-**Bonus:** Three-panel vertical layout redesign
-
-**Use case:** When new flagship books release, update homepage to feature them.
-
----
-
-### 2.6 Games Page Polish 🎮
 
 ## Phase 3: Technical Improvements
 
@@ -104,64 +99,21 @@ Admin-configurable homepage split-panel backgrounds:
 
 ---
 
-### 3.1 Dark/Light Mode Toggle ✅ COMPLETE
-**Date:** 2026-07-11
-
-- Sun/Moon toggle button in navigation
-- Light mode as default
-- CSS custom properties for theme switching
-- Preference persisted in localStorage
-- Applies site-wide
-
----
-
-### 3.2 Image Optimization Pipeline
-**Priority:** Medium  
-**Estimated:** 1 session
-
-Automatic image processing:
-
-- [ ] Convert uploaded covers to WebP
-- [ ] Generate thumbnails (200px, 400px)
-- [ ] Lazy loading in book grids
-- [ ] Blur-up placeholder effect
-
-**Tools:** `sharp` (npm package) or ImageMagick
-
----
-
-### 3.2 API Rate Limiting
-**Priority:** Medium  
-**Estimated:** 1 session
-
-Security hardening:
-
-- [ ] Rate limit on `/login` (5 attempts per IP per 15 min)
-- [ ] Rate limit on `/newsletter` (prevent spam)
-- [ ] Rate limit on `/content` (generous, prevent abuse)
-- [ ] IP-based logging for suspicious activity
-
----
-
-### 3.3 Automated Backups
+### 3.2 Legacy File Cleanup
 **Priority:** Low  
-**Estimated:** 0.5 sessions
+**Estimated:** 0.1 sessions
 
-Data safety:
-
-- [ ] Daily database backup script
-- [ ] Keep 7 days of backups
-- [ ] Optional: Sync to cloud storage (S3, etc.)
-- [ ] Manual backup button in admin
+Remove legacy files:
+- [ ] `data/site-content.json` (after confirming DB migration)
+- [ ] `data/site-content.json.backup`
 
 ---
 
-### 3.4 Health Check Endpoint
+### 3.3 Health Check Endpoint
 **Priority:** Low  
 **Estimated:** 0.5 sessions
 
 Monitoring:
-
 - [ ] `/api/health` returns DB status, disk space
 - [ ] Uptime monitoring ready
 - [ ] Alert if disk > 90%
@@ -171,7 +123,8 @@ Monitoring:
 ## Phase 4: Future Ideas
 
 ### 4.1 Newsletter System
-**Status:** Idea  
+**Status:** Idea
+
 Currently just captures emails to JSON.
 
 - [ ] Email templating
@@ -212,17 +165,9 @@ Currently just captures emails to JSON.
 
 ---
 
-## Completed Features
+## Completed Features (Moved to COMPLETED.md)
 
-| Feature | Date | Notes |
-|---------|------|-------|
-| Basic CMS (books, game, about) | 2025-05 | Original build |
-| User auth system | 2025-05 | bcrypt, sessions |
-| Manuscript reader | 2025-05 | DOCX → HTML |
-| Admin panel | 2025-05 | Content editing |
-| Cover uploads | 2025-05 | Image storage |
-| Scraper integration | 2025-05 | Stats tracking |
-| Code cleanup / auth extraction | 2026-07-11 | Removed 1,200+ lines |
+See `COMPLETED.md` for full list of finished work.
 
 ---
 
@@ -231,8 +176,8 @@ Currently just captures emails to JSON.
 **When starting work:**
 ```bash
 # Update status at top of feature
-sed -i 's/⬅️ IN PROGRESS/✅ COMPLETE/' PLANNED_FEATURES.md
-git commit -am "docs: mark SQLite migration complete"
+sed -i 's/⬅️ IN PROGRESS/✅ COMPLETE/' PLANNED.md
+git commit -am "docs: mark feature complete"
 ```
 
 **When adding ideas:**
@@ -241,5 +186,5 @@ git commit -am "docs: mark SQLite migration complete"
 - Leave status as "Idea" if not committed
 
 **When finishing:**
-- Move to "Completed Features" table
-- Include date and commit hash
+- Move details to `COMPLETED.md`
+- Update date

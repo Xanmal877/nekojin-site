@@ -2,7 +2,38 @@
 
 > A running log of everything we've built, fixed, and improved.
 > 
-> **Last Updated:** 2026-07-11 (Phase 1 Complete + Polish)
+> **Last Updated:** 2026-07-11 (Late Night Session)
+
+---
+
+## 🎉 Today's Major Progress (2026-07-11)
+
+### Character System Restructure
+**What:** Complete reorganization of Admins and Moderators
+- Admins moved to `/characters/admins/` folder
+- Moderators moved to `/characters/moderators/` folder
+- Dedicated pages: Admin Creation, Admin Destruction, Moderator Time
+- Template-based pages for remaining characters
+- All server routes updated
+
+**Before:** Flat structure, all in `/characters/`
+**After:** Organized by tier (Admins/Moderators)
+
+### Lore System Architecture
+**What:** Complete lore section rebuild
+- **Lore Hub:** `/xanrean/lore/` - VBox layout matching main hub
+- **Characters:** `/xanrean/lore/characters` - Moved from root
+- **Species:** `/xanrean/lore/species` - 4-panel layout (Nekojin, Foxkin, Elves, Travelers)
+- **Worlds:** `/xanrean/lore/world` - Placeholder for worldbuilding content
+
+**Layout Pattern:** VBox (Header → Cards → Footer, zero gaps)
+
+### Xanrean Hub Polish
+**What:** Final visual refinements
+- Cards now have slight rounding (8px border-radius)
+- Small gap between cards (0.5rem)
+- Content positioned at 3vh from top
+- Perfect VBox layout with floating footer
 
 ---
 
@@ -102,6 +133,15 @@
 
 **Before:** Any .html/.js/.css served from public/  
 **After:** Only whitelisted extensions and safe paths
+
+---
+
+### Layout Patterns Documented ✅
+**What:** Created `docs/layout-patterns.md`
+- VBox Layout pattern (fullscreen panels)
+- Split Panels pattern (2-column)
+- Grid Panels pattern (2x2)
+- Documented for future use
 
 ---
 
@@ -248,13 +288,20 @@
 
 ---
 
-### Homepage Redesign with Admin Customization ✅
-**What:** Complete overhaul of homepage with three vertical panels and admin-configurable backgrounds
-- Three full-height vertical panels (Xanrean Chronicles | Standalone Works | About)
-- Portrait card style with rounded corners, borders, and shadows
-- Admin panel with image upload for each panel (Xanrean, Standalone, About)
-- File overwrite system (homepage images overwrite same file, no duplicates)
-- Background images stored in database and applied via CSS variables
+### Homepage Background Customization ✅
+**Status:** Complete 2026-07-11  
+**Priority:** Low  
+**Estimated:** 0.5 sessions  
+**Actual:** ~8 sessions (included critical bug fixes)
+
+Admin-configurable homepage split-panel backgrounds:
+- ✅ Upload custom images for Xanrean Chronicles panel
+- ✅ Upload custom images for Standalone Works panel  
+- ✅ Upload custom images for About panel (added third panel)
+- ✅ Image preview in admin with live updates
+- ✅ Fallback to default book covers if not set
+- ✅ Store paths in database (homepage_settings table)
+- ✅ File overwrite system (no duplicate accumulation)
 
 **Critical Bug Fixed:** GET handler was catching POST requests (missing method check)
 - Root cause: `if (url === '/api/homepage')` caught ALL HTTP methods
@@ -298,23 +345,23 @@
 | Theme | Dark only | Light/Dark toggle |
 | Rate limiting | None | 5 endpoints protected |
 | Image optimization | None | WebP + thumbnails |
+| Character structure | Flat | Hierarchical (Admins/Moderators) |
+| Lore section | None | Complete (Characters/Species/Worlds) |
 
 ---
 
 ## 🎯 What's Left (Known Issues)
 
 1. **Manuscript Upload Validation** — No file type/size checks
-2. **Static Asset Serving** — Serves any file from public/
-3. **Content Backups** — No automatic DB backups
-4. **Session Cleanup** — Expired sessions pile up in file
-5. **Image Optimization** — Legacy images not converted
+2. **Legacy JSON Files** — `site-content.json` and `.backup` in data/ can be removed
+3. **Moderator Pages** — Most still use template, need dedicated pages
 
 ---
 
 ## 🚀 Deployment Status
 
 **Current Branch:** `dev`  
-**Commits:** Squashed to logical groups  
+**Commits:** 20+ commits ahead of origin  
 **Ready for:** Pi deployment testing  
 **Merge to main:** When you're satisfied
 
@@ -327,6 +374,8 @@
 - **Reading Progress** — Track user's last read chapter
 - **Gumroad Integration** — Sell books/games directly
 - **Analytics Dashboard** — View counts, popular books
+- **More Moderator Pages** — Dedicated pages for remaining moderators
+- **Worlds Content** — Populate worldbuilding section
 
 ---
 
