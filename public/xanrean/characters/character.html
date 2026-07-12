@@ -222,7 +222,7 @@
       
       if (!config) {
         document.getElementById('char-content').innerHTML = 
-          '<div class="char-error">Character not found</div>';
+          `<div class="char-error">Character "${charKey}" not found. URL: ${window.location.pathname}</div>`;
         return;
       }
 
@@ -231,6 +231,9 @@
 
       try {
         const response = await fetch(`/data/characters/${encodeURIComponent(config.file)}`);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
         const md = await response.text();
         
         // Extract name from first h1
@@ -295,7 +298,7 @@
         
       } catch (err) {
         document.getElementById('char-content').innerHTML = 
-          `<div class="char-error">Error loading: ${err.message}</div>`;
+          `<div class="char-error">Error loading ${config.file}: ${err.message}</div>`;
       }
     }
 
