@@ -13,9 +13,9 @@
 **Priority:** High
 
 Create dedicated HTML pages for remaining characters:
+- [x] Moderator Space
 - [ ] Moderator Chaos
 - [ ] Moderator Order
-- [ ] Moderator Space
 - [ ] Moderator Devotion
 - [ ] Tama (incarnation)
 - [ ] Saki (incarnation)
