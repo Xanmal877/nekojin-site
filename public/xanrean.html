@@ -95,73 +95,11 @@
       transform: scale(1.05);
     }
     
-    /* Hero */
-    .xanrean-hero {
-      min-height: 70vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-      padding: 6rem 2rem 3rem;
-      position: relative;
-      overflow: hidden;
-    }
-    
-    .xanrean-hero::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: 
-        radial-gradient(ellipse at 30% 20%, rgba(124,58,237,0.15), transparent 50%),
-        radial-gradient(ellipse at 70% 80%, rgba(139,92,246,0.1), transparent 50%);
-      pointer-events: none;
-    }
-    
-    .xanrean-hero-eyebrow {
-      font-size: 0.75rem;
-      font-weight: 700;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--royal-light);
-      margin-bottom: 1rem;
-      position: relative;
-      z-index: 1;
-    }
-    
-    .xanrean-hero-title {
-      font-family: var(--font-display);
-      font-size: clamp(3rem, 8vw, 6rem);
-      line-height: 1.05;
-      margin-bottom: 1rem;
-      position: relative;
-      z-index: 1;
-      background: linear-gradient(135deg, #c4b5fd, #a78bfa, #8b5cf6);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    
-    [data-theme="light"] .xanrean-hero-title {
-      background: linear-gradient(135deg, #6d28d9, #7c3aed);
-      -webkit-background-clip: text;
-      background-clip: text;
-    }
-    
-    .xanrean-hero-tagline {
-      font-size: clamp(1.1rem, 2.5vw, 1.5rem);
-      color: var(--text);
-      opacity: 0.9;
-      max-width: 900px;
-      line-height: 1.6;
-      position: relative;
-      z-index: 1;
-    }
-    
     /* Hub Panels - like homepage */
     .hub-choice {
       display: flex;
       height: calc(100vh - 60px);
+      padding-top: 60px;
     }
     
     .hub-panel {
@@ -353,85 +291,6 @@
       }
     }
     
-    /* Books Preview Section */
-    .books-section {
-      padding: 4rem 2rem;
-      background: var(--surface);
-    }
-    
-    .section-header {
-      text-align: center;
-      margin-bottom: 3rem;
-    }
-    
-    .section-eyebrow {
-      font-size: 0.75rem;
-      font-weight: 700;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--royal-light);
-      margin-bottom: 0.75rem;
-    }
-    
-    .section-title {
-      font-family: var(--font-display);
-      font-size: clamp(2rem, 4vw, 3rem);
-      margin-bottom: 1rem;
-    }
-    
-    .books-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 2rem;
-      max-width: 1000px;
-      margin: 0 auto;
-    }
-    
-    .book-card {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      overflow: hidden;
-      transition: all 0.3s;
-      text-decoration: none;
-      color: inherit;
-    }
-    
-    .book-card:hover {
-      transform: translateY(-4px);
-      border-color: var(--border2);
-      box-shadow: 0 12px 30px rgba(0,0,0,0.3);
-    }
-    
-    .book-cover {
-      aspect-ratio: 2/3;
-      background: var(--surface2);
-      position: relative;
-      overflow: hidden;
-    }
-    
-    .book-cover img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    
-    .book-info {
-      padding: 1.25rem;
-    }
-    
-    .book-title {
-      font-family: var(--font-display);
-      font-size: 1.1rem;
-      margin-bottom: 0.25rem;
-      color: var(--ink);
-    }
-    
-    .book-volume {
-      font-size: 0.8rem;
-      color: var(--muted);
-    }
-    
     /* Footer - matches homepage */
     footer {
       background: var(--surface);
@@ -588,11 +447,6 @@
 </nav>
 
 <main>
-  <section class="xanrean-hero">
-    <h1 class="xanrean-hero-title">Xanrean Chronicles</h1>
-    <p class="xanrean-hero-tagline">Follow Admin Creation and Admin Destruction in their adventures through the Xanrean Server Cluster</p>
-  </section>
-
   <section class="hub-choice">
     <a href="/books" class="hub-panel hub-panel-books">
       <div class="hub-content">
@@ -625,17 +479,6 @@
         <span class="hub-cta">View Game →</span>
       </div>
     </a>
-  </section>
-
-  <section class="books-section" id="books-section">
-    <div class="section-header">
-      <p class="section-eyebrow">✦ Her Majesty, Tamaneko</p>
-      <h2 class="section-title">The Series</h2>
-    </div>
-    <div class="books-grid" id="books-grid">
-      <!-- Books loaded from database -->
-      <p style="text-align: center; color: var(--muted); grid-column: 1/-1;">Loading books...</p>
-    </div>
   </section>
 </main>
 
@@ -720,41 +563,9 @@ function showToast(message, type = 'success') {
   setTimeout(() => msg.classList.remove('visible'), 3000);
 }
 
-// Load Xanrean books from database
-async function loadXanreanBooks() {
-  try {
-    const res = await fetch('/content');
-    if (!res.ok) throw new Error('Failed to load');
-    const data = await res.json();
-    
-    const grid = document.getElementById('books-grid');
-    const books = (data.books || []).filter(b => b.visible !== false);
-    
-    if (books.length === 0) {
-      grid.innerHTML = '<p style="text-align: center; color: var(--muted); grid-column: 1/-1;">No books available yet.</p>';
-      return;
-    }
-    
-    grid.innerHTML = books.map(book => `
-      <a href="/book?id=${encodeURIComponent(book.id)}" class="book-card">
-        <div class="book-cover">
-          ${book.cover ? `<img src="${book.cover}" alt="${book.title}">` : '<div style="width:100%;height:100%;background:linear-gradient(160deg,#2d1065,#1e1b4b);display:flex;align-items:center;justify-content:center;color:var(--muted);">No Cover</div>'}
-        </div>
-        <div class="book-info">
-          <h3 class="book-title">${book.title}</h3>
-          ${book.volume ? `<p class="book-volume">${book.volume}</p>` : ''}
-        </div>
-      </a>
-    `).join('');
-    
-  } catch (e) {
-    console.error('Failed to load books:', e);
-    document.getElementById('books-grid').innerHTML = '<p style="text-align: center; color: var(--muted); grid-column: 1/-1;">Failed to load books.</p>';
-  }
-}
-
 // Initialize
-loadXanreanBooks();
+document.getElementById('theme-icon').textContent = 
+  (document.documentElement.getAttribute('data-theme') || 'light') === 'light' ? '☀️' : '🌙';
 </script>
 
 </body>
