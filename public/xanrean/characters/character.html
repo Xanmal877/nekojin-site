@@ -59,21 +59,29 @@
     }
     
     .char-avatar {
-      width: 120px;
-      height: 120px;
+      width: 140px;
+      height: 140px;
       background: var(--surface2);
       border-radius: 50%;
       margin: 0 auto 1rem;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 3rem;
+      font-size: 4rem;
+      overflow: hidden;
+    }
+    
+    .char-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
     
     .char-card h2 {
       font-family: var(--font-display);
-      font-size: 1.4rem;
+      font-size: 1.3rem;
       margin-bottom: 0.25rem;
+      line-height: 1.3;
     }
     
     .char-card .subtitle {
@@ -150,12 +158,28 @@
   </div>
 
   <script>
-    // Character config - maps URL to file
+    // Character config
     const CHARACTERS = {
-      'admin-creation': { file: 'admin-creation.md', emoji: '👑' },
-      'admin-destruction': { file: 'admin-destruction.md', emoji: '🔥' },
-      'tama': { file: 'tama.md', emoji: '🐱' },
-      'saki': { file: 'saki.md', emoji: '🔥' },
+      'admin-creation': { 
+        file: 'admin-creation.md', 
+        emoji: '👑',
+        image: '/images/tama-bg.png'
+      },
+      'admin-destruction': { 
+        file: 'admin-destruction.md', 
+        emoji: '🔥',
+        image: '/images/saki-bg.png'
+      },
+      'tama': { 
+        file: 'tama.md', 
+        emoji: '🐱',
+        image: '/images/tama-bg.png'
+      },
+      'saki': { 
+        file: 'saki.md', 
+        emoji: '🔥',
+        image: '/images/saki-bg.png'
+      },
       'anna': { file: 'moderator-time.md', emoji: '💧' },
       'xanari': { file: 'moderator-space.md', emoji: '⚡' }
     };
@@ -191,7 +215,6 @@
         .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
         .replace(/\*(.+?)\*/g, '<em>$1</em>')
         .replace(/`([^`]+)`/g, '<code>$1</code>')
-        // Handle MD links [text](url)
         .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
         .replace(/^-\s+(.+)$/gim, '<li>$1</li>')
         .replace(/\n\n+/g, '</p><p>')
@@ -202,18 +225,14 @@
 
     async function loadCharacter() {
       const charKey = getCharName();
-      console.log('Loading character:', charKey, 'from URL:', window.location.pathname);
+      console.log('URL:', window.location.pathname, '| Detected charKey:', charKey);
       const config = CHARACTERS[charKey];
-      console.log('Config found:', config);
       
       if (!config) {
         document.getElementById('char-content').innerHTML = 
-          `<div class="char-error">Character "${charKey}" not found in CHARACTERS. Available: ${Object.keys(CHARACTERS).join(', ')}</div>`;
+          `<div class="char-error">Character "${charKey}" not found. URL: ${window.location.pathname}</div>`;
         return;
       }
-
-      // Update back link
-      document.querySelector('.back-link').href = '/xanrean/characters/admins';
 
       try {
         const response = await fetch(`/data/characters/${config.file}`);
@@ -226,17 +245,23 @@
         const nameMatch = md.match(/^#\s+(.+?)(?:\n|$)/m);
         const name = nameMatch ? nameMatch[1] : 'Unknown';
         
-        // Try Core Information first, then other sections
+        // Get Core Information
         let info = extractFromSection(md, 'Core Information');
         if (Object.keys(info).length === 0) {
           info = extractFromSection(md, 'Basic Information');
         }
         
         // Update sidebar
-        document.getElementById('char-avatar').textContent = config.emoji;
-        document.getElementById('card-name').textContent = info.commonname || info.fullname || name;
-        document.getElementById('card-role').textContent = info.role || info.fundamentalidentity || 'Character';
-        document.title = `${info.commonname || info.fullname || name} - Xanrean Chronicles`;
+        const avatarEl = document.getElementById('char-avatar');
+        if (config.image) {
+          avatarEl.innerHTML = `<img src="${config.image}" alt="${name}">`;
+        } else {
+          avatarEl.textContent = config.emoji;
+        }
+        
+        document.getElementById('card-name').textContent = name;
+        document.getElementById('card-role').textContent = info.fundamentalidentity || info.role || 'Character';
+        document.title = `${name} - Xanrean Chronicles`;
         
         // Build stats
         const stats = [];
@@ -244,7 +269,6 @@
         if (info.level) stats.push({label: 'Level', value: info.level});
         if (info.species) stats.push({label: 'Species', value: info.species});
         if (info.primaryelement) stats.push({label: 'Element', value: info.primaryelement});
-        if (info.underlyingidentity) stats.push({label: 'Identity', value: info.underlyingidentity});
         if (info.knownincarnation) stats.push({label: 'Incarnation', value: info.knownincarnation});
         
         const statsHtml = stats.map(s => 
@@ -259,7 +283,8 @@
         
         // Intro (before first ##)
         if (sections[0]) {
-          const intro = sections[0].replace(/^#.+\n/, '').trim();
+          const intro = sections[0].replace(/^#.+
+/, '').trim();
           if (intro) contentHtml += mdToHtml(intro);
         }
         contentHtml += '</div>';
