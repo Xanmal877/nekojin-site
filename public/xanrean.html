@@ -152,137 +152,205 @@
       font-size: clamp(1.1rem, 2.5vw, 1.5rem);
       color: var(--text);
       opacity: 0.9;
-      max-width: 600px;
+      max-width: 900px;
       line-height: 1.6;
       position: relative;
       z-index: 1;
     }
     
-    /* Hub Grid */
-    .hub-section {
-      padding: 4rem 2rem;
+    /* Hub Panels - like homepage */
+    .hub-choice {
+      display: flex;
+      height: calc(100vh - 60px);
     }
     
-    .hub-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 2rem;
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-    
-    .hub-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 2rem;
-      text-decoration: none;
-      color: inherit;
-      transition: all 0.3s ease;
+    .hub-panel {
+      flex: 1;
       position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 3rem;
+      text-decoration: none;
       overflow: hidden;
+      transition: all 0.4s ease;
     }
     
-    .hub-card::before {
+    .hub-panel::after {
       content: '';
       position: absolute;
       inset: 0;
-      opacity: 0;
-      transition: opacity 0.3s;
+      background: rgba(0,0,0,0.3);
+      transition: background 0.4s;
     }
     
-    .hub-card:hover {
-      transform: translateY(-8px);
-      border-color: var(--border2);
-      box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+    .hub-panel:hover::after {
+      background: rgba(0,0,0,0.2);
     }
     
-    .hub-card.books::before {
-      background: radial-gradient(ellipse at top, rgba(124,58,237,0.1), transparent 70%);
+    [data-theme="light"] .hub-panel::after {
+      background: rgba(255,255,255,0.1);
     }
     
-    .hub-card.characters::before {
-      background: radial-gradient(ellipse at top, rgba(59,130,246,0.1), transparent 70%);
+    [data-theme="light"] .hub-panel:hover::after {
+      background: rgba(255,255,255,0.05);
     }
     
-    .hub-card.lore::before {
-      background: radial-gradient(ellipse at top, rgba(16,185,129,0.1), transparent 70%);
+    .hub-panel-books {
+      background: linear-gradient(180deg, rgba(124,58,237,0.1) 0%, rgba(10,6,20,0.9) 100%),
+                  var(--xanrean-bg) center/contain no-repeat;
+      border-right: 1px solid rgba(124,58,237,0.3);
     }
     
-    .hub-card.game::before {
-      background: radial-gradient(ellipse at top, rgba(245,158,11,0.1), transparent 70%);
+    .hub-panel-characters {
+      background: linear-gradient(180deg, rgba(59,130,246,0.1) 0%, rgba(10,6,20,0.9) 100%),
+                  var(--characters-bg, url('/images/tama-bg.png')) center/contain no-repeat;
+      border-right: 1px solid rgba(59,130,246,0.3);
     }
     
-    .hub-card:hover::before {
-      opacity: 1;
+    .hub-panel-lore {
+      background: linear-gradient(180deg, rgba(16,185,129,0.1) 0%, rgba(10,6,20,0.9) 100%),
+                  var(--lore-bg, url('/images/tama-bg.png')) center/contain no-repeat;
+      border-right: 1px solid rgba(16,185,129,0.3);
     }
     
-    .hub-card-icon {
-      font-size: 3rem;
-      margin-bottom: 1rem;
+    .hub-panel-game {
+      background: linear-gradient(180deg, rgba(245,158,11,0.1) 0%, rgba(10,6,20,0.9) 100%),
+                  var(--game-bg, url('/images/tama-bg.png')) center/contain no-repeat;
+    }
+    
+    [data-theme="light"] .hub-panel-books {
+      background: linear-gradient(180deg, rgba(124,58,237,0.15) 0%, rgba(20,10,40,0.7) 100%),
+                  var(--xanrean-bg) center/contain no-repeat;
+    }
+    
+    [data-theme="light"] .hub-panel-characters {
+      background: linear-gradient(180deg, rgba(59,130,246,0.15) 0%, rgba(20,10,40,0.7) 100%),
+                  var(--characters-bg, url('/images/tama-bg.png')) center/contain no-repeat;
+    }
+    
+    [data-theme="light"] .hub-panel-lore {
+      background: linear-gradient(180deg, rgba(16,185,129,0.15) 0%, rgba(20,10,40,0.7) 100%),
+                  var(--lore-bg, url('/images/tama-bg.png')) center/contain no-repeat;
+    }
+    
+    [data-theme="light"] .hub-panel-game {
+      background: linear-gradient(180deg, rgba(245,158,11,0.15) 0%, rgba(20,10,40,0.7) 100%),
+                  var(--game-bg, url('/images/tama-bg.png')) center/contain no-repeat;
+    }
+    
+    .hub-content {
       position: relative;
       z-index: 1;
+      text-align: center;
+      color: white;
     }
     
-    .hub-card-title {
+    [data-theme="light"] .hub-content {
+      color: white;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+    }
+    
+    .hub-title {
       font-family: var(--font-display);
-      font-size: 1.75rem;
-      margin-bottom: 0.75rem;
-      position: relative;
-      z-index: 1;
-    }
-    
-    .hub-card.books .hub-card-title {
-      background: linear-gradient(135deg, #c4b5fd, #a78bfa);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    
-    .hub-card.characters .hub-card-title {
-      background: linear-gradient(135deg, #93c5fd, #60a5fa);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    
-    .hub-card.lore .hub-card-title {
-      background: linear-gradient(135deg, #6ee7b7, #34d399);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    
-    .hub-card.game .hub-card-title {
-      background: linear-gradient(135deg, #fcd34d, #f59e0b);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    
-    .hub-card-desc {
-      font-size: 0.95rem;
-      color: var(--muted);
-      line-height: 1.6;
-      margin-bottom: 1.5rem;
-      position: relative;
-      z-index: 1;
-    }
-    
-    .hub-card-cta {
-      display: inline-flex;
+      font-size: clamp(2rem, 4vw, 3.5rem);
+      margin-bottom: 1rem;
+      text-shadow: 0 2px 20px rgba(0,0,0,0.5);
+      line-height: 1.1;
+      min-height: 2.4em;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
       align-items: center;
-      gap: 0.5rem;
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: var(--royal-light);
-      position: relative;
-      z-index: 1;
-      transition: gap 0.2s;
     }
     
-    .hub-card:hover .hub-card-cta {
-      gap: 0.75rem;
+    .hub-title br {
+      display: block;
+      content: "";
+      margin-bottom: 0.1em;
+    }
+    
+    .hub-title-books {
+      background: linear-gradient(135deg, #c4b5fd, #a78bfa, #8b5cf6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter: drop-shadow(0 2px 10px rgba(139,92,246,0.3));
+    }
+    
+    .hub-title-characters {
+      background: linear-gradient(135deg, #93c5fd, #60a5fa, #3b82f6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter: drop-shadow(0 2px 10px rgba(59,130,246,0.3));
+    }
+    
+    .hub-title-lore {
+      background: linear-gradient(135deg, #6ee7b7, #34d399, #10b981);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter: drop-shadow(0 2px 10px rgba(16,185,129,0.3));
+    }
+    
+    .hub-title-game {
+      background: linear-gradient(135deg, #fcd34d, #f59e0b, #d97706);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter: drop-shadow(0 2px 10px rgba(245,158,11,0.3));
+    }
+    
+    [data-theme="light"] .hub-title {
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+    }
+    
+    .hub-desc {
+      font-size: 1rem;
+      opacity: 0.9;
+      line-height: 1.7;
+      margin-bottom: 2rem;
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
+      text-shadow: 0 1px 10px rgba(0,0,0,0.5);
+    }
+    
+    .hub-cta {
+      display: inline-block;
+      padding: 1rem 2rem;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 12px;
+      color: white;
+      font-weight: 600;
+      font-size: 1rem;
+      transition: all 0.3s;
+      text-shadow: 0 1px 10px rgba(0,0,0,0.5);
+    }
+    
+    .hub-panel:hover .hub-cta {
+      background: rgba(255,255,255,0.1);
+      border-color: rgba(255,255,255,0.6);
+      transform: translateY(-4px);
+    }
+    
+    @media (max-width: 768px) {
+      .hub-choice {
+        flex-direction: column;
+        height: auto;
+        min-height: 100vh;
+      }
+      
+      .hub-panel {
+        min-height: 50vh;
+        border-right: none;
+        border-bottom: 1px solid rgba(124,58,237,0.3);
+      }
+      
+      .hub-panel:last-child {
+        border-bottom: none;
+      }
     }
     
     /* Books Preview Section */
@@ -521,41 +589,42 @@
 
 <main>
   <section class="xanrean-hero">
-    <p class="xanrean-hero-eyebrow">✦ The Main Universe</p>
     <h1 class="xanrean-hero-title">Xanrean Chronicles</h1>
-    <p class="xanrean-hero-tagline">Follow Admin Creation and Destruction and their adventures through the Xanrean Server Clusters. A digital consciousness preservation system running billions of uploaded lives.</p>
+    <p class="xanrean-hero-tagline">Follow Admin Creation and Admin Destruction in their adventures through the Xanrean Server Cluster</p>
   </section>
 
-  <section class="hub-section">
-    <div class="hub-grid">
-      <a href="/books" class="hub-card books">
-        <div class="hub-card-icon">📚</div>
-        <h2 class="hub-card-title">The Books</h2>
-        <p class="hub-card-desc">Her Majesty Tamaneko and the complete series. Start reading the main storyline and discover the universe from the beginning.</p>
-        <span class="hub-card-cta">Browse Books →</span>
-      </a>
-      
-      <a href="/xanrean/characters" class="hub-card characters">
-        <div class="hub-card-icon">👥</div>
-        <h2 class="hub-card-title">Characters</h2>
-        <p class="hub-card-desc">Meet Tama, Saki, Petalia, Xanari, and the cast of the Xanrean Server Clusters. Learn their stories and connections.</p>
-        <span class="hub-card-cta">Meet the Cast →</span>
-      </a>
-      
-      <a href="/xanrean/lore" class="hub-card lore">
-        <div class="hub-card-icon">🌍</div>
-        <h2 class="hub-card-title">Lore & World</h2>
-        <p class="hub-card-desc">The Xanrea Framework, Server Clusters, magic systems, races, and the deep worldbuilding behind the stories.</p>
-        <span class="hub-card-cta">Explore Lore →</span>
-      </a>
-      
-      <a href="/games" class="hub-card game">
-        <div class="hub-card-icon">🎮</div>
-        <h2 class="hub-card-title">The Game</h2>
-        <p class="hub-card-desc">Autumn's Dungeoneering. Experience the Xanrean universe firsthand in this cozy tactical dungeon-crawling RPG.</p>
-        <span class="hub-card-cta">View Game →</span>
-      </a>
-    </div>
+  <section class="hub-choice">
+    <a href="/books" class="hub-panel hub-panel-books">
+      <div class="hub-content">
+        <h2 class="hub-title hub-title-books">The<br>Books</h2>
+        <p class="hub-desc">Her Majesty Tamaneko and the complete series. Start reading the main storyline.</p>
+        <span class="hub-cta">Browse Books →</span>
+      </div>
+    </a>
+    
+    <a href="/xanrean/characters" class="hub-panel hub-panel-characters">
+      <div class="hub-content">
+        <h2 class="hub-title hub-title-characters">The<br>Characters</h2>
+        <p class="hub-desc">Meet Tama, Saki, Petalia, Xanari, and the cast of the Server Clusters.</p>
+        <span class="hub-cta">Meet the Cast →</span>
+      </div>
+    </a>
+    
+    <a href="/xanrean/lore" class="hub-panel hub-panel-lore">
+      <div class="hub-content">
+        <h2 class="hub-title hub-title-lore">Lore &<br>World</h2>
+        <p class="hub-desc">The Xanrea Framework, Server Clusters, magic systems, and deep worldbuilding.</p>
+        <span class="hub-cta">Explore Lore →</span>
+      </div>
+    </a>
+    
+    <a href="/games" class="hub-panel hub-panel-game">
+      <div class="hub-content">
+        <h2 class="hub-title hub-title-game">The<br>Game</h2>
+        <p class="hub-desc">Autumn's Dungeoneering. Experience the universe in this tactical dungeon RPG.</p>
+        <span class="hub-cta">View Game →</span>
+      </div>
+    </a>
   </section>
 
   <section class="books-section" id="books-section">
