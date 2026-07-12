@@ -96,10 +96,14 @@
     }
     
     /* Hub Panels - like homepage */
+    body {
+      overflow: hidden;
+    }
+    
     .hub-choice {
       display: flex;
-      height: calc(100vh - 60px);
-      padding-top: 60px;
+      height: calc(100vh - 61px);
+      margin-top: 60px;
     }
     
     .hub-panel {
@@ -274,14 +278,18 @@
     }
     
     @media (max-width: 768px) {
+      body {
+        overflow: auto;
+      }
+      
       .hub-choice {
         flex-direction: column;
         height: auto;
-        min-height: 100vh;
+        min-height: calc(100vh - 61px);
       }
       
       .hub-panel {
-        min-height: 50vh;
+        min-height: calc((100vh - 61px) / 4);
         border-right: none;
         border-bottom: 1px solid rgba(124,58,237,0.3);
       }
