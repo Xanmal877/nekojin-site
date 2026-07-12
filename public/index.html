@@ -30,6 +30,7 @@
       --font-body: 'Zen Kaku Gothic New', sans-serif;
       --xanrean-bg: url('/covers/sb-cover.png');
       --standalone-bg: url('/covers/book-1776403239514-1778880332704.jpg');
+      --community-bg: url('/images/tama-bg.png');
     }
     
     [data-theme="dark"] {
@@ -134,11 +135,6 @@
       transition: all 0.4s ease;
     }
     
-    .split-about {
-      background: linear-gradient(180deg, rgba(139,92,246,0.1) 0%, rgba(10,6,20,0.9) 100%),
-                  var(--about-bg, url('/images/tama-bg.png')) center/contain no-repeat;
-    }
-    
     .split-xanrean {
       background: linear-gradient(180deg, rgba(124,58,237,0.1) 0%, rgba(10,6,20,0.9) 100%),
                   var(--xanrean-bg) center/contain no-repeat;
@@ -151,6 +147,12 @@
       border-right: 1px solid rgba(59,106,204,0.3);
     }
     
+    .split-community {
+      background: linear-gradient(180deg, rgba(16,185,129,0.1) 0%, rgba(10,6,20,0.9) 100%),
+                  var(--community-bg, url('/images/tama-bg.png')) center/contain no-repeat;
+      border-right: 1px solid rgba(16,185,129,0.3);
+    }
+    
     [data-theme="light"] .split-xanrean {
       background: linear-gradient(180deg, rgba(124,58,237,0.15) 0%, rgba(20,10,40,0.7) 100%),
                   var(--xanrean-bg) center/contain no-repeat;
@@ -159,6 +161,11 @@
     [data-theme="light"] .split-standalone {
       background: linear-gradient(180deg, rgba(59,106,204,0.15) 0%, rgba(20,10,40,0.7) 100%),
                   var(--standalone-bg) center/contain no-repeat;
+    }
+    
+    [data-theme="light"] .split-community {
+      background: linear-gradient(180deg, rgba(16,185,129,0.15) 0%, rgba(20,10,40,0.7) 100%),
+                  var(--community-bg) center/contain no-repeat;
     }
     
     [data-theme="light"] .split-panel::after {
@@ -210,6 +217,50 @@
       font-size: clamp(2.5rem, 5vw, 4rem);
       margin-bottom: 1rem;
       text-shadow: 0 2px 20px rgba(0,0,0,0.5);
+      line-height: 1.1;
+      min-height: 2.4em;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .split-title br {
+      display: block;
+      content: "";
+      margin-bottom: 0.1em;
+    }
+    
+    .split-title-xanrean {
+      background: linear-gradient(135deg, #c4b5fd, #a78bfa, #8b5cf6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter: drop-shadow(0 2px 10px rgba(139,92,246,0.3));
+    }
+    
+    .split-title-standalone {
+      background: linear-gradient(135deg, #93c5fd, #60a5fa, #3b82f6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter: drop-shadow(0 2px 10px rgba(59,130,246,0.3));
+    }
+    
+    .split-title-community {
+      background: linear-gradient(135deg, #6ee7b7, #34d399, #10b981);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter: drop-shadow(0 2px 10px rgba(16,185,129,0.3));
+    }
+    
+    .split-cta-community {
+      color: #6ee7b7;
+    }
+    
+    [data-theme="light"] .split-title {
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
     }
     
     .split-desc {
@@ -315,6 +366,19 @@
       display: flex;
       align-items: center;
       gap: 1rem;
+    }
+    
+    .footer-link {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: color 0.2s;
+      padding: 0.5rem;
+    }
+    
+    .footer-link:hover {
+      color: var(--royal-light);
     }
     
     .footer-patreon {
@@ -430,24 +494,25 @@
 <main class="split-choice">
   <a href="/books" class="split-panel split-xanrean">
     <div class="split-content">
-      <h1 class="split-title">Xanrean Chronicles</h1>
-      <p class="split-desc">Her Majesty Tamaneko, Autumn's Dungeoneering, and connected stories from the main universe.</p>
+      <h1 class="split-title split-title-xanrean">Xanrean<br>Chronicles</h1>
+      <p class="split-desc">Follow Admin Creation and Destruction and their adventurs through the Xanrean Server Clusters!</p>
       <span class="split-cta">Enter the Universe →</span>
     </div>
   </a>
   
   <a href="/books" class="split-panel split-standalone">
     <div class="split-content">
-      <h1 class="split-title">Standalone Works</h1>
+      <h1 class="split-title split-title-standalone">Standalone<br>Works</h1>
       <p class="split-desc">Self-contained stories and games outside the main universe. Each complete on its own.</p>
       <span class="split-cta">Explore →</span>
     </div>
   </a>
-  <a href="/about" class="split-panel split-about">
+  
+  <a href="#" class="split-panel split-community">
     <div class="split-content">
-      <h1 class="split-title">About</h1>
-      <p class="split-desc">The studio behind the stories. Meet the team, our mission, and what drives us.</p>
-      <span class="split-cta">Learn More →</span>
+      <h1 class="split-title split-title-community">Join the<br>Community</h1>
+      <p class="split-desc">Chat on Discord, get updates, and connect with fellow readers.</p>
+      <span class="split-cta split-cta-community">Connect →</span>
     </div>
   </a>
 </main>
@@ -462,6 +527,7 @@
     <p class="footer-copy">© 2025 Nekojin Interactive LLC. All rights reserved.</p>
     
     <div class="footer-actions">
+      <a href="/about" class="footer-link">About</a>
       <a href="https://www.patreon.com/purplexanmal" target="_blank" rel="noopener" class="footer-patreon">
         ☕ Support on Patreon
       </a>
@@ -495,9 +561,9 @@
           console.log('Setting standalone-bg to:', settings.standalone_bg);
           root.style.setProperty('--standalone-bg', `url('${settings.standalone_bg}')`);
         }
-        if (settings.about_bg) {
-          console.log('Setting about-bg to:', settings.about_bg);
-          root.style.setProperty('--about-bg', `url('${settings.about_bg}')`);
+        if (settings.community_bg) {
+          console.log('Setting community-bg to:', settings.community_bg);
+          root.style.setProperty('--community-bg', `url('${settings.community_bg}')`);
         }
       } else {
         console.error('Failed to load settings, status:', res.status);

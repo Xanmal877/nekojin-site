@@ -248,6 +248,45 @@
 
 ---
 
+### Homepage Redesign with Admin Customization ✅
+**What:** Complete overhaul of homepage with three vertical panels and admin-configurable backgrounds
+- Three full-height vertical panels (Xanrean Chronicles | Standalone Works | About)
+- Portrait card style with rounded corners, borders, and shadows
+- Admin panel with image upload for each panel (Xanrean, Standalone, About)
+- File overwrite system (homepage images overwrite same file, no duplicates)
+- Background images stored in database and applied via CSS variables
+
+**Critical Bug Fixed:** GET handler was catching POST requests (missing method check)
+- Root cause: `if (url === '/api/homepage')` caught ALL HTTP methods
+- Fix: Added `req.method === 'GET' &&` check to GET handler
+- Impact: Admin settings now save correctly to database
+
+**Before:** Static homepage with hardcoded content  
+**After:** Dynamic, customizable homepage with three universe portals
+
+---
+
+### Service Worker Removal ✅
+**What:** Completely removed problematic service worker
+- Was intercepting API calls and returning cached responses
+- Caused POST /api/homepage to return cached GET response (old data)
+- Admin changes appeared to save but didn't persist
+
+**Before:** Service worker cached API responses incorrectly  
+**After:** All requests go directly to server, no caching interference
+
+---
+
+### Book Cover Display Fix ✅
+**What:** Changed book cover display from `cover` to `contain`
+- Full cover images visible without cropping
+- Better for portrait-oriented book covers on homepage panels
+
+**Before:** `background-size: cover` (cropped edges, didn't show full image)  
+**After:** `background-size: contain` (full image visible, no cropping)
+
+---
+
 ## 📊 Stats
 
 | Metric | Before | After |
