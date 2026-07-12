@@ -237,6 +237,23 @@ class ContentDB {
         } catch (e) {
             await this._run('ALTER TABLE homepage_settings ADD COLUMN community_bg TEXT DEFAULT \'/images/tama-bg.png\'');
         }
+        
+        // Xanrean page settings table
+        await this._run(`
+            CREATE TABLE IF NOT EXISTS xanrean_settings (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                books_bg TEXT DEFAULT '/covers/sb-cover.png',
+                characters_bg TEXT DEFAULT '/images/tama-bg.png',
+                lore_bg TEXT DEFAULT '/images/tama-bg.png',
+                game_bg TEXT DEFAULT '/images/tama-bg.png',
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        
+        // Insert default row if not exists
+        await this._run(`
+            INSERT OR IGNORE INTO xanrean_settings (id) VALUES (1)
+        `);
         await this._run('CREATE INDEX IF NOT EXISTS idx_books_series ON books(series_id)');
         await this._run('CREATE INDEX IF NOT EXISTS idx_books_status ON books(status)');
         await this._run('CREATE INDEX IF NOT EXISTS idx_books_visible ON books(visible)');
@@ -627,6 +644,51 @@ class ContentDB {
             console.log('>>> DB _run result:', result);
             // Verify the update
             const verify = await this._get('SELECT * FROM homepage_settings WHERE id = 1');
+            console.log('>>> DB verification:', verify);
+            return { success: true, changes: result.changes };
+        } catch (err) {
+            console.error('>>> DB ERROR:', err);
+            throw err;
+        }
+    }
+
+    // XANREAN SETTINGS
+    // ============================================================
+
+    async SelectXanreanSettings() {
+        const row = await this._get('SELECT * FROM xanrean_settings WHERE id = 1');
+        return row || {
+            books_bg: '/covers/sb-cover.png',
+            characters_bg: '/images/tama-bg.png',
+            lore_bg: '/images/tama-bg.png',
+            game_bg: '/images/tama-bg.png'
+        };
+    }
+
+    async UpdateXanreanSettings(data) {
+        console.log('>>> DB UpdateXanreanSettings called with:', data);
+        const sql = `
+            INSERT INTO xanrean_settings (id, books_bg, characters_bg, lore_bg, game_bg)
+            VALUES (1, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+                books_bg = excluded.books_bg,
+                characters_bg = excluded.characters_bg,
+                lore_bg = excluded.lore_bg,
+                game_bg = excluded.game_bg,
+                updated_at = CURRENT_TIMESTAMP
+        `;
+        const params = [
+            data.books_bg || '/covers/sb-cover.png',
+            data.characters_bg || '/images/tama-bg.png',
+            data.lore_bg || '/images/tama-bg.png',
+            data.game_bg || '/images/tama-bg.png'
+        ];
+        console.log('>>> DB SQL:', sql);
+        console.log('>>> DB params:', params);
+        try {
+            const result = await this._run(sql, params);
+            console.log('>>> DB _run result:', result);
+            const verify = await this._get('SELECT * FROM xanrean_settings WHERE id = 1');
             console.log('>>> DB verification:', verify);
             return { success: true, changes: result.changes };
         } catch (err) {

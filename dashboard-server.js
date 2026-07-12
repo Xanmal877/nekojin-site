@@ -655,10 +655,10 @@ const server = http.createServer(async (req, res) => {
             if (!file || !file.data) { res.writeHead(400); return res.end('No file'); }
             
             const bookId = parts['bookId'] || 'cover';
-            // Use fixed filename for homepage backgrounds (overwrite), timestamp for others
-            const isHomepage = bookId.startsWith('homepage-cover-');
-            const fname = isHomepage ? `${bookId}.webp` : `${bookId}-${Date.now()}.webp`;
-            const thumbFname = isHomepage ? `${bookId}-thumb.webp` : `${bookId}-${Date.now()}-thumb.webp`;
+            // Use fixed filename for homepage and xanrean backgrounds (overwrite), timestamp for others
+            const useFixedName = bookId.startsWith('homepage-cover-') || bookId.startsWith('xanrean-cover-');
+            const fname = useFixedName ? `${bookId}.webp` : `${bookId}-${Date.now()}.webp`;
+            const thumbFname = useFixedName ? `${bookId}-thumb.webp` : `${bookId}-${Date.now()}-thumb.webp`;
             
             // Process image with sharp
             const image = sharp(file.data);
@@ -791,6 +791,45 @@ const server = http.createServer(async (req, res) => {
             return res.end(JSON.stringify(before));
         } catch (e) {
             console.error('>>> POST /api/homepage ERROR:', e);
+            res.writeHead(500);
+            return res.end(JSON.stringify({ error: e.message }));
+        }
+    }
+
+    // ── XANREAN SETTINGS API ──────────────────────────────
+    // Get xanrean settings (public)
+    if (req.method === 'GET' && url === '/api/xanrean') {
+        try {
+            const settings = await contentDB.SelectXanreanSettings();
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify(settings));
+        } catch (e) {
+            res.writeHead(500);
+            return res.end(JSON.stringify({ error: e.message }));
+        }
+    }
+
+    // Update xanrean settings (admin only)
+    if (req.method === 'POST' && url === '/api/xanrean') {
+        console.log('>>> POST /api/xanrean HIT');
+        if (!accounts.isAdmin(req)) { 
+            console.log('>>> AUTH FAILED');
+            res.writeHead(403); 
+            return res.end('Forbidden'); 
+        }
+        try {
+            const body = await readRawBody(req);
+            console.log('>>> Raw body:', body.toString());
+            const data = JSON.parse(body.toString());
+            console.log('>>> Parsed data:', data);
+            const result = await contentDB.UpdateXanreanSettings(data);
+            console.log('>>> DB update result:', result);
+            const before = await contentDB.SelectXanreanSettings();
+            console.log('>>> DB after update:', before);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify(before));
+        } catch (e) {
+            console.error('>>> POST /api/xanrean ERROR:', e);
             res.writeHead(500);
             return res.end(JSON.stringify({ error: e.message }));
         }
