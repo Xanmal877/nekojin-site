@@ -74,15 +74,16 @@
     
     .theme-toggle:hover { background: var(--surface2); }
     
-    /* Split layout */
+    /* Grid layout for 4 moderators */
     .mods-container {
-      display: flex;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
       height: 100vh;
       width: 100vw;
     }
     
     .mod-panel {
-      flex: 1;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -90,11 +91,12 @@
       color: white;
       position: relative;
       overflow: hidden;
-      transition: flex 0.4s ease;
+      transition: transform 0.3s ease;
     }
     
     .mod-panel:hover {
-      flex: 1.15;
+      transform: scale(1.02);
+      z-index: 10;
     }
     
     .mod-panel::after {
@@ -114,10 +116,23 @@
       background: linear-gradient(180deg, rgba(59,130,246,0.2) 0%, rgba(10,6,20,0.95) 100%),
                   url('/images/tama-bg.png') center bottom / contain no-repeat;
       border-right: 1px solid rgba(59,130,246,0.3);
+      border-bottom: 1px solid rgba(59,130,246,0.3);
     }
     
     .panel-space {
       background: linear-gradient(180deg, rgba(16,185,129,0.2) 0%, rgba(10,6,20,0.95) 100%),
+                  url('/images/tama-bg.png') center bottom / contain no-repeat;
+      border-bottom: 1px solid rgba(16,185,129,0.3);
+    }
+    
+    .panel-chaos {
+      background: linear-gradient(180deg, rgba(245,158,11,0.2) 0%, rgba(10,6,20,0.95) 100%),
+                  url('/images/tama-bg.png') center bottom / contain no-repeat;
+      border-right: 1px solid rgba(245,158,11,0.3);
+    }
+    
+    .panel-order {
+      background: linear-gradient(180deg, rgba(139,92,246,0.2) 0%, rgba(10,6,20,0.95) 100%),
                   url('/images/tama-bg.png') center bottom / contain no-repeat;
     }
     
@@ -128,6 +143,16 @@
     
     [data-theme="light"] .panel-space {
       background: linear-gradient(180deg, rgba(16,185,129,0.25) 0%, rgba(10,40,20,0.8) 100%),
+                  url('/images/tama-bg.png') center bottom / contain no-repeat;
+    }
+    
+    [data-theme="light"] .panel-chaos {
+      background: linear-gradient(180deg, rgba(245,158,11,0.25) 0%, rgba(40,30,10,0.8) 100%),
+                  url('/images/tama-bg.png') center bottom / contain no-repeat;
+    }
+    
+    [data-theme="light"] .panel-order {
+      background: linear-gradient(180deg, rgba(139,92,246,0.25) 0%, rgba(20,10,40,0.8) 100%),
                   url('/images/tama-bg.png') center bottom / contain no-repeat;
     }
     
@@ -162,9 +187,21 @@
       border: 1px solid rgba(16,185,129,0.5);
     }
     
+    .panel-badge.chaos {
+      background: rgba(245,158,11,0.3);
+      color: #fcd34d;
+      border: 1px solid rgba(245,158,11,0.5);
+    }
+    
+    .panel-badge.order {
+      background: rgba(139,92,246,0.3);
+      color: #c4b5fd;
+      border: 1px solid rgba(139,92,246,0.5);
+    }
+    
     .panel-title {
       font-family: var(--font-display);
-      font-size: clamp(2.5rem, 5vw, 4rem);
+      font-size: clamp(2rem, 5vw, 3.5rem);
       font-weight: 700;
       line-height: 1.1;
       margin-bottom: 1rem;
@@ -183,8 +220,20 @@
       -webkit-text-fill-color: transparent;
     }
     
+    .panel-title.chaos {
+      background: linear-gradient(135deg, #fcd34d, #f59e0b);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .panel-title.order {
+      background: linear-gradient(135deg, #c4b5fd, #8b5cf6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
     .panel-desc {
-      font-size: 1.1rem;
+      font-size: 1rem;
       line-height: 1.7;
       opacity: 0.95;
       margin-bottom: 1.5rem;
@@ -255,12 +304,18 @@
     
     @media (max-width: 768px) {
       .mods-container {
-        flex-direction: column;
+        grid-template-columns: 1fr;
+        grid-template-rows: repeat(4, 1fr);
       }
       
       .panel-time {
         border-right: none;
         border-bottom: 1px solid rgba(59,130,246,0.3);
+      }
+      
+      .panel-chaos {
+        border-right: none;
+        border-bottom: 1px solid rgba(245,158,11,0.3);
       }
     }
   </style>
@@ -277,18 +332,36 @@
 <main class="mods-container">
   <a href="/xanrean/characters/moderator-time" class="mod-panel panel-time">
     <div class="panel-content">
-      <div class="panel-badge time">⏰ Moderator Time</div>
+      <div class="panel-badge time">⏰ Time Domain</div>
       <h2 class="panel-title time">Moderator<br>Time</h2>
-      <p class="panel-desc">Manages the soul stream and functions as the system's CPU-like processor, coordinating timing, routing, continuity, and sequence of soul activity throughout the system.</p>
+      <p class="panel-desc">Manages the soul stream and functions as the system's CPU-like processor.</p>
       <span class="panel-cta">View Entity Profile →</span>
     </div>
   </a>
   
   <a href="/xanrean/characters/moderator-space" class="mod-panel panel-space">
     <div class="panel-content">
-      <div class="panel-badge space">🌌 Moderator Space</div>
+      <div class="panel-badge space">🌌 Space Domain</div>
       <h2 class="panel-title space">Moderator<br>Space</h2>
-      <p class="panel-desc">Responsible for spatial continuity, position and distance, connections between regions, and movement across the system.</p>
+      <p class="panel-desc">Responsible for spatial continuity, position, distance, and movement.</p>
+      <span class="panel-cta">View Entity Profile →</span>
+    </div>
+  </a>
+  
+  <a href="/xanrean/characters/moderator-chaos" class="mod-panel panel-chaos">
+    <div class="panel-content">
+      <div class="panel-badge chaos">⚡ Chaos Domain</div>
+      <h2 class="panel-title chaos">Moderator<br>Chaos</h2>
+      <p class="panel-desc">Governs change, deviation, unpredictability, and emergent outcomes.</p>
+      <span class="panel-cta">View Entity Profile →</span>
+    </div>
+  </a>
+  
+  <a href="/xanrean/characters/moderator-order" class="mod-panel panel-order">
+    <div class="panel-content">
+      <div class="panel-badge order">⚖️ Order Domain</div>
+      <h2 class="panel-title order">Moderator<br>Order</h2>
+      <p class="panel-desc">Governs structure, pattern, stability, and maintenance of systems.</p>
       <span class="panel-cta">View Entity Profile →</span>
     </div>
   </a>
