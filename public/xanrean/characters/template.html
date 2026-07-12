@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{CHARACTER_NAME}} | Xanrean Chronicles</title>
+  <link rel="stylesheet" href="/style.css">
+  <script>
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+  </script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    /* Animated background particles */
+    .particles {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.3;
+    }
+    .particle {
+      position: absolute;
+      width: 4px; height: 4px;
+      background: var(--royal);
+      border-radius: 50%;
+      animation: float 20s infinite linear;
+    }
+    @keyframes float {
+      from { transform: translateY(100vh) rotate(0deg); }
+      to { transform: translateY(-100vh) rotate(720deg); }
+    }
+    
+    /* View toggle - In-Character vs Meta */
+    .view-toggle {
+      position: fixed;
+      top: 5rem; right: 2rem;
+      z-index: 99;
+      display: flex;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 0.25rem;
+      cursor: pointer;
+    }
+    .view-option {
+      padding: 0.5rem 1rem;
+      border-radius: 100px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+    .view-option.active {
+      background: var(--royal);
+      color: white;
+    }
+    
+    /* Navigation */
+    nav { 
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100; 
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem 2rem;
+      background: rgba(10,6,20,0.9);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(124,58,237,0.2);
+    }
+    .nav-logo { display: flex; align-items: center; gap: 0.75rem; font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; color: var(--royal); text-decoration: none; }
+    .nav-tama { width: 32px; height: 32px; background: url('/images/tama-icon.png') center/contain no-repeat; image-rendering: pixelated; }
+    .theme-toggle { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.25rem; color: var(--text); }
+    .theme-toggle:hover { background: var(--surface2); }
+    
+    /* Hero Section */
+    .char-hero { 
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      padding: 6rem 2rem;
+      background: linear-gradient(135deg, {{PRIMARY_COLOR}}20, {{SECONDARY_COLOR}}10),
+                  url('{{BACKGROUND_IMAGE}}') center/cover;
+    }
+    .char-hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at center, transparent 0%, var(--bg) 100%);
+    }
+    .hero-content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      max-width: 1400px;
+      width: 100%;
+      position: relative;
+      z-index: 1;
+    }
+    
+    /* Character Portrait */
+    .portrait-container {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .portrait-frame {
+      width: 400px; height: 400px;
+      border-radius: 50%;
+      border: 4px solid {{PRIMARY_COLOR}};
+      box-shadow: 0 0 60px {{PRIMARY_COLOR}}40, inset 0 0 60px {{PRIMARY_COLOR}}20;
+      overflow: hidden;
+      position: relative;
+      animation: pulse-glow 4s ease-in-out infinite;
+    }
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 60px {{PRIMARY_COLOR}}40, inset 0 0 60px {{PRIMARY_COLOR}}20; }
+      50% { box-shadow: 0 0 80px {{PRIMARY_COLOR}}60, inset 0 0 80px {{PRIMARY_COLOR}}40; }
+    }
+    .portrait-frame img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+    }
+    
+    /* Floating badges */
+    .badge {
+      position: absolute;
+      padding: 0.5rem 1rem;
+      background: var(--surface);
+      border: 2px solid {{PRIMARY_COLOR}};
+      border-radius: 100px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      animation: float-badge 6s ease-in-out infinite;
+    }
+    @keyframes float-badge {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+    .badge.tier { top: 10%; left: 0; }
+    .badge.level { top: 30%; right: -20px; }
+    .badge.element { bottom: 20%; left: -20px; }
+    
+    /* Stats Display */
+    .stats-display {
+      background: rgba(10,6,20,0.8);
+      border: 1px solid {{PRIMARY_COLOR}}40;
+      border-radius: 20px;
+      padding: 2rem;
+      backdrop-filter: blur(10px);
+    }
+    .stat-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .stat-label {
+      width: 100px;
+      font-size: 0.9rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .stat-bar {
+      flex: 1;
+      height: 8px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+    }
+    .stat-fill {
+      height: 100%;
+      background: linear-gradient(90deg, {{PRIMARY_COLOR}}, {{SECONDARY_COLOR}});
+      border-radius: 4px;
+      width: 0%;
+      transition: width 2s ease-out;
+    }
+    .stat-value {
+      width: 50px;
+      text-align: right;
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      color: {{PRIMARY_COLOR}};
+    }
+    
+    /* Character Info */
+    .char-info { padding-top: 2rem; }
+    .char-name {
+      font-family: var(--font-display);
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      background: linear-gradient(135deg, {{PRIMARY_COLOR}}, {{SECONDARY_COLOR}});
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.5rem;
+    }
+    .char-titles {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .title-tag {
+      padding: 0.25rem 0.75rem;
+      background: rgba(124,58,237,0.2);
+      border: 1px solid rgba(124,58,237,0.4);
+      border-radius: 100px;
+      font-size: 0.75rem;
+      color: #c4b5fd;
+    }
+    .char-quote {
+      font-style: italic;
+      font-size: 1.2rem;
+      color: var(--muted);
+      border-left: 3px solid {{PRIMARY_COLOR}};
+      padding-left: 1rem;
+      margin: 1.5rem 0;
+    }
+    
+    /* Interactive Tabs */
+    .bio-section {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 4rem 2rem;
+    }
+    .section-header {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .tab-btn {
+      padding: 1rem 1.5rem;
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-size: 1rem;
+      font-family: var(--font-display);
+      cursor: pointer;
+      position: relative;
+      transition: color 0.3s;
+    }
+    .tab-btn.active {
+      color: {{PRIMARY_COLOR}};
+    }
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0; right: 0;
+      height: 3px;
+      background: {{PRIMARY_COLOR}};
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+      animation: fade-in 0.5s ease;
+    }
+    @keyframes fade-in {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Ability Cards */
+    .abilities-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+    }
+    .ability-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      cursor: pointer;
+      transition: all 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+    .ability-card:hover {
+      transform: translateY(-5px);
+      border-color: {{PRIMARY_COLOR}};
+      box-shadow: 0 10px 40px {{PRIMARY_COLOR}}20;
+    }
+    .ability-card.expanded {
+      grid-column: 1 / -1;
+      background: linear-gradient(135deg, var(--surface), rgba(124,58,237,0.05));
+    }
+    .ability-icon {
+      width: 48px; height: 48px;
+      background: {{PRIMARY_COLOR}}20;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    .ability-card h3 {
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+      margin-bottom: 0.5rem;
+    }
+    .ability-card p {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    .ability-details {
+      display: none;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+    .ability-card.expanded .ability-details {
+      display: block;
+    }
+    
+    /* Relationship Web */
+    .relation-node {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1rem;
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 100px;
+      margin: 0.5rem;
+      transition: all 0.3s;
+      cursor: pointer;
+    }
+    .relation-node:hover {
+      border-color: {{PRIMARY_COLOR}};
+      transform: scale(1.05);
+    }
+    .relation-avatar {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: var(--surface2);
+    }
+    
+    /* Secret content (revealed on scroll or interaction) */
+    .secret-section {
+      opacity: 0;
+      transform: translateY(50px);
+      transition: all 0.8s ease;
+      filter: blur(10px);
+    }
+    .secret-section.revealed {
+      opacity: 1;
+      transform: translateY(0);
+      filter: blur(0);
+    }
+    .reveal-hint {
+      text-align: center;
+      padding: 2rem;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .reveal-hint::after {
+      content: '▼';
+      display: block;
+      margin-top: 0.5rem;
+      animation: bounce 2s infinite;
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(10px); }
+    }
+    
+    /* Easter egg - Konami code style interaction */
+    .easter-egg {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      opacity: 0;
+      transform: scale(0);
+      transition: all 0.5s;
+    }
+    .easter-egg.active {
+      opacity: 1;
+      transform: scale(1);
+    }
+    
+    /* Responsive */
+    @media (max-width: 968px) {
+      .hero-content { grid-template-columns: 1fr; gap: 2rem; }
+      .portrait-frame { width: 280px; height: 280px; }
+      .view-toggle { top: 5rem; right: 1rem; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Particles -->
+  <div class="particles" id="particles"></div>
+  
+  <!-- View Toggle -->
+  <div class="view-toggle" onclick="toggleView()">
+    <span class="view-option active" id="view-ic">In-Character</span>
+    <span class="view-option" id="view-meta">Meta</span>
+  </div>
+
+  <nav>
+    <a href="/" class="nav-logo"><div class="nav-tama"></div>Nekojin Interactive</a>
+    <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+      <span id="theme-icon">☀️</span>
+    </button>
+  </nav>
+
+  <main>
+    <!-- Hero with Stats -->
+    <section class="char-hero">
+      <div class="hero-content">
+        <div class="portrait-container">
+          <div class="portrait-frame">
+            <img src="{{PORTRAIT_IMAGE}}" alt="{{CHARACTER_NAME}}">
+          </div>
+          <span class="badge tier">{{TIER}}</span>
+          <span class="badge level">Lv. {{LEVEL}}</span>
+          <span class="badge element">{{PRIMARY_ELEMENT}}</span>
+        </div>
+        
+        <div class="char-info">
+          <h1 class="char-name">{{CHARACTER_NAME}}</h1>
+          <div class="char-titles">
+            {{#each TITLES}}
+            <span class="title-tag">{{this}}</span>
+            {{/each}}
+          </div>
+          <p class="char-quote">"{{QUOTE}}"</p>
+          
+          <div class="stats-display">
+            {{#each STATS}}
+            <div class="stat-row">
+              <span class="stat-label">{{name}}</span>
+              <div class="stat-bar">
+                <div class="stat-fill" data-value="{{value}}"></div>
+              </div>
+              <span class="stat-value">{{value}}</span>
+            </div>
+            {{/each}}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bio Tabs -->
+    <section class="bio-section">
+      <div class="section-header">
+        <button class="tab-btn active" onclick="switchTab('overview')">Overview</button>
+        <button class="tab-btn" onclick="switchTab('abilities')">Abilities</button>
+        <button class="tab-btn" onclick="switchTab('relationships')">Network</button>
+        <button class="tab-btn" onclick="switchTab('lore')">Deep Lore</button>
+      </div>
+      
+      <!-- Overview Tab -->
+      <div class="tab-content active" id="tab-overview">
+        <div class="abilities-grid">
+          <div class="ability-card expanded">
+            <div class="ability-icon">📖</div>
+            <h3>Background</h3>
+            <p>{{BACKGROUND_SUMMARY}}</p>
+            <div class="ability-details">
+              <p>{{BACKGROUND_FULL}}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Abilities Tab -->
+      <div class="tab-content" id="tab-abilities">
+        <div class="abilities-grid">
+          {{#each ABILITIES}}
+          <div class="ability-card" onclick="toggleAbility(this)">
+            <div class="ability-icon">{{icon}}</div>
+            <h3>{{name}}</h3>
+            <p>{{summary}}</p>
+            <div class="ability-details">
+              <p>{{full_description}}</p>
+              <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                <strong style="color: {{PRIMARY_COLOR}};">Power Level:</strong>
+                <div class="stat-bar" style="margin-top: 0.5rem;">
+                  <div class="stat-fill" style="width: {{power_level}}%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          {{/each}}
+        </div>
+      </div>
+      
+      <!-- Relationships Tab -->
+      <div class="tab-content" id="tab-relationships">
+        <p style="text-align: center; color: var(--muted); margin-bottom: 2rem;">
+          Click a connection to explore their relationship
+        </p>
+        <div style="text-align: center;">
+          {{#each RELATIONSHIPS}}
+          <a href="{{link}}" class="relation-node">
+            <div class="relation-avatar" style="background-image: url('{{avatar}}')"></div>
+            <div>
+              <strong>{{name}}</strong>
+              <span style="display: block; font-size: 0.8rem; color: var(--muted);">{{relationship}}</span>
+            </div>
+          </a>
+          {{/each}}
+        </div>
+      </div>
+      
+      <!-- Deep Lore Tab -->
+      <div class="tab-content" id="tab-lore">
+        <div class="reveal-hint" onclick="revealLore()">
+          <p>🔮 Hidden knowledge lies beneath. Dare to uncover it?</p>
+        </div>
+        <div class="secret-section" id="secret-lore">
+          <div class="ability-card expanded">
+            <div class="ability-icon">⚠️</div>
+            <h3>The Truth</h3>
+            <p>{{SPOILER_CONTENT}}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Easter Egg -->
+  <div class="easter-egg" id="easter-egg">
+    <div class="ability-card" style="background: linear-gradient(135deg, {{PRIMARY_COLOR}}, {{SECONDARY_COLOR}});">
+      <p style="color: white; text-align: center;">🎉 Secret unlocked! You found the {{SECRET_NAME}}!</p>
+    </div>
+  </div>
+
+  <script>
+    // Initialize particles
+    const particlesContainer = document.getElementById('particles');
+    for (let i = 0; i < 50; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      p.style.left = Math.random() * 100 + '%';
+      p.style.animationDelay = Math.random() * 20 + 's';
+      p.style.opacity = Math.random() * 0.5;
+      particlesContainer.appendChild(p);
+    }
+    
+    // Animate stat bars on load
+    setTimeout(() => {
+      document.querySelectorAll('.stat-fill').forEach(bar => {
+        const value = bar.dataset.value || bar.style.width;
+        bar.style.width = value + '%';
+      });
+    }, 500);
+    
+    // Tab switching
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('tab-' + tab).classList.add('active');
+      event.target.classList.add('active');
+    }
+    
+    // Ability card expansion
+    function toggleAbility(card) {
+      const wasExpanded = card.classList.contains('expanded');
+      document.querySelectorAll('.ability-card').forEach(c => c.classList.remove('expanded'));
+      if (!wasExpanded) card.classList.add('expanded');
+    }
+    
+    // View toggle (In-Character vs Meta)
+    let metaView = false;
+    function toggleView() {
+      metaView = !metaView;
+      document.getElementById('view-ic').classList.toggle('active', !metaView);
+      document.getElementById('view-meta').classList.toggle('active', metaView);
+      // Would swap content here in real implementation
+      console.log('Switched to', metaView ? 'Meta view' : 'IC view');
+    }
+    
+    // Reveal secret lore
+    function revealLore() {
+      document.getElementById('secret-lore').classList.add('revealed');
+      event.target.style.display = 'none';
+    }
+    
+    // Konami code easter egg
+    let konami = [];
+    const code = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
+    document.addEventListener('keydown', e => {
+      konami.push(e.key);
+      konami = konami.slice(-10);
+      if (konami.join(',') === code.join(',')) {
+        document.getElementById('easter-egg').classList.add('active');
+      }
+    });
+    
+    // Theme toggle
+    function toggleTheme() {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme') || 'light';
+      const next = current === 'light' ? 'dark' : 'light';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+      document.getElementById('theme-icon').textContent = next === 'dark' ? '🌙' : '☀️';
+    }
+    document.getElementById('theme-icon').textContent = 
+      (document.documentElement.getAttribute('data-theme') === 'dark') ? '🌙' : '☀️';
+  </script>
+</body>
+</html>
