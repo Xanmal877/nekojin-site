@@ -95,31 +95,24 @@
       transform: scale(1.05);
     }
     
-    /* Hub Panels - ZERO SPACING, edge to edge */
+    /* Hub Panels - like homepage */
     html, body {
-      margin: 0;
-      padding: 0;
+      height: 100%;
       overflow: hidden;
     }
     
     body {
-      position: relative;
-    }
-    
-    nav {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 100;
-      background: rgba(10,6,20,0.85);
-      backdrop-filter: blur(12px);
+      display: flex;
+      flex-direction: column;
     }
     
     .hub-choice {
       display: flex;
-      height: 100vh;
-      width: 100vw;
+      flex: 1;
+      width: 100%;
+      margin-top: 60px;
+      height: calc(100vh - 60px - 60px);
+      align-items: stretch;
     }
     
     .hub-panel {
@@ -129,12 +122,10 @@
       display: flex;
       flex-direction: column;
       justify-content: flex-end;
-      padding: 2rem;
+      padding: 3rem;
       text-decoration: none;
       overflow: hidden;
       transition: all 0.4s ease;
-      margin: 0;
-      border-radius: 0;
     }
     
     .hub-panel::after {
@@ -159,45 +150,45 @@
     
     .hub-panel-books {
       background: linear-gradient(180deg, rgba(124,58,237,0.1) 0%, rgba(10,6,20,0.9) 100%),
-                  var(--xanrean-bg) 100% 100% no-repeat;
+                  var(--xanrean-bg) center/contain no-repeat;
       border-right: 1px solid rgba(124,58,237,0.3);
     }
     
     .hub-panel-characters {
       background: linear-gradient(180deg, rgba(59,130,246,0.1) 0%, rgba(10,6,20,0.9) 100%),
-                  var(--characters-bg, url('/images/tama-bg.png')) 100% 100% no-repeat;
+                  var(--characters-bg, url('/images/tama-bg.png')) center/contain no-repeat;
       border-right: 1px solid rgba(59,130,246,0.3);
     }
     
     .hub-panel-lore {
       background: linear-gradient(180deg, rgba(16,185,129,0.1) 0%, rgba(10,6,20,0.9) 100%),
-                  var(--lore-bg, url('/images/tama-bg.png')) 100% 100% no-repeat;
+                  var(--lore-bg, url('/images/tama-bg.png')) center/contain no-repeat;
       border-right: 1px solid rgba(16,185,129,0.3);
     }
     
     .hub-panel-game {
       background: linear-gradient(180deg, rgba(245,158,11,0.1) 0%, rgba(10,6,20,0.9) 100%),
-                  var(--game-bg, url('/images/tama-bg.png')) 100% 100% no-repeat;
+                  var(--game-bg, url('/images/tama-bg.png')) center/contain no-repeat;
     }
     
     [data-theme="light"] .hub-panel-books {
       background: linear-gradient(180deg, rgba(124,58,237,0.15) 0%, rgba(20,10,40,0.7) 100%),
-                  var(--xanrean-bg) 100% 100% no-repeat;
+                  var(--xanrean-bg) center/contain no-repeat;
     }
     
     [data-theme="light"] .hub-panel-characters {
       background: linear-gradient(180deg, rgba(59,130,246,0.15) 0%, rgba(20,10,40,0.7) 100%),
-                  var(--characters-bg, url('/images/tama-bg.png')) 100% 100% no-repeat;
+                  var(--characters-bg, url('/images/tama-bg.png')) center/contain no-repeat;
     }
     
     [data-theme="light"] .hub-panel-lore {
       background: linear-gradient(180deg, rgba(16,185,129,0.15) 0%, rgba(20,10,40,0.7) 100%),
-                  var(--lore-bg, url('/images/tama-bg.png')) 100% 100% no-repeat;
+                  var(--lore-bg, url('/images/tama-bg.png')) center/contain no-repeat;
     }
     
     [data-theme="light"] .hub-panel-game {
       background: linear-gradient(180deg, rgba(245,158,11,0.15) 0%, rgba(20,10,40,0.7) 100%),
-                  var(--game-bg, url('/images/tama-bg.png')) 100% 100% no-repeat;
+                  var(--game-bg, url('/images/tama-bg.png')) center/contain no-repeat;
     }
     
     .hub-content {
@@ -205,7 +196,6 @@
       z-index: 1;
       text-align: center;
       color: white;
-      padding-bottom: 60px;
     }
     
     [data-theme="light"] .hub-content {
@@ -300,16 +290,17 @@
     @media (max-width: 768px) {
       html, body {
         overflow: auto;
+        height: auto;
       }
       
       .hub-choice {
         flex-direction: column;
         height: auto;
-        min-height: 100vh;
       }
       
       .hub-panel {
-        min-height: 25vh;
+        height: calc((100vh - 120px) / 4);
+        min-height: 200px;
         border-right: none;
         border-bottom: 1px solid rgba(124,58,237,0.3);
       }
@@ -321,15 +312,9 @@
     
     /* Footer - matches homepage */
     footer {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      z-index: 100;
-      background: rgba(10,6,20,0.85);
+      background: var(--surface);
       border-top: 1px solid var(--border);
-      padding: 0.5rem 1rem;
-      backdrop-filter: blur(12px);
+      padding: 0.75rem 1.5rem;
     }
     
     .footer-inner {
@@ -354,7 +339,7 @@
     .footer-tama {
       width: 24px;
       height: 24px;
-      background: url('/images/tama-icon.png') 100% 100% no-repeat;
+      background: url('/images/tama-icon.png') center/contain no-repeat;
       image-rendering: pixelated;
     }
     
@@ -480,7 +465,8 @@
   </button>
 </nav>
 
-<main class="hub-choice">
+<main>
+  <section class="hub-choice">
     <a href="/books" class="hub-panel hub-panel-books">
       <div class="hub-content">
         <h2 class="hub-title hub-title-books">The<br>Books</h2>
@@ -512,6 +498,7 @@
         <span class="hub-cta">View Game →</span>
       </div>
     </a>
+  </section>
 </main>
 
 <footer>
