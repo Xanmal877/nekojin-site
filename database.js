@@ -221,7 +221,7 @@ class ContentDB {
                 id INTEGER PRIMARY KEY CHECK (id = 1),
                 xanrean_bg TEXT DEFAULT '/covers/sb-cover.png',
                 standalone_bg TEXT DEFAULT '/covers/book-1776403239514-1778880332704.jpg',
-                about_bg TEXT DEFAULT '/images/tama-bg.png',
+                community_bg TEXT DEFAULT '/images/tama-bg.png',
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         `);
@@ -231,11 +231,11 @@ class ContentDB {
             INSERT OR IGNORE INTO homepage_settings (id) VALUES (1)
         `);
         
-        // Add about_bg column if not exists (migration)
+        // Add community_bg column if not exists (migration)
         try {
-            await this._get('SELECT about_bg FROM homepage_settings');
+            await this._get('SELECT community_bg FROM homepage_settings');
         } catch (e) {
-            await this._run('ALTER TABLE homepage_settings ADD COLUMN about_bg TEXT DEFAULT \'/images/tama-bg.png\'');
+            await this._run('ALTER TABLE homepage_settings ADD COLUMN community_bg TEXT DEFAULT \'/images/tama-bg.png\'');
         }
         await this._run('CREATE INDEX IF NOT EXISTS idx_books_series ON books(series_id)');
         await this._run('CREATE INDEX IF NOT EXISTS idx_books_status ON books(status)');
@@ -600,25 +600,25 @@ class ContentDB {
         return row || {
             xanrean_bg: '/covers/sb-cover.png',
             standalone_bg: '/covers/book-1776403239514-1778880332704.jpg',
-            about_bg: '/images/tama-bg.png'
+            community_bg: '/images/tama-bg.png'
         };
     }
 
     async UpdateHomepageSettings(data) {
         console.log('>>> DB UpdateHomepageSettings called with:', data);
         const sql = `
-            INSERT INTO homepage_settings (id, xanrean_bg, standalone_bg, about_bg)
+            INSERT INTO homepage_settings (id, xanrean_bg, standalone_bg, community_bg)
             VALUES (1, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
                 xanrean_bg = excluded.xanrean_bg,
                 standalone_bg = excluded.standalone_bg,
-                about_bg = excluded.about_bg,
+                community_bg = excluded.community_bg,
                 updated_at = CURRENT_TIMESTAMP
         `;
         const params = [
             data.xanrean_bg || '/covers/sb-cover.png',
             data.standalone_bg || '/covers/book-1776403239514-1778880332704.jpg',
-            data.about_bg || '/images/tama-bg.png'
+            data.community_bg || '/images/tama-bg.png'
         ];
         console.log('>>> DB SQL:', sql);
         console.log('>>> DB params:', params);

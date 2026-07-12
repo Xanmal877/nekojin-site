@@ -8,7 +8,9 @@
 
 | Issue | Date | Commit |
 |-------|------|--------|
-| **CRITICAL: Homepage settings save not working** | 2026-07-11 | `CRITICAL FIX: GET /api/homepage handler was catching all methods` |
+| **Service Worker Caching Issues** | 2026-07-11 | `fix: completely remove service worker` |
+| **Homepage Settings Save Not Working** | 2026-07-11 | `CRITICAL FIX: GET handler method check` |
+| Homepage Background Customization | 2026-07-11 | `feat: complete homepage redesign` |
 | Image optimization (WebP, thumbnails) | 2026-07-11 | `feat: image optimization with sharp` |
 | Database path hardcoded | 2026-07-11 | `fix: move database from ~/Documents to local data/` |
 | Saki icon orientation | 2026-07-11 | `fix: use saki_idle_down.png` |
@@ -56,6 +58,8 @@ if (req.method === 'GET' && url === '/api/homepage') {
 
 | Issue | Date | Status |
 |-------|------|--------|
+| Service Worker Caching | 2026-07-11 | ✅ Removed - was intercepting API calls |
+| Homepage Settings Save | 2026-07-11 | ✅ Fixed - GET handler was catching POST |
 | Content Backup System | 2026-07-11 | ✅ Complete - auto backups daily, keeps 7 days |
 | Data Storage Migration | 2026-07-11 | ✅ Complete |
 | Static Asset Serving | 2026-07-11 | ✅ Fixed |

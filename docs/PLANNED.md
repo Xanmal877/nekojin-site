@@ -67,20 +67,28 @@ Manuscript reading/upload hidden. Can re-enable by setting `MANUSCRIPTS_ENABLED 
 
 ---
 
-### 2.5 Homepage Background Customization
+### 2.5 Homepage Background Customization ✅ COMPLETE
+**Status:** Complete 2026-07-11  
 **Priority:** Low  
-**Estimated:** 0.5 sessions
+**Estimated:** 0.5 sessions  
+**Actual:** ~8 sessions (included critical bug fixes)
 
 Admin-configurable homepage split-panel backgrounds:
-- [ ] Upload custom images for Xanrean Chronicles panel
-- [ ] Upload custom images for Standalone Works panel
-- [ ] Image cropping/preview in admin
-- [ ] Fallback to default book covers if not set
-- [ ] Store paths in database (site_content table)
+- ✅ Upload custom images for Xanrean Chronicles panel
+- ✅ Upload custom images for Standalone Works panel  
+- ✅ Upload custom images for About panel (added third panel)
+- ✅ Image preview in admin with live updates
+- ✅ Fallback to default book covers if not set
+- ✅ Store paths in database (homepage_settings table)
+- ✅ File overwrite system (no duplicate accumulation)
+
+**Bonus:** Three-panel vertical layout redesign
 
 **Use case:** When new flagship books release, update homepage to feature them.
 
 ---
+
+### 2.6 Games Page Polish 🎮
 
 ## Phase 3: Technical Improvements
 

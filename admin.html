@@ -514,12 +514,12 @@
       </div>
       
       <div class="card" style="margin-top:1rem;">
-        <h3 style="margin-bottom:1rem;">About Panel</h3>
-        <div class="bg-preview" id="homepage-about-preview" style="width:140px;height:200px;border-radius:10px;background:var(--surface2);background-size:cover;background-position:center;margin-bottom:0.75rem;border:2px solid var(--border);box-shadow:0 4px 12px rgba(0,0,0,0.3);"></div>
+        <h3 style="margin-bottom:1rem;">Community Panel</h3>
+        <div class="bg-preview" id="homepage-community-preview" style="width:140px;height:200px;border-radius:10px;background:var(--surface2);background-size:cover;background-position:center;margin-bottom:0.75rem;border:2px solid var(--border);box-shadow:0 4px 12px rgba(0,0,0,0.3);"></div>
         <div class="form-row" style="display:flex;gap:0.75rem;align-items:center;">
-          <input type="text" id="homepage-about-bg" placeholder="/images/tama-bg.png" style="flex:1;" oninput="updateHomepagePreview('about', this.value)">
-          <input type="file" id="about-file-input" accept="image/*" style="display:none;" onchange="handleHomepageImageUpload(this, 'about')">
-          <button class="btn btn-ghost" onclick="document.getElementById('about-file-input').click()">📁 Browse</button>
+          <input type="text" id="homepage-community-bg" placeholder="/images/tama-bg.png" style="flex:1;" oninput="updateHomepagePreview('community', this.value)">
+          <input type="file" id="community-file-input" accept="image/*" style="display:none;" onchange="handleHomepageImageUpload(this, 'community')">
+          <button class="btn btn-ghost" onclick="document.getElementById('community-file-input').click()">📁 Browse</button>
         </div>
       </div>
       
@@ -1738,6 +1738,29 @@ function renderAboutPanel() {
     <input type="text" value="${esc(a.studioName)}" oninput="siteContent.about.studioName=this.value; markDirty()">
     <label>Footer Tagline</label>
     <input type="text" value="${esc(a.tagline)}" oninput="siteContent.about.tagline=this.value; markDirty()">
+    
+    <div style="margin:1rem 0;padding:1rem;background:var(--surface2);border-radius:10px;border:1px solid var(--border);">
+      <label style="margin-bottom:0.5rem;display:block;">Studio Portrait Image</label>
+      <div style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap;">
+        <div style="width:120px;height:160px;border-radius:12px;background:var(--surface);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;"
+             id="about-portrait-preview">
+          ${a.portrait ? `<img src="${esc(a.portrait)}" style="width:100%;height:100%;object-fit:cover;">` : '<span style="font-size:3rem;">🏢</span>'}
+        </div>
+        <div style="flex:1;min-width:200px;">
+          <input type="text" id="about-portrait-input" value="${esc(a.portrait||'')}" placeholder="/images/portrait.png"
+                 oninput="siteContent.about.portrait=this.value; markDirty(); updateAboutPortraitPreview(this.value);"
+                 style="margin-bottom:0.5rem;">
+          <div style="display:flex;gap:0.5rem;">
+            <input type="file" id="about-portrait-file" accept="image/*" style="display:none;" 
+                   onchange="handlePortraitUpload(this)">
+            <button class="btn btn-ghost" onclick="document.getElementById('about-portrait-file').click()" style="font-size:0.85rem;">📁 Upload Image</button>
+            <button class="btn btn-ghost" onclick="siteContent.about.portrait=''; document.getElementById('about-portrait-input').value=''; updateAboutPortraitPreview(''); markDirty();" style="font-size:0.85rem;" ${a.portrait?'':'disabled'}>Clear</button>
+          </div>
+          <p style="font-size:0.75rem;color:var(--muted);margin-top:0.5rem;">Upload a portrait or logo image for the About page. Recommended: 3:4 ratio, portrait orientation.</p>
+        </div>
+      </div>
+    </div>
+    
     <label>Description Paragraph 1</label>
     <textarea oninput="siteContent.about.description=this.value; markDirty()">${esc(a.description)}</textarea>
     <label>Description Paragraph 2</label>
@@ -2108,8 +2131,8 @@ async function handleHomepageImageUpload(input, panel) {
   if (!file) return;
   const form = new FormData();
   form.append('cover', file);
-  // Use fixed filename so it overwrites instead of creating new files
-  form.append('bookId', `homepage-${panel}`);
+  // Use homepage-cover-{panel} naming
+  form.append('bookId', `homepage-cover-${panel}`);
   try {
     const res = await fetch('/upload-cover', { method: 'POST', body: form });
     const data = await res.json();
@@ -2118,6 +2141,49 @@ async function handleHomepageImageUpload(input, panel) {
     showToast('Image uploaded! Click Save to apply.');
   } catch(e) {
     showToast('Upload failed', 'error');
+  }
+}
+
+// About portrait upload handler
+async function handlePortraitUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  
+  // Validate file size (max 5MB)
+  if (file.size > 5 * 1024 * 1024) {
+    showToast('Image too large. Max 5MB.', 'error');
+    return;
+  }
+  
+  const form = new FormData();
+  form.append('cover', file);
+  form.append('bookId', 'about-portrait');
+  
+  try {
+    const res = await fetch('/upload-cover', { method: 'POST', body: form });
+    const data = await res.json();
+    
+    // Update the input and preview
+    document.getElementById('about-portrait-input').value = data.path;
+    siteContent.about.portrait = data.path;
+    markDirty();
+    updateAboutPortraitPreview(data.path);
+    showToast('Portrait uploaded and saved!');
+  } catch(e) {
+    console.error('Portrait upload failed:', e);
+    showToast('Upload failed', 'error');
+  }
+}
+
+// Update portrait preview in admin panel
+function updateAboutPortraitPreview(path) {
+  const preview = document.getElementById('about-portrait-preview');
+  if (!preview) return;
+  
+  if (path) {
+    preview.innerHTML = `<img src="${path}" style="width:100%;height:100%;object-fit:cover;">`;
+  } else {
+    preview.innerHTML = '<span style="font-size:3rem;">🏢</span>';
   }
 }
 
@@ -2134,10 +2200,10 @@ async function loadHomepageSettings() {
     // Populate form
     const xanreanInput = document.getElementById('homepage-xanrean-bg');
     const standaloneInput = document.getElementById('homepage-standalone-bg');
-    const aboutInput = document.getElementById('homepage-about-bg');
+    const communityInput = document.getElementById('homepage-community-bg');
     const xanreanPreview = document.getElementById('homepage-xanrean-preview');
     const standalonePreview = document.getElementById('homepage-standalone-preview');
-    const aboutPreview = document.getElementById('homepage-about-preview');
+    const communityPreview = document.getElementById('homepage-community-preview');
     
     if (xanreanInput) {
       xanreanInput.value = homepageSettings.xanrean_bg || '/covers/sb-cover.png';
@@ -2147,9 +2213,9 @@ async function loadHomepageSettings() {
       standaloneInput.value = homepageSettings.standalone_bg || '/covers/book-1776403239514-1778880332704.jpg';
       standalonePreview.style.backgroundImage = `url('${standaloneInput.value}')`;
     }
-    if (aboutInput) {
-      aboutInput.value = homepageSettings.about_bg || '/images/tama-bg.png';
-      aboutPreview.style.backgroundImage = `url('${aboutInput.value}')`;
+    if (communityInput) {
+      communityInput.value = homepageSettings.community_bg || '/images/tama-bg.png';
+      communityPreview.style.backgroundImage = `url('${communityInput.value}')`;
     }
   } catch (e) {
     console.error('loadHomepageSettings error:', e);
@@ -2160,8 +2226,8 @@ async function saveHomepageSettings() {
   console.log('>>> saveHomepageSettings() called');
   const xanreanBg = document.getElementById('homepage-xanrean-bg').value.trim();
   const standaloneBg = document.getElementById('homepage-standalone-bg').value.trim();
-  const aboutBg = document.getElementById('homepage-about-bg').value.trim();
-  console.log('>>> Values to save:', { xanrean_bg: xanreanBg, standalone_bg: standaloneBg, about_bg: aboutBg });
+  const communityBg = document.getElementById('homepage-community-bg').value.trim();
+  console.log('>>> Values to save:', { xanrean_bg: xanreanBg, standalone_bg: standaloneBg, community_bg: communityBg });
   try {
     console.log('>>> POSTing to /api/homepage...');
     const res = await fetch('/api/homepage', {
@@ -2171,7 +2237,7 @@ async function saveHomepageSettings() {
       body: JSON.stringify({
         xanrean_bg: xanreanBg,
         standalone_bg: standaloneBg,
-        about_bg: aboutBg
+        community_bg: communityBg
       })
     });
     console.log('>>> POST response status:', res.status);

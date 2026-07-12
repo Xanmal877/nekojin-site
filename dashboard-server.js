@@ -654,7 +654,7 @@ const server = http.createServer(async (req, res) => {
             
             const bookId = parts['bookId'] || 'cover';
             // Use fixed filename for homepage backgrounds (overwrite), timestamp for others
-            const isHomepage = bookId.startsWith('homepage-');
+            const isHomepage = bookId.startsWith('homepage-cover-');
             const fname = isHomepage ? `${bookId}.webp` : `${bookId}-${Date.now()}.webp`;
             const thumbFname = isHomepage ? `${bookId}-thumb.webp` : `${bookId}-${Date.now()}-thumb.webp`;
             
