@@ -162,6 +162,22 @@ class ContentDB {
             // Column likely already exists, ignore
         }
 
+        // Migration: Add cta_platform column to books table (if not exists)
+        try {
+            await this._run(`ALTER TABLE books ADD COLUMN cta_platform TEXT`);
+            console.log('ContentDB: Added cta_platform column to books table');
+        } catch (e) {
+            // Column likely already exists, ignore
+        }
+
+        // Migration: Add publish_at column to books table (if not exists)
+        try {
+            await this._run(`ALTER TABLE books ADD COLUMN publish_at DATETIME`);
+            console.log('ContentDB: Added publish_at column to books table');
+        } catch (e) {
+            // Column likely already exists, ignore
+        }
+
         // Game info
         await this._run(`
             CREATE TABLE IF NOT EXISTS game (
@@ -211,6 +227,15 @@ class ContentDB {
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         `);
+
+        // Migration: Add missing about-page columns (if not exists)
+        for (const col of ['tagline TEXT', 'portrait TEXT', 'description2 TEXT', 'description3 TEXT', 'universe_blurb TEXT']) {
+            try {
+                await this._run(`ALTER TABLE about ADD COLUMN ${col}`);
+            } catch (e) {
+                // Column likely already exists, ignore
+            }
+        }
 
         // Newsletter subscribers
         await this._run(`
@@ -301,8 +326,14 @@ class ContentDB {
         `;
         const result = await this._run(sql, [
             data.id,
-            data.name || data.title || '',
-            data.description || '',
+            // SelectSeries echoes the DB columns back as `name`/`description`
+            // *and* as the UI-facing `universe`/`universeDesc` aliases (see
+            // below). admin.html only ever edits `universe`/`universeDesc`,
+            // so when a caller round-trips a loaded series back through here
+            // those must win — otherwise the stale `name`/`description`
+            // riding along in the object silently overwrites every edit.
+            data.universe || data.name || data.title || '',
+            data.universeDesc || data.description || '',
             data.sort_order || 0
         ]);
         return { id: data.id, changes: result.changes };
@@ -313,7 +344,13 @@ class ContentDB {
         if (whereClause) {
             sql = `SELECT * FROM series WHERE ${whereClause} ORDER BY sort_order, name`;
         }
-        return await this._all(sql, params);
+        const rows = await this._all(sql, params);
+        // Admin UI and public pages use "universe"/"universeDesc" field names
+        for (const row of rows) {
+            row.universe = row.name;
+            row.universeDesc = row.description;
+        }
+        return rows;
     }
 
     async DeleteSeries(id) {
@@ -326,11 +363,15 @@ class ContentDB {
     // ============================================================
 
     async InsertBook(data) {
+        const validStatuses = new Set(['draft', 'preview', 'published', 'archived']);
+        const status = validStatuses.has(data.status) ? data.status : 'draft';
+        const publishAt = data.publishAt || data.publish_at || null;
+
         const sql = `
             INSERT INTO books (
                 id, title, slug, description, blurb, volume, status, series_id,
-                volume_number, word_count, cover_path, visible, genres, tags, tier
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                volume_number, word_count, cover_path, visible, genres, tags, tier, cta_platform, publish_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
                 title = excluded.title,
                 slug = excluded.slug,
@@ -346,6 +387,8 @@ class ContentDB {
                 genres = excluded.genres,
                 tags = excluded.tags,
                 tier = excluded.tier,
+                cta_platform = excluded.cta_platform,
+                publish_at = excluded.publish_at,
                 updated_at = CURRENT_TIMESTAMP
         `;
 
@@ -356,7 +399,7 @@ class ContentDB {
             data.description || '',
             data.blurb || '',
             data.volume || '',
-            data.status || 'draft',
+            status,
             data.seriesId || data.series_id || null,
             data.volumeNumber || data.volume_number || null,
             data.wordCount || data.word_count || 0,
@@ -364,7 +407,9 @@ class ContentDB {
             data.visible !== false ? 1 : 0,
             JSON.stringify(data.genres || []),
             JSON.stringify(data.tags || []),
-            data.tier || null
+            data.tier || null,
+            data.ctaPlatform || data.cta_platform || 'kdp',
+            publishAt
         ]);
 
         // Insert platforms with normalized field names
@@ -405,11 +450,12 @@ class ContentDB {
             }
             row.visible = !!row.visible;
             row.wordCount = row.word_count;
+            row.publishAt = row.publish_at || null;
 
             // Map database fields to expected API format
             row.cover = row.cover_path;
             row.volume = row.volume || '';
-            row.ctaPlatform = 'kdp'; // Default, not stored in DB
+            row.ctaPlatform = row.cta_platform || 'kdp';
             
             // Load platforms and normalize field names
             row.platforms = await this.SelectBookPlatforms(row.id);
@@ -441,6 +487,23 @@ class ContentDB {
             'SELECT * FROM book_platforms WHERE book_id = ? ORDER BY sort_order',
             [bookId]
         );
+    }
+
+    effectiveStatus(book) {
+        const raw = book.status || 'draft';
+        if (raw === 'published' && book.publishAt) {
+            const pub = new Date(book.publishAt);
+            const now = new Date();
+            if (!isNaN(pub) && pub > now) return 'preview';
+        }
+        return raw;
+    }
+
+    isBookPublic(book, previewAllowed = false) {
+        const status = this.effectiveStatus(book);
+        if (status === 'published' || status === 'released') return true;
+        if (status === 'preview' && previewAllowed) return true;
+        return false;
     }
 
     async DeleteBookPlatforms(bookId) {
@@ -586,14 +649,19 @@ class ContentDB {
 
     async InsertAbout(data) {
         const sql = `
-            INSERT INTO about (id, studio_name, founded_date, description, email, social_links)
-            VALUES (1, ?, ?, ?, ?, ?)
+            INSERT INTO about (id, studio_name, founded_date, description, email, social_links, tagline, portrait, description2, description3, universe_blurb)
+            VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
                 studio_name = excluded.studio_name,
                 founded_date = excluded.founded_date,
                 description = excluded.description,
                 email = excluded.email,
                 social_links = excluded.social_links,
+                tagline = excluded.tagline,
+                portrait = excluded.portrait,
+                description2 = excluded.description2,
+                description3 = excluded.description3,
+                universe_blurb = excluded.universe_blurb,
                 updated_at = CURRENT_TIMESTAMP
         `;
         await this._run(sql, [
@@ -601,21 +669,27 @@ class ContentDB {
             data.founded_date || data.foundedDate || '',
             data.description || '',
             data.email || '',
-            JSON.stringify(data.social_links || data.socialLinks || {})
+            JSON.stringify(data.social_links || data.socialLinks || data.links || {}),
+            data.tagline || '',
+            data.portrait || '',
+            data.description2 || '',
+            data.description3 || '',
+            data.universe_blurb || data.universeBlurb || ''
         ]);
         return { id: 1 };
     }
 
     async SelectAbout() {
         const row = await this._get('SELECT * FROM about WHERE id = 1', []);
-        if (row && row.social_links) {
-            try {
-                row.social_links = JSON.parse(row.social_links);
-            } catch {
-                row.social_links = {};
-            }
+        if (!row) return {};
+        row.universeBlurb = row.universe_blurb || '';
+        try {
+            row.social_links = row.social_links ? JSON.parse(row.social_links) : {};
+        } catch {
+            row.social_links = {};
         }
-        return row || {};
+        row.links = row.social_links; // admin.html / public pages use "links"
+        return row;
     }
 
     // ============================================================
@@ -632,7 +706,6 @@ class ContentDB {
     }
 
     async UpdateHomepageSettings(data) {
-        console.log('>>> DB UpdateHomepageSettings called with:', data);
         const sql = `
             INSERT INTO homepage_settings (id, xanrean_bg, standalone_bg, community_bg)
             VALUES (1, ?, ?, ?)
@@ -647,17 +720,11 @@ class ContentDB {
             data.standalone_bg || '/covers/book-1776403239514-1778880332704.jpg',
             data.community_bg || '/images/tama-bg.png'
         ];
-        console.log('>>> DB SQL:', sql);
-        console.log('>>> DB params:', params);
         try {
             const result = await this._run(sql, params);
-            console.log('>>> DB _run result:', result);
-            // Verify the update
-            const verify = await this._get('SELECT * FROM homepage_settings WHERE id = 1');
-            console.log('>>> DB verification:', verify);
             return { success: true, changes: result.changes };
         } catch (err) {
-            console.error('>>> DB ERROR:', err);
+            console.error('UpdateHomepageSettings error:', err);
             throw err;
         }
     }
@@ -676,7 +743,6 @@ class ContentDB {
     }
 
     async UpdateXanreanSettings(data) {
-        console.log('>>> DB UpdateXanreanSettings called with:', data);
         const sql = `
             INSERT INTO xanrean_settings (id, books_bg, characters_bg, lore_bg, game_bg)
             VALUES (1, ?, ?, ?, ?)
@@ -693,16 +759,11 @@ class ContentDB {
             data.lore_bg || '/images/tama-bg.png',
             data.game_bg || '/images/tama-bg.png'
         ];
-        console.log('>>> DB SQL:', sql);
-        console.log('>>> DB params:', params);
         try {
             const result = await this._run(sql, params);
-            console.log('>>> DB _run result:', result);
-            const verify = await this._get('SELECT * FROM xanrean_settings WHERE id = 1');
-            console.log('>>> DB verification:', verify);
             return { success: true, changes: result.changes };
         } catch (err) {
-            console.error('>>> DB ERROR:', err);
+            console.error('UpdateXanreanSettings error:', err);
             throw err;
         }
     }
@@ -779,99 +840,157 @@ class ContentDB {
     async SaveAllContent(data) {
         const { series = [], books = [], game = [], about = {} } = data;
 
-        // Clear existing data
-        await this._run('DELETE FROM book_platforms');
-        await this._run('DELETE FROM books');
-        await this._run('DELETE FROM series');
-        await this._run('DELETE FROM game_screenshots');
-        await this._run('DELETE FROM devlog');
-        await this._run('DELETE FROM game');
-        await this._run('DELETE FROM about');
+        // Guard against wiping the site: /save-content does a full delete-and-
+        // reinsert, so a client that sends an empty payload (e.g. because its
+        // initial /content fetch silently failed) would otherwise erase every
+        // book, series, game, and about record with no warning. If the incoming
+        // payload is completely empty but the DB currently has real content,
+        // this is almost certainly a broken client state, not an intentional
+        // full wipe — refuse it instead of committing the loss.
+        const incomingHasContent =
+            series.length > 0 || books.length > 0 ||
+            (Array.isArray(game) ? game.length > 0 : !!(game && Object.keys(game).length > 0)) ||
+            Object.keys(about).length > 0;
 
-        // Insert series
-        for (let i = 0; i < series.length; i++) {
-            const s = series[i];
-            await this.InsertSeries({
-                id: s.id,
-                name: s.name || s.title,
-                description: s.description || '',
-                sort_order: s.sort_order || i
-            });
-        }
-
-        // Insert books
-        for (const b of books) {
-            await this.InsertBook({
-                id: b.id,
-                title: b.title,
-                slug: b.slug || b.id,
-                description: b.description || '',
-                blurb: b.blurb || '',
-                volume: b.volume || b.volume_info || '',
-                status: b.status || 'draft',
-                seriesId: b.seriesId || b.series_id,
-                volumeNumber: b.volumeNumber || b.volume_number,
-                wordCount: b.wordCount || b.word_count || 0,
-                cover: b.cover || b.cover_path,
-                visible: b.visible !== false,
-                genres: b.genres || [],
-                tags: b.tags || [],
-                platforms: (b.platforms || b.links || []).map(p => ({
-                    type: p.type || p.platform_type,
-                    name: p.name || p.platform_name,
-                    url: p.url
-                }))
-            });
-        }
-
-        // Insert games - support array
-        const games = Array.isArray(game) ? game : (game ? [game] : []);
-        for (const g of games) {
-            if (g && Object.keys(g).length > 0) {
-                const gameId = g.id || g.slug || 'main';
-                await this.InsertGame({
-                    ...g,
-                    id: gameId
-                });
-
-                // Screenshots
-                const screenshots = g.screenshots || [];
-                for (let i = 0; i < screenshots.length; i++) {
-                    const ss = screenshots[i];
-                    await this.InsertGameScreenshot({
-                        game_id: gameId,
-                        path: typeof ss === 'string' ? ss : ss.path,
-                        caption: typeof ss === 'string' ? '' : (ss.caption || ''),
-                        sort_order: i
-                    });
-                }
-
-                // Devlog
-                const devlog = g.devlog || [];
-                for (const d of devlog) {
-                    await this.InsertDevlog({
-                        game_id: gameId,
-                        title: d.title,
-                        content: d.content || '',
-                        date: d.date || d.created_at,
-                        visible: d.visible !== false
-                    });
-                }
+        if (!incomingHasContent) {
+            const existing = await this._get(`
+                SELECT
+                    (SELECT COUNT(*) FROM series) AS seriesCount,
+                    (SELECT COUNT(*) FROM books) AS booksCount,
+                    (SELECT COUNT(*) FROM game) AS gameCount,
+                    (SELECT COUNT(*) FROM about) AS aboutCount
+            `);
+            const hasExistingContent = existing && (
+                existing.seriesCount > 0 || existing.booksCount > 0 ||
+                existing.gameCount > 0 || existing.aboutCount > 0
+            );
+            if (hasExistingContent) {
+                const err = new Error(
+                    'Refusing to save: incoming content has no series, books, game, or ' +
+                    'about data, but the database currently has content. This looks like ' +
+                    'a failed page load rather than an intentional full wipe — reload the ' +
+                    'admin panel and try again.'
+                );
+                err.code = 'EMPTY_CONTENT_GUARD';
+                throw err;
             }
         }
 
-        // Insert about
-        if (about && Object.keys(about).length > 0) {
-            await this.InsertAbout({
-                studioName: about.studio_name || about.studioName,
-                foundedDate: about.founded_date || about.foundedDate,
-                description: about.description || '',
-                email: about.email || '',
-                socialLinks: about.social_links || about.socialLinks || {}
-            });
-        }
+        await this._run('BEGIN TRANSACTION');
+        try {
+            // Clear existing data
+            await this._run('DELETE FROM book_platforms');
+            await this._run('DELETE FROM books');
+            await this._run('DELETE FROM series');
+            await this._run('DELETE FROM game_screenshots');
+            await this._run('DELETE FROM devlog');
+            await this._run('DELETE FROM game');
+            await this._run('DELETE FROM about');
 
-        console.log('ContentDB: All data saved');
+            // Insert series
+            for (let i = 0; i < series.length; i++) {
+                const s = series[i];
+                // Pass both the raw DB field names and the UI-facing aliases
+                // through unresolved — InsertSeries owns the precedence
+                // between them (universe/universeDesc wins) so there's one
+                // place, not two, that has to get the fallback order right.
+                await this.InsertSeries({
+                    id: s.id,
+                    name: s.name,
+                    universe: s.universe,
+                    description: s.description,
+                    universeDesc: s.universeDesc,
+                    sort_order: s.sort_order || i
+                });
+            }
+
+            // Insert books
+            for (const b of books) {
+                await this.InsertBook({
+                    id: b.id,
+                    title: b.title,
+                    slug: b.slug || b.id,
+                    description: b.description || '',
+                    blurb: b.blurb || '',
+                    volume: b.volume || b.volume_info || '',
+                    status: b.status || 'draft',
+                    seriesId: b.seriesId || b.series_id,
+                    volumeNumber: b.volumeNumber || b.volume_number,
+                    wordCount: b.wordCount || b.word_count || 0,
+                    cover: b.cover || b.cover_path,
+                    visible: b.visible !== false,
+                    genres: b.genres || [],
+                    tags: b.tags || [],
+                    tier: b.tier,
+                    ctaPlatform: b.ctaPlatform || b.cta_platform,
+                    publishAt: b.publishAt || b.publish_at || null,
+                    platforms: (b.platforms || b.links || []).map(p => ({
+                        type: p.type || p.platform_type,
+                        name: p.name || p.platform_name,
+                        url: p.url
+                    }))
+                });
+            }
+
+            // Insert games - support array
+            const games = Array.isArray(game) ? game : (game ? [game] : []);
+            for (const g of games) {
+                if (g && Object.keys(g).length > 0) {
+                    const gameId = g.id || g.slug || 'main';
+                    await this.InsertGame({
+                        ...g,
+                        id: gameId
+                    });
+
+                    // Screenshots
+                    const screenshots = g.screenshots || [];
+                    for (let i = 0; i < screenshots.length; i++) {
+                        const ss = screenshots[i];
+                        await this.InsertGameScreenshot({
+                            game_id: gameId,
+                            path: typeof ss === 'string' ? ss : ss.path,
+                            caption: typeof ss === 'string' ? '' : (ss.caption || ''),
+                            sort_order: i
+                        });
+                    }
+
+                    // Devlog
+                    const devlog = g.devlog || [];
+                    for (const d of devlog) {
+                        await this.InsertDevlog({
+                            game_id: gameId,
+                            title: d.title,
+                            content: d.content || '',
+                            date: d.date || d.created_at,
+                            visible: d.visible !== false
+                        });
+                    }
+                }
+            }
+
+            // Insert about
+            if (about && Object.keys(about).length > 0) {
+                await this.InsertAbout({
+                    studioName: about.studio_name || about.studioName,
+                    foundedDate: about.founded_date || about.foundedDate,
+                    description: about.description || '',
+                    email: about.email || '',
+                    socialLinks: about.social_links || about.socialLinks || about.links || {},
+                    tagline: about.tagline || '',
+                    portrait: about.portrait || '',
+                    description2: about.description2 || '',
+                    description3: about.description3 || '',
+                    universeBlurb: about.universe_blurb || about.universeBlurb || ''
+                });
+            }
+
+            await this._run('COMMIT');
+            console.log('ContentDB: All data saved');
+        } catch (err) {
+            await this._run('ROLLBACK').catch(() => {});
+            console.error('ContentDB: SaveAllContent failed, rolled back:', err);
+            throw err;
+        }
     }
 }
 

@@ -1,18 +1,14 @@
 #!/usr/bin/env node
 /**
- * Generate sitemap.xml, rss.xml, and robots.txt from site-content.json
- * Run manually after content changes, or add to a post-save hook.
+ * Generate sitemap.xml, rss.xml, and robots.txt from the live SQLite content DB.
+ * Run manually (`npm run meta`) or import generateAll() to call after a save.
  */
 const fs = require('fs');
 const path = require('path');
+const contentDB = require('./database.js');
 
 const BASE_URL = 'https://worldofxanrea.com';
 const PUBLIC_DIR = path.join(__dirname, 'public');
-const CONTENT_FILE = path.join(__dirname, 'site-content.json');
-
-function loadContent() {
-  return JSON.parse(fs.readFileSync(CONTENT_FILE, 'utf8'));
-}
 
 function todayIso() {
   return new Date().toISOString().split('T')[0];
@@ -20,6 +16,15 @@ function todayIso() {
 
 function nowIso() {
   return new Date().toISOString();
+}
+
+function esc(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 // ── robots.txt ────────────────────────────────────────────
@@ -30,25 +35,42 @@ Disallow: /admin
 Disallow: /dashboard
 Disallow: /login
 Disallow: /logout
+Disallow: /register
+Disallow: /api/
 
 Sitemap: ${BASE_URL}/sitemap.xml
 `;
   fs.writeFileSync(path.join(PUBLIC_DIR, 'robots.txt'), txt);
-  console.log('✓ robots.txt');
 }
 
-// ── sitemap.xml ─────────────────────────────────────────
-function generateSitemap() {
-  const data = loadContent();
-  const urls = [
-    { loc: '/', priority: '1.0', changefreq: 'weekly' },
-    { loc: '/books', priority: '0.9', changefreq: 'weekly' },
-    { loc: '/games', priority: '0.9', changefreq: 'monthly' },
-    { loc: '/about', priority: '0.7', changefreq: 'monthly' },
-    { loc: '/action_registry.html', priority: '0.3', changefreq: 'monthly' },
-  ];
+// Static (non-content-driven) public routes worth indexing.
+const STATIC_URLS = [
+  { loc: '/', priority: '1.0', changefreq: 'weekly' },
+  { loc: '/books', priority: '0.9', changefreq: 'weekly' },
+  { loc: '/games', priority: '0.9', changefreq: 'monthly' },
+  { loc: '/about', priority: '0.7', changefreq: 'monthly' },
+  { loc: '/xanrean', priority: '0.8', changefreq: 'monthly' },
+  { loc: '/xanrean/books', priority: '0.8', changefreq: 'weekly' },
+  { loc: '/xanrean/characters', priority: '0.7', changefreq: 'monthly' },
+  { loc: '/xanrean/characters/moderators', priority: '0.6', changefreq: 'monthly' },
+  { loc: '/xanrean/wiki', priority: '0.6', changefreq: 'monthly' },
+  { loc: '/xanrean/lore', priority: '0.7', changefreq: 'monthly' },
+  { loc: '/xanrean/lore/characters', priority: '0.6', changefreq: 'monthly' },
+  { loc: '/xanrean/lore/species', priority: '0.6', changefreq: 'monthly' },
+  { loc: '/xanrean/lore/world', priority: '0.5', changefreq: 'monthly' },
+  { loc: '/xanrean/lore/nekojin', priority: '0.5', changefreq: 'monthly' },
+  { loc: '/xanrean/lore/foxkin', priority: '0.5', changefreq: 'monthly' },
+  { loc: '/xanrean/lore/elves', priority: '0.5', changefreq: 'monthly' },
+  { loc: '/xanrean/lore/travelers', priority: '0.5', changefreq: 'monthly' },
+  { loc: '/xanrean/lore/wolfkin', priority: '0.5', changefreq: 'monthly' },
+  { loc: '/xanrean/lore/kitsune', priority: '0.5', changefreq: 'monthly' },
+];
 
-  for (const book of (data.books || []).filter(b => b.visible !== false)) {
+// ── sitemap.xml ─────────────────────────────────────────
+async function generateSitemap(books) {
+  const urls = [...STATIC_URLS];
+
+  for (const book of books.filter(b => b.visible !== false)) {
     urls.push({
       loc: `/book?id=${encodeURIComponent(book.id)}`,
       priority: '0.9',
@@ -67,15 +89,14 @@ ${urls.map(u => `  <url>
 </urlset>`;
 
   fs.writeFileSync(path.join(PUBLIC_DIR, 'sitemap.xml'), xml);
-  console.log('✓ sitemap.xml');
 }
 
 // ── rss.xml (Atom) ──────────────────────────────────────
-function generateRSS() {
-  const data = loadContent();
-  const books = (data.books || []).filter(b => b.visible !== false);
+async function generateRSS(books) {
+  const visibleBooks = books.filter(b => b.visible !== false);
 
-  const entries = books.map(book => {
+  const entries = visibleBooks.map(book => {
+    const description = book.description || '';
     const platforms = (book.platforms || []).map(p =>
       `<a href="${esc(p.url)}">${esc(p.name || p.type)}</a>`
     ).join(' · ');
@@ -85,9 +106,9 @@ function generateRSS() {
     <link href="${BASE_URL}/books#${encodeURIComponent(book.id)}" />
     <id>${BASE_URL}/books#${encodeURIComponent(book.id)}</id>
     <updated>${nowIso()}</updated>
-    <summary>${esc(book.description.slice(0, 300))}${book.description.length > 300 ? '…' : ''}</summary>
+    <summary>${esc(description.slice(0, 300))}${description.length > 300 ? '…' : ''}</summary>
     <content type="html"><![CDATA[
-      <p>${esc(book.description)}</p>
+      <p>${esc(description)}</p>
       <p><strong>Platforms:</strong> ${platforms}</p>
     ]]></content>
   </entry>`;
@@ -107,21 +128,29 @@ ${entries}
 </feed>`;
 
   fs.writeFileSync(path.join(PUBLIC_DIR, 'rss.xml'), xml);
-  console.log('✓ rss.xml');
 }
 
-function esc(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+// Regenerates robots.txt, sitemap.xml, and rss.xml from the current DB content.
+// Safe to call repeatedly (e.g. after every /save-content).
+async function generateAll() {
+  await contentDB.Open();
+  const books = await contentDB.SelectBooks();
+  generateRobots();
+  await generateSitemap(books);
+  await generateRSS(books);
 }
 
-// Run
-generateRobots();
-generateSitemap();
-generateRSS();
-console.log('\nDone. Add this to your <head> on every page:');
-console.log(`  <link rel="alternate" type="application/atom+xml" title="Nekojin Interactive Feed" href="${BASE_URL}/rss.xml" />`);
+module.exports = { generateAll };
+
+// CLI usage: `node generate-meta.js` / `npm run meta`
+if (require.main === module) {
+  generateAll()
+    .then(() => {
+      console.log('✓ robots.txt, sitemap.xml, rss.xml regenerated from database');
+      return contentDB.Close();
+    })
+    .catch(err => {
+      console.error('Meta generation failed:', err);
+      process.exit(1);
+    });
+}

@@ -70,11 +70,12 @@ nekojin-site/
 - Admin management panel
 
 ### 🔒 **Security**
-- bcrypt password hashing
-- Session-based authentication
+- bcrypt password hashing, no hardcoded credentials (env-configurable bootstrap admin)
+- Session-based authentication with CSRF (double-submit cookie) protection on all state-changing requests
 - Rate limiting (login, register, newsletter, API)
 - Role-based access (admin/user)
-- Static asset whitelist
+- Static asset whitelist, path-traversal guards on uploads and file serving
+- Request body size limits, origin-restricted CORS
 
 ### 📊 **Admin Panel**
 - Content management (books, games, about)
@@ -120,27 +121,36 @@ npm install
 pm2 restart nekojin-site
 ```
 
+### Environment Variables
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `PORT` | `7771` | HTTP port |
+| `ADMIN_BOOTSTRAP_USER` | `admin` | Username created on a fresh install (empty `users.json`) |
+| `ADMIN_BOOTSTRAP_PASSWORD` | *(random, printed once)* | Password for that first admin account. Set this explicitly for a controlled deploy, or read the generated password from the server's stdout on first boot and change it via the admin panel. |
+| `ALLOW_PUBLIC_REGISTRATION` | `false` | Set `true` to re-enable the public `/register` page. Off by default — this is a single-author site, not a multi-tenant app. |
+| `TRUST_PROXY` | `false` | Set `true` only if the server sits behind a reverse proxy (nginx, etc.) that sets `X-Forwarded-For`/`X-Real-IP`. Otherwise those headers are client-controlled and must not be trusted for rate limiting. |
+| `ALLOWED_ORIGINS` | `https://worldofxanrea.com` | Comma-separated list of origins allowed to make credentialed cross-origin requests. Same-origin browser requests (the normal case) don't need this at all. |
+
+**Important:** there are no hardcoded credentials in the codebase anymore. If your existing `users.json` still has the old default `xanmal` / `nekojin2026` account, log in and change that password immediately — it was previously committed in source.
+
 ---
 
 ## 🧪 Development
 
-### Database Migrations
-
-```bash
-# Migrate from JSON to SQLite (one-time)
-node migrate-to-sqlite.js
-
-# Migrate newsletter subscribers
-node migrate-newsletter.js
-```
+> The one-time `migrate-to-sqlite.js` / `migrate-newsletter.js` scripts have been removed —
+> the site has run entirely on SQLite (`data/nekojin.db`) since the July 2026 migration.
+> They're still in git history if a fresh JSON→SQLite migration is ever needed again.
 
 ### Testing
 
 ```bash
-# Check server starts
-npm start
+# Run the smoke test suite (boots a throwaway copy of the server on a
+# separate port and exercises health, auth, CSRF, and content save/load)
+npm test
 
-# Test in browser
+# Manual check in browser
+npm start
 open http://localhost:7771
 ```
 

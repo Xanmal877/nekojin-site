@@ -5,7 +5,8 @@
   "main": "dashboard-server.js",
   "scripts": {
     "start": "node dashboard-server.js",
-    "meta": "node generate-meta.js"
+    "meta": "node generate-meta.js",
+    "test": "node --test"
   },
   "keywords": [],
   "author": "Purple Xanmal",
@@ -17,5 +18,9 @@
     "mammoth": "^1.12.0",
     "sharp": "^0.33.0",
     "sqlite3": "^6.0.1"
+  },
+  "allowScripts": {
+    "sqlite3@6.0.1": true,
+    "sharp@0.33.5": true
   }
 }
