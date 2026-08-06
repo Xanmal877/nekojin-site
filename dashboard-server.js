@@ -17,6 +17,23 @@ const sharp = require('sharp');
 const accounts = require('./accounts.js');
 const contentDB = require('./database.js');
 const backup = require('./backup.js');
+const meta = require('./generate-meta.js');
+
+// ── DEPLOYMENT / ENV CONFIG ────────────────────────────────
+// Only trust X-Forwarded-For / X-Real-IP when actually running behind a
+// reverse proxy that sets them (e.g. nginx). Otherwise these headers are
+// client-controlled and let anyone bypass rate limiting by spoofing them.
+const TRUST_PROXY = process.env.TRUST_PROXY === 'true';
+
+// Comma-separated list of origins allowed to make credentialed cross-origin
+// requests (e.g. "https://worldofxanrea.com,https://www.worldofxanrea.com").
+// Same-origin requests (the normal case for this site) don't need CORS at all.
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://worldofxanrea.com')
+    .split(',').map(s => s.trim()).filter(Boolean);
+
+// Public self-registration is off by default for a solo-author site.
+// Set ALLOW_PUBLIC_REGISTRATION=true to let visitors create accounts.
+const PUBLIC_REGISTRATION_ENABLED = process.env.ALLOW_PUBLIC_REGISTRATION === 'true';
 
 // ── RATE LIMITING ─────────────────────────────────────────
 const rateLimits = new Map();
@@ -30,10 +47,13 @@ const RATE_LIMIT_CONFIG = {
 };
 
 function getClientIP(req) {
-    return req.headers['x-forwarded-for']?.split(',')[0].trim() || 
-           req.headers['x-real-ip'] || 
-           req.connection.remoteAddress || 
-           'unknown';
+    if (TRUST_PROXY) {
+        return req.headers['x-forwarded-for']?.split(',')[0].trim() ||
+               req.headers['x-real-ip'] ||
+               req.connection.remoteAddress ||
+               'unknown';
+    }
+    return req.connection.remoteAddress || 'unknown';
 }
 
 function checkRateLimit(req, endpoint) {
@@ -80,7 +100,7 @@ setInterval(() => {
 }, 10 * 60 * 1000);
 
 // ── CONFIG ────────────────────────────────────────────────
-const PORT = 7771;
+const PORT = Number(process.env.PORT) || 7771;
 
 // OPTION 1: Manuscript system disabled (can re-enable later)
 // Set to true to re-enable .docx reading and /read page
@@ -180,11 +200,25 @@ function listManuscripts() {
 
 
 // ── BODY PARSING ─────────────────────────────────────────
-function readRawBody(req) {
-    return new Promise(resolve => {
+// maxBytes guards against unbounded memory use from oversized request bodies
+// (a cheap DoS vector since the whole body is buffered before parsing).
+function readRawBody(req, maxBytes = 2 * 1024 * 1024) {
+    return new Promise((resolve, reject) => {
         const chunks = [];
-        req.on('data', c => chunks.push(c));
+        let size = 0;
+        req.on('data', c => {
+            size += c.length;
+            if (size > maxBytes) {
+                req.destroy();
+                const err = new Error('Request body too large');
+                err.status = 413;
+                reject(err);
+                return;
+            }
+            chunks.push(c);
+        });
         req.on('end', () => resolve(Buffer.concat(chunks)));
+        req.on('error', reject);
     });
 }
 
@@ -334,9 +368,9 @@ function registerPage(error = '', success = '') {
       <p class="hint">3-32 characters, letters, numbers, underscores only.</p>
       <input type="text" name="username" autocomplete="username" required pattern="[a-z0-9_]{3,32}" title="3-32 lowercase letters, numbers, underscores">
       <label>Password</label>
-      <input type="password" name="password" autocomplete="new-password" required minlength="6">
+      <input type="password" name="password" autocomplete="new-password" required minlength="8">
       <label>Confirm Password</label>
-      <input type="password" name="confirm" autocomplete="new-password" required minlength="6">
+      <input type="password" name="confirm" autocomplete="new-password" required minlength="8">
       <button type="submit">Create Account</button>
     </form>
     <a href="/login" class="back">← Back to sign in</a>
@@ -380,19 +414,38 @@ const PUBLIC_ROUTES = {
     '/xanrean/lore/travelers': path.join(PUBLIC_DIR, 'xanrean', 'lore', 'travelers.html'),
     '/xanrean/lore/wolfkin': path.join(PUBLIC_DIR, 'xanrean', 'lore', 'wolfkin.html'),
     '/xanrean/lore/kitsune': path.join(PUBLIC_DIR, 'xanrean', 'lore', 'kitsune.html'),
-    '/standalone': path.join(PUBLIC_DIR, 'standalone.html'),
 };
 
 // ── SERVER ────────────────────────────────────────────────
-const server = http.createServer(async (req, res) => {
+const server = http.createServer((req, res) => {
+    handleRequest(req, res).catch(err => {
+        console.error('Unhandled request error:', err);
+        try {
+            if (!res.headersSent) {
+                const status = err && err.status === 413 ? 413 : 500;
+                res.writeHead(status, { 'Content-Type': 'text/plain' });
+                res.end(status === 413 ? 'Payload too large' : 'Internal server error');
+            } else {
+                res.end();
+            }
+        } catch {}
+    });
+});
+
+async function handleRequest(req, res) {
     const url = req.url.split('?')[0];
     const query = new URL(req.url, `http://${req.headers.host}`).searchParams;
 
-    // CORS / preflight
-    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+    // CORS / preflight — only reflect an Origin that's on the allow-list.
+    // Reflecting *any* Origin while allowing credentials would let any
+    // website make authenticated cross-origin requests against admin APIs.
+    const origin = req.headers.origin;
+    if (origin && ALLOWED_ORIGINS.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Cookie');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Cookie, X-CSRF-Token');
     if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
 
     // Public HTML pages
@@ -434,16 +487,68 @@ const server = http.createServer(async (req, res) => {
         }
     }
 
+    // Health check (public) — DB connectivity + uptime, for monitoring/alerts
+    if (req.method === 'GET' && url === '/api/health') {
+        try {
+            await contentDB.SelectHomepageSettings();
+            let diskFree = null;
+            try { diskFree = fs.statfsSync(__dirname).bfree * fs.statfsSync(__dirname).bsize; } catch {}
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({
+                ok: true,
+                uptimeSeconds: Math.floor(process.uptime()),
+                dbConnected: true,
+                diskFreeBytes: diskFree
+            }));
+        } catch (err) {
+            res.writeHead(503, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ ok: false, dbConnected: false, error: err.message }));
+        }
+    }
+
     // Public content API - now from database
     if (req.method === 'GET' && url === '/content') {
         try {
             const data = await contentDB.GetAllContent();
+            // Public visitors only see published/released books (and previews
+            // only when explicitly requested). Admins loading the editor get
+            // the full, unfiltered catalog.
+            if (!accounts.isAdmin(req)) {
+                const previewRequested = query.get('preview') === '1';
+                data.books = data.books.filter(b => contentDB.isBookPublic(b, previewRequested));
+            }
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify(data));
         } catch (err) {
             console.error('Database error:', err);
             res.writeHead(500);
             return res.end('{"error":"Failed to load content"}');
+        }
+    }
+
+    // Public single-book lookup (supports preview mode).
+    // Used by public/book.html when ?preview=1 is present so a direct link
+    // can show a preview book that is not listed in the regular catalog.
+    if (req.method === 'GET' && url === '/book-by-slug') {
+        try {
+            const slug = query.get('slug');
+            if (!slug) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ error: 'Missing slug' }));
+            }
+            const previewAllowed = query.get('preview') === '1';
+            const rows = await contentDB.SelectBooks('slug = ? OR id = ?', [slug, slug]);
+            const book = rows.find(b => contentDB.isBookPublic(b, previewAllowed));
+            if (!book) {
+                res.writeHead(404, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ error: 'Book not found' }));
+            }
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ book }));
+        } catch (err) {
+            console.error('Database error:', err);
+            res.writeHead(500);
+            return res.end('{"error":"Failed to load book"}');
         }
     }
 
@@ -512,14 +617,18 @@ const server = http.createServer(async (req, res) => {
             return res.end(limit.message);
         }
         
-        const body = await readRawBody(req);
+        const body = await readRawBody(req, 16 * 1024);
         const params = parseFormBody(body);
         if (accounts.verifyUser(params.username, params.password)) {
             const sid = accounts.createSession(params.username);
+            const csrfToken = accounts.getSessionCsrfToken(sid);
             const next = (params.next && params.next.startsWith('/')) ? params.next : '/admin';
             res.writeHead(302, {
                 Location: next,
-                'Set-Cookie': `nki_session=${sid}; HttpOnly; SameSite=Strict; Max-Age=${accounts.SESSION_TTL / 1000}; Path=/`,
+                'Set-Cookie': [
+                    `nki_session=${sid}; HttpOnly; SameSite=Strict; Max-Age=${accounts.SESSION_TTL / 1000}; Path=/`,
+                    `nki_csrf=${csrfToken}; SameSite=Strict; Max-Age=${accounts.SESSION_TTL / 1000}; Path=/`,
+                ],
             });
             return res.end();
         }
@@ -528,19 +637,22 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === 'GET' && url === '/register') {
+        if (!PUBLIC_REGISTRATION_ENABLED) { res.writeHead(404); return res.end('Not found'); }
         res.writeHead(200, { 'Content-Type': 'text/html' });
         return res.end(registerPage());
     }
 
     if (req.method === 'POST' && url === '/register') {
+        if (!PUBLIC_REGISTRATION_ENABLED) { res.writeHead(404); return res.end('Not found'); }
+
         // Rate limit check
         const limit = checkRateLimit(req, '/register');
         if (!limit.allowed) {
             res.writeHead(429, { 'Content-Type': 'text/plain', 'Retry-After': limit.retryAfter });
             return res.end(limit.message);
         }
-        
-        const body = await readRawBody(req);
+
+        const body = await readRawBody(req, 16 * 1024);
         const params = parseFormBody(body);
         const username = (params.username || '').trim().toLowerCase();
         const password = params.password || '';
@@ -549,9 +661,9 @@ const server = http.createServer(async (req, res) => {
             res.writeHead(200, { 'Content-Type': 'text/html' });
             return res.end(registerPage('Username must be 3-32 characters: letters, numbers, underscores.'));
         }
-        if (password.length < 6) {
+        if (password.length < 8) {
             res.writeHead(200, { 'Content-Type': 'text/html' });
-            return res.end(registerPage('Password must be at least 6 characters.'));
+            return res.end(registerPage('Password must be at least 8 characters.'));
         }
         if (password !== confirm) {
             res.writeHead(200, { 'Content-Type': 'text/html' });
@@ -568,7 +680,13 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && url === '/logout') {
         const sid = accounts.getSessionId(req);
         if (sid) accounts.deleteSession(sid);
-        res.writeHead(302, { Location: '/login', 'Set-Cookie': 'nki_session=; HttpOnly; SameSite=Strict; Max-Age=0; Path=/' });
+        res.writeHead(302, {
+            Location: '/login',
+            'Set-Cookie': [
+                'nki_session=; HttpOnly; SameSite=Strict; Max-Age=0; Path=/',
+                'nki_csrf=; SameSite=Strict; Max-Age=0; Path=/',
+            ],
+        });
         return res.end();
     }
 
@@ -582,7 +700,7 @@ const server = http.createServer(async (req, res) => {
         }
         
         try {
-            const body = await readRawBody(req);
+            const body = await readRawBody(req, 16 * 1024);
             const { email } = JSON.parse(body.toString());
             if (!email || !email.includes('@')) { 
                 res.writeHead(400); 
@@ -627,6 +745,19 @@ const server = http.createServer(async (req, res) => {
         return res.end('Unauthorized');
     }
 
+    // ── CSRF GATE ─────────────────────────────────────────
+    // Double-submit cookie check for state-changing requests. The session
+    // cookie is HttpOnly and SameSite=Strict, but this adds defense-in-depth
+    // against CSRF from same-site subdomains / CORS misconfiguration.
+    if (req.method === 'POST' || req.method === 'DELETE' || req.method === 'PUT') {
+        const sid = accounts.getSessionId(req);
+        const csrfHeader = req.headers['x-csrf-token'];
+        if (!accounts.isValidCsrfToken(sid, csrfHeader)) {
+            res.writeHead(403, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ error: 'Invalid or missing CSRF token' }));
+        }
+    }
+
     // ── AUTHENTICATED ROUTES ──────────────────────────────
     const username = accounts.getUsername(req);
 
@@ -638,7 +769,7 @@ const server = http.createServer(async (req, res) => {
         }
         if (req.method === 'POST') {
             try {
-                const body = await readRawBody(req);
+                const body = await readRawBody(req, 16 * 1024);
                 const data = JSON.parse(body.toString('utf8'));
                 for (const [provider, key] of Object.entries(data)) {
                     accounts.setUserKey(username, provider, key || '');
@@ -659,14 +790,23 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && url === '/save-content') {
         if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
         try {
-            const body = await readRawBody(req);
+            const body = await readRawBody(req, 10 * 1024 * 1024);
             const data = JSON.parse(body.toString());
+            // Safety: backup the DB before any bulk replacement, then proceed.
+            try {
+                backup.createRestorePoint('save-content');
+            } catch (backupErr) {
+                console.error('Pre-save backup failed, continuing with save:', backupErr.message);
+            }
             await contentDB.SaveAllContent(data);
+            // Best-effort: keep sitemap.xml/rss.xml in sync with content changes.
+            meta.generateAll().catch(err => console.error('Meta regeneration failed:', err));
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end('{"ok":true}');
         } catch (e) {
             console.error('Save content error:', e);
-            res.writeHead(500);
+            const status = e.code === 'EMPTY_CONTENT_GUARD' ? 409 : 500;
+            res.writeHead(status, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ error: e.message }));
         }
     }
@@ -675,15 +815,18 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && url === '/upload-cover') {
         if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
         try {
-            const body = await readRawBody(req);
+            const body = await readRawBody(req, 25 * 1024 * 1024);
             const ct = req.headers['content-type'] || '';
             const bm = ct.match(/boundary=([^\s;]+)/);
             if (!bm) { res.writeHead(400); return res.end('No boundary'); }
             const parts = parseMultipart(body, bm[1]);
             const file = parts['cover'];
             if (!file || !file.data) { res.writeHead(400); return res.end('No file'); }
-            
-            const bookId = parts['bookId'] || 'cover';
+            if (file.data.length > 20 * 1024 * 1024) { res.writeHead(413); return res.end('Image too large (max 20MB)'); }
+
+            // bookId ends up in a filename written under COVERS_DIR — strip
+            // anything that isn't safe for a path segment to prevent traversal.
+            const bookId = (parts['bookId'] || 'cover').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 100) || 'cover';
             // Use fixed filename for homepage and xanrean backgrounds (overwrite), timestamp for others
             const useFixedName = bookId.startsWith('homepage-cover-') || bookId.startsWith('xanrean-cover-');
             const fname = useFixedName ? `${bookId}.webp` : `${bookId}-${Date.now()}.webp`;
@@ -813,31 +956,19 @@ const server = http.createServer(async (req, res) => {
         }
     }
 
-    console.log(`>>> REQUEST: ${req.method} ${url}`);
-    
     // ── HOMEPAGE SETTINGS API (POST - admin only) ─────────
     // Update homepage settings (admin only)
     if (req.method === 'POST' && url === '/api/homepage') {
-        console.log('>>> POST /api/homepage HIT');
-        if (!accounts.isAdmin(req)) { 
-            console.log('>>> AUTH FAILED');
-            res.writeHead(403); 
-            return res.end('Forbidden'); 
-        }
+        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
         try {
-            const body = await readRawBody(req);
-            console.log('>>> Raw body:', body.toString());
+            const body = await readRawBody(req, 64 * 1024);
             const data = JSON.parse(body.toString());
-            console.log('>>> Parsed data:', data);
-            const result = await contentDB.UpdateHomepageSettings(data);
-            console.log('>>> DB update result:', result);
-            // Check what's actually in the database
-            const before = await contentDB.SelectHomepageSettings();
-            console.log('>>> DB after update:', before);
+            await contentDB.UpdateHomepageSettings(data);
+            const updated = await contentDB.SelectHomepageSettings();
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify(before));
+            return res.end(JSON.stringify(updated));
         } catch (e) {
-            console.error('>>> POST /api/homepage ERROR:', e);
+            console.error('POST /api/homepage error:', e);
             res.writeHead(500);
             return res.end(JSON.stringify({ error: e.message }));
         }
@@ -858,25 +989,16 @@ const server = http.createServer(async (req, res) => {
 
     // Update xanrean settings (admin only)
     if (req.method === 'POST' && url === '/api/xanrean') {
-        console.log('>>> POST /api/xanrean HIT');
-        if (!accounts.isAdmin(req)) { 
-            console.log('>>> AUTH FAILED');
-            res.writeHead(403); 
-            return res.end('Forbidden'); 
-        }
+        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
         try {
-            const body = await readRawBody(req);
-            console.log('>>> Raw body:', body.toString());
+            const body = await readRawBody(req, 64 * 1024);
             const data = JSON.parse(body.toString());
-            console.log('>>> Parsed data:', data);
-            const result = await contentDB.UpdateXanreanSettings(data);
-            console.log('>>> DB update result:', result);
-            const before = await contentDB.SelectXanreanSettings();
-            console.log('>>> DB after update:', before);
+            await contentDB.UpdateXanreanSettings(data);
+            const updated = await contentDB.SelectXanreanSettings();
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify(before));
+            return res.end(JSON.stringify(updated));
         } catch (e) {
-            console.error('>>> POST /api/xanrean ERROR:', e);
+            console.error('POST /api/xanrean error:', e);
             res.writeHead(500);
             return res.end(JSON.stringify({ error: e.message }));
         }
@@ -913,9 +1035,10 @@ const server = http.createServer(async (req, res) => {
         }
         
         try {
-            const body = await readRawBody(req);
+            const body = await readRawBody(req, 16 * 1024);
             const { username, password, role } = JSON.parse(body.toString());
             if (!username || !password) { res.writeHead(400); return res.end('Missing username or password'); }
+            if (password.length < 8) { res.writeHead(400); return res.end('Password must be at least 8 characters'); }
             const success = accounts.createUser(username, password, role || 'user');
             if (!success) { res.writeHead(409); return res.end('Username already exists'); }
             res.writeHead(201, { 'Content-Type': 'application/json' });
@@ -929,6 +1052,10 @@ const server = http.createServer(async (req, res) => {
         try {
             const username = decodeURIComponent(url.slice(11)); // Remove '/api/users/'
             if (!username) { res.writeHead(400); return res.end('Missing username'); }
+            if (accounts.isLastAdmin(username)) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ error: 'Cannot delete the last remaining admin account.' }));
+            }
             const success = accounts.deleteUser(username);
             if (!success) { res.writeHead(404); return res.end('User not found'); }
             res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -941,9 +1068,10 @@ const server = http.createServer(async (req, res) => {
         if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
         try {
             const username = decodeURIComponent(url.match(/^\/api\/users\/([^\/]+)/)[1]);
-            const body = await readRawBody(req);
+            const body = await readRawBody(req, 16 * 1024);
             const { password } = JSON.parse(body.toString());
             if (!password) { res.writeHead(400); return res.end('Missing new password'); }
+            if (password.length < 8) { res.writeHead(400); return res.end('Password must be at least 8 characters'); }
             const success = accounts.resetPassword(username, password);
             if (!success) { res.writeHead(404); return res.end('User not found'); }
             res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -956,9 +1084,13 @@ const server = http.createServer(async (req, res) => {
         if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
         try {
             const username = decodeURIComponent(url.match(/^\/api\/users\/([^\/]+)/)[1]);
-            const body = await readRawBody(req);
+            const body = await readRawBody(req, 16 * 1024);
             const { role } = JSON.parse(body.toString());
             if (!role || !['admin', 'user'].includes(role)) { res.writeHead(400); return res.end('Invalid role'); }
+            if (role !== 'admin' && accounts.isLastAdmin(username)) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ error: 'Cannot demote the last remaining admin account.' }));
+            }
             const success = accounts.setUserRole(username, role);
             if (!success) { res.writeHead(404); return res.end('User not found'); }
             res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -969,13 +1101,18 @@ const server = http.createServer(async (req, res) => {
     // ── 404 ────────────────────────────────────────────────
     res.writeHead(404);
     res.end('Not found');
-});
+}
 
 server.on('error', err => {
     if (err.code === 'EADDRINUSE') {
         console.error(`Port ${PORT} in use.`);
         process.exit(1);
     } else throw err;
+});
+
+// Safety net: a single bad request should never take the whole server down.
+process.on('unhandledRejection', err => {
+    console.error('Unhandled rejection (server kept running):', err);
 });
 
 // Graceful shutdown - close database
@@ -991,9 +1128,32 @@ process.on('SIGINT', async () => {
     process.exit(0);
 });
 
-server.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '0.0.0.0', async () => {
     console.log(`\n🐾 Nekojin Interactive`);
     console.log(`   Public site:  http://0.0.0.0:${PORT}/`);
     console.log(`   Login:        http://0.0.0.0:${PORT}/login`);
     console.log(`   Admin:        http://0.0.0.0:${PORT}/admin\n`);
+
+    // Startup sanity check: detect the silent-wipe failure mode where the DB
+    // content tables are empty but cover uploads still exist on disk.
+    try {
+        await contentDB.Open();
+        const { series, books, game, about } = await contentDB.GetAllContent();
+        const hasContent = (series && series.length > 0) ||
+                           (books && books.length > 0) ||
+                           (game && game.length > 0) ||
+                           (about && Object.keys(about).length > 1); // id only = empty
+        if (!hasContent) {
+            const coversDir = path.join(PUBLIC_DIR, 'covers');
+            const coverFiles = fs.existsSync(coversDir) ? fs.readdirSync(coversDir) : [];
+            const hasCovers = coverFiles.some(f => /\.(jpg|jpeg|png|webp|gif)$/i.test(f));
+            if (hasCovers) {
+                console.warn('⚠️  WARNING: content tables are empty but /public/covers/ still has files.');
+                console.warn('   This matches the silent-wipe failure mode. Restore from backup or run');
+                console.warn(`   ${path.relative(process.cwd(), path.join(__dirname, 'tools', 'restore-content.js'))} before editing in the admin panel.\n`);
+            }
+        }
+    } catch (err) {
+        console.error('⚠️  Startup content check failed:', err.message);
+    }
 });

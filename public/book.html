@@ -375,6 +375,7 @@ const PLAT_CTA_LABEL = { rr: '📖 Royal Road', sh: '📖 ScribbleHub', kdp: '�
 async function loadBook() {
   const params = new URLSearchParams(location.search);
   const bookId = params.get('id');
+  const preview = params.get('preview') === '1';
   const container = document.getElementById('book-container');
 
   if (!bookId) {
@@ -387,19 +388,28 @@ async function loadBook() {
     return;
   }
 
-  let data;
+  let book, data;
   try {
-    const res = await fetch('/content');
-    data = await res.json();
+    if (preview) {
+      // Preview mode uses a dedicated endpoint so preview books aren't
+      // exposed through the regular public catalog.
+      const res = await fetch(`/book-by-slug?slug=${encodeURIComponent(bookId)}&preview=1`);
+      if (!res.ok) throw new Error('Preview book not found');
+      const single = await res.json();
+      book = single.book;
+      data = {};
+    } else {
+      const res = await fetch('/content');
+      data = await res.json();
+      const standaloneBooks = (data.books || []).filter(b => b.visible !== false);
+      const seriesBooks = (data.series || []).filter(s => s.visible !== false).flatMap(s => (s.books || []).filter(b => b.visible !== false));
+      const allBooks = [...standaloneBooks, ...seriesBooks];
+      book = allBooks.find(b => b.id === bookId || b.slug === bookId);
+    }
   } catch(e) {
     container.innerHTML = '<div style="text-align:center;padding:8rem 2rem;color:var(--muted);">Failed to load book data.</div>';
     return;
   }
-
-  const standaloneBooks = (data.books || []).filter(b => b.visible !== false);
-  const seriesBooks = (data.series || []).filter(s => s.visible !== false).flatMap(s => (s.books || []).filter(b => b.visible !== false));
-  const allBooks = [...standaloneBooks, ...seriesBooks];
-  const book = allBooks.find(b => b.id === bookId || b.slug === bookId);
 
   if (!book) {
     container.innerHTML = `
@@ -456,7 +466,8 @@ async function loadBook() {
     document.getElementById('footer-tagline').textContent = data.about.tagline;
   }
 
-  // More books
+  // More books (skip in preview mode; the preview endpoint only returns one book)
+  if (!preview && typeof allBooks !== 'undefined') {
   const others = allBooks.filter(b => b.id !== bookId).slice(0, 4);
   if (others.length) {
     const moreSection = document.getElementById('more-section');

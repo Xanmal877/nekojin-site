@@ -711,7 +711,15 @@ let dirty = false;
 // ── INIT ──────────────────────────────────────────────────
 async function init() {
   try {
-    await loadContent();
+    const ok = await loadContent();
+    if (!ok) {
+      // Do NOT render/enable the editor panels on a failed load: several of
+      // them (e.g. ensureGamesArray) would otherwise happily treat a null
+      // siteContent as "nothing exists yet" and let the user save an empty
+      // payload over real data. Block editing entirely until reload succeeds.
+      showContentLoadError();
+      return;
+    }
     renderBooksPanel();
     renderGamesPanel();
     renderAboutPanel();
@@ -722,17 +730,70 @@ async function init() {
   }
 }
 
+// The database stores books flat with a `series_id` foreign key (see
+// database.js SelectBooks/GetAllContent) — series rows never carry a
+// `.books` array. The rest of this file predates that schema and still
+// treats each series as owning a nested `books` array (getBook/getBooks/
+// renderBooksPanel all index through `series[si].books`). nestBooksIntoSeries
+// and flattenSeriesBooks are the single boundary that translates between
+// the two shapes, so the flat-vs-nested mismatch stays contained here
+// instead of needing every render/edit function rewritten.
+function nestBooksIntoSeries(loaded) {
+  const allBooks = Array.isArray(loaded.books) ? loaded.books : [];
+  const series = Array.isArray(loaded.series) ? loaded.series : [];
+  for (const s of series) {
+    s.books = allBooks
+      .filter(b => (b.series_id || b.seriesId) === s.id)
+      .sort((a, b) => (a.volume_number || 0) - (b.volume_number || 0));
+  }
+  loaded.series = series;
+  loaded.books = allBooks.filter(b => !(b.series_id || b.seriesId));
+  return loaded;
+}
+
+function flattenSeriesBooks(content) {
+  const standalone = content.books || [];
+  const fromSeries = (content.series || []).flatMap(s =>
+    (s.books || []).map((b, i) => ({
+      ...b,
+      seriesId: s.id,
+      // Order within a series is purely the array position the admin UI
+      // maintains (there's no direct volume-number editor) — persist that
+      // position so the public site's ORDER BY volume_number reflects it.
+      volumeNumber: i + 1,
+    }))
+  );
+  return { ...content, books: [...standalone, ...fromSeries] };
+}
+
 async function loadContent() {
   try {
     const res = await fetch('/content');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    siteContent = await res.json();
-    // Ensure root-level books array exists for standalone books
-    if (!Array.isArray(siteContent.books)) siteContent.books = [];
+    const loaded = nestBooksIntoSeries(await res.json());
+    siteContent = loaded;
+    return true;
   } catch(e) {
     showToast('Failed to load content: ' + e.message, 'error');
     console.error('loadContent failed:', e);
+    siteContent = null;
+    return false;
   }
+}
+
+function showContentLoadError() {
+  const overlay = document.createElement('div');
+  overlay.id = 'load-failure-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(13,8,32,0.96);' +
+    'display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1rem;' +
+    'color:#fff;text-align:center;padding:2rem;font-family:inherit;';
+  overlay.innerHTML = `
+    <div style="font-size:3rem;">⚠️</div>
+    <h2 style="margin:0;">Failed to load site content</h2>
+    <p style="max-width:420px;color:#c8bce0;">The admin panel couldn't load your books, series, game, and about data from the server. To avoid accidentally saving over existing content, editing has been disabled.</p>
+    <button class="btn btn-primary" onclick="location.reload()">Reload Page</button>
+  `;
+  document.body.appendChild(overlay);
 }
 
 // ── KEYBOARD SHORTCUTS ────────────────────────────────────
@@ -953,7 +1014,24 @@ function seriesPickerBackdropClick(e) {
 // ── HELPERS ───────────────────────────────────────────────
 function esc(str) {
   if (!str) return '';
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+
+// Convert a UTC ISO string into the YYYY-MM-DDTHH:MM format required by
+// <input type="datetime-local"> (local time).
+function toDatetimeLocal(isoString) {
+  if (!isoString) return '';
+  const d = new Date(isoString);
+  if (isNaN(d)) return '';
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+// CSRF token is set as a readable (non-HttpOnly) cookie on login; state-changing
+// requests must echo it back in a header so the server can verify same-origin intent.
+function getCsrfToken() {
+  const m = document.cookie.match(/(?:^|;\s*)nki_csrf=([^;]+)/);
+  return m ? decodeURIComponent(m[1]) : '';
 }
 
 function newBook() {
@@ -1052,7 +1130,7 @@ function renderBookEditor(si, bi, book, totalBooks) {
     ondrop="dragDrop(event,${si},${bi})">
     <div class="book-editor-header">
       <span class="drag-handle" title="Drag to reorder">⋮⋮</span>
-      <div class="book-editor-toggle" onclick="toggleBookEditor('${editorId}')">
+      <div class="book-editor-toggle" onclick="toggleBookEditor('${editorId}')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleBookEditor('${editorId}')}">
         <span class="chevron">▼</span>
         <div style="min-width:0;">
           <div class="book-editor-title">${esc(book.title)||'Untitled'} <small style="color:var(--muted);font-size:0.75rem;">${esc(book.volume||'')}</small></div>
@@ -1084,6 +1162,23 @@ function renderBookEditor(si, bi, book, totalBooks) {
             <option value="admins" ${book.tier==='admins' ? 'selected' : ''}>👑 The Admins</option>
             <option value="moderators" ${book.tier==='moderators' ? 'selected' : ''}>🛡️ The Moderators</option>
           </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div>
+          <label>Status</label>
+          <select onchange="getBook(${si},${bi}).status=this.value; markDirty()">
+            <option value="draft" ${book.status==='draft' ? 'selected' : ''}>Draft</option>
+            <option value="preview" ${book.status==='preview' ? 'selected' : ''}>Preview</option>
+            <option value="published" ${book.status==='published' || book.status==='released' ? 'selected' : ''}>Published</option>
+            <option value="archived" ${book.status==='archived' ? 'selected' : ''}>Archived</option>
+          </select>
+        </div>
+        <div style="flex:2">
+          <label>Publish At <span style="font-size:0.7rem;color:var(--muted);font-weight:400;">— leave blank for immediate</span></label>
+          <input type="datetime-local" value="${esc(toDatetimeLocal(book.publishAt || book.publish_at))}"
+            onchange="getBook(${si},${bi}).publishAt = this.value ? new Date(this.value).toISOString() : null; markDirty()">
         </div>
       </div>
 
@@ -1217,7 +1312,7 @@ async function handleCoverUpload(event, si, bi) {
   form.append('cover', file);
   form.append('bookId', getBook(si, bi).id);
   try {
-    const res  = await fetch('/upload-cover', { method: 'POST', body: form });
+    const res  = await fetch('/upload-cover', { method: 'POST', headers: { 'X-CSRF-Token': getCsrfToken() }, body: form });
     const data = await res.json();
     getBook(si, bi).cover = data.path;
     markDirty();
@@ -1330,7 +1425,11 @@ function moveBook(si, bi, dir) {
 let currentEditingGameIndex = -1;
 
 function ensureGamesArray() {
-  if (!siteContent) siteContent = {};
+  // Never fabricate siteContent here: if content failed to load, siteContent
+  // is null on purpose (see loadContent/showContentLoadError) so that saving
+  // stays a no-op instead of silently overwriting real data with an empty
+  // payload. Bail out rather than inventing a fake empty state.
+  if (!siteContent) { showToast('Content failed to load — reload the page before editing.', 'error'); return; }
   if (!siteContent.game) siteContent.game = [];
   if (!Array.isArray(siteContent.game)) {
     // Convert single game object to array
@@ -1358,8 +1457,8 @@ function renderGamesPanel() {
     document.getElementById('games-list').innerHTML = `
       <div class="games-grid">
         ${games.map((g, i) => `
-          <div class="game-list-item" onclick="editGame(${i})">
-            <img class="game-list-thumb" src="${esc(g.coverImage || '')}" alt="" 
+          <div class="game-list-item" onclick="editGame(${i})" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();editGame(${i})}">
+            <img class="game-list-thumb" src="${esc(g.coverImage || '')}" alt="${esc(g.title || 'Game')} cover"
               onerror="this.style.display='none'">
             <div class="game-list-info">
               <div class="game-list-title">${esc(g.title || 'Untitled Game')}</div>
@@ -1525,6 +1624,40 @@ function renderGameEditor() {
       <div id="game-devlog-editor">${renderDevlogRows(g.devlog || [])}</div>
       <button class="btn btn-ghost btn-sm" onclick="addDevlogEntry()">+ Add Devlog Entry</button>
     </div>
+
+    <div style="margin-top:1.5rem;border-top:1px solid var(--border);padding-top:1rem;">
+      <div class="card-title" style="margin-bottom:0.75rem;">📊 Development Progress</div>
+      <p style="font-size:0.78rem;color:var(--muted);margin-bottom:1rem;">Overall completion percentage shown on the public games page.</p>
+      <div class="form-row">
+        <div style="flex:0 0 160px;">
+          <label>Progress (%)</label>
+          <input type="number" id="game-progress" min="0" max="100" value="${Number(g.progress || 0)}"
+            oninput="updateGameField('progress', Math.max(0, Math.min(100, Number(this.value) || 0)))">
+        </div>
+        <div style="flex:1;">
+          <label>Gameplay Video URL</label>
+          <input type="url" id="game-video-url" value="${esc(g.videoUrl || '')}"
+            oninput="updateGameField('videoUrl', this.value)" placeholder="https://www.youtube.com/embed/... or https://player.vimeo.com/...">
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:1.5rem;border-top:1px solid var(--border);padding-top:1rem;">
+      <div class="card-title" style="margin-bottom:0.75rem;">🖥️ System Requirements</div>
+      <p style="font-size:0.78rem;color:var(--muted);margin-bottom:1rem;">Shown in the Overview tab on the public games page.</p>
+      <div class="form-row">
+        <div><label>OS</label><input type="text" value="${esc(g.systemRequirements?.os || '')}" placeholder="Windows 10 / Linux" oninput="updateSystemRequirement('os', this.value)"></div>
+        <div><label>Processor</label><input type="text" value="${esc(g.systemRequirements?.processor || '')}" placeholder="Quad-core 2.5 GHz" oninput="updateSystemRequirement('processor', this.value)"></div>
+      </div>
+      <div class="form-row">
+        <div><label>Memory</label><input type="text" value="${esc(g.systemRequirements?.memory || '')}" placeholder="8 GB RAM" oninput="updateSystemRequirement('memory', this.value)"></div>
+        <div><label>Graphics</label><input type="text" value="${esc(g.systemRequirements?.graphics || '')}" placeholder="Dedicated GPU with 2 GB VRAM" oninput="updateSystemRequirement('graphics', this.value)"></div>
+      </div>
+      <div class="form-row">
+        <div><label>Storage</label><input type="text" value="${esc(g.systemRequirements?.storage || '')}" placeholder="2 GB available space" oninput="updateSystemRequirement('storage', this.value)"></div>
+        <div><label>DirectX / Engine Notes</label><input type="text" value="${esc(g.systemRequirements?.directx || '')}" placeholder="Godot 4 / Vulkan-compatible drivers" oninput="updateSystemRequirement('directx', this.value)"></div>
+      </div>
+    </div>
   `;
 }
 
@@ -1565,6 +1698,18 @@ function updatePlatform(platform, value) {
     game.platforms[platform] = value;
   } else {
     delete game.platforms[platform];
+  }
+  markDirty();
+}
+
+function updateSystemRequirement(field, value) {
+  ensureGamesArray();
+  const game = siteContent.game[currentEditingGameIndex];
+  if (!game.systemRequirements) game.systemRequirements = {};
+  if (value) {
+    game.systemRequirements[field] = value;
+  } else {
+    delete game.systemRequirements[field];
   }
   markDirty();
 }
@@ -1663,7 +1808,7 @@ async function handleGameCoverUpload(event) {
   const gameSlug = siteContent.game[currentEditingGameIndex]?.slug || 'game-cover';
   form.append('bookId', `game-${gameSlug}`);
   try {
-    const res = await fetch('/upload-cover', { method: 'POST', body: form });
+    const res = await fetch('/upload-cover', { method: 'POST', headers: { 'X-CSRF-Token': getCsrfToken() }, body: form });
     const data = await res.json();
     updateGameField('coverImage', data.path);
     const preview = document.getElementById('game-cover-preview');
@@ -1919,17 +2064,24 @@ function renderVisibilityPanel() {
 async function saveContent() {
   if (!siteContent) { showToast('Nothing to save.', 'error'); return; }
   try {
+    // /save-content -> SaveAllContent only reads the top-level `books` array
+    // (books belong to a series via `series_id`, not by nesting) — flatten
+    // series[i].books back out here or every book living inside a series
+    // would silently vanish on save. See nestBooksIntoSeries for the
+    // corresponding un-flatten on load.
     const res = await fetch('/save-content', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(siteContent),
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
+      body: JSON.stringify(flattenSeriesBooks(siteContent)),
     });
     if (res.ok) {
       showToast('✓ Saved!');
       dirty = false;
       document.getElementById('save-banner').classList.remove('visible');
     } else {
-      showToast('Save failed', 'error');
+      let msg = 'Save failed';
+      try { const errBody = await res.json(); if (errBody.error) msg = errBody.error; } catch {}
+      showToast(msg, 'error');
     }
   } catch(e) {
     showToast('Save failed: ' + e.message, 'error');
@@ -2084,7 +2236,7 @@ async function createNewUser() {
   try {
     const res = await fetch('/api/users', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
       body: JSON.stringify({ username, password, role })
     });
     
@@ -2108,7 +2260,7 @@ async function changeUserRole(username, role) {
   try {
     const res = await fetch(`/api/users/${encodeURIComponent(username)}/role`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
       body: JSON.stringify({ role })
     });
     
@@ -2145,7 +2297,7 @@ async function submitResetPassword() {
   try {
     const res = await fetch(`/api/users/${encodeURIComponent(currentResetUsername)}/reset-password`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
       body: JSON.stringify({ password: newPassword })
     });
     
@@ -2166,7 +2318,8 @@ async function deleteUser(username) {
   
   try {
     const res = await fetch(`/api/users/${encodeURIComponent(username)}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: { 'X-CSRF-Token': getCsrfToken() }
     });
     
     if (!res.ok) throw new Error('Failed to delete user');
@@ -2196,7 +2349,7 @@ async function handleHomepageImageUpload(input, panel) {
   // Use homepage-cover-{panel} naming
   form.append('bookId', `homepage-cover-${panel}`);
   try {
-    const res = await fetch('/upload-cover', { method: 'POST', body: form });
+    const res = await fetch('/upload-cover', { method: 'POST', headers: { 'X-CSRF-Token': getCsrfToken() }, body: form });
     const data = await res.json();
     document.getElementById(`homepage-${panel}-bg`).value = data.path;
     updateHomepagePreview(panel, data.path);
@@ -2222,7 +2375,7 @@ async function handlePortraitUpload(input) {
   form.append('bookId', 'about-portrait');
   
   try {
-    const res = await fetch('/upload-cover', { method: 'POST', body: form });
+    const res = await fetch('/upload-cover', { method: 'POST', headers: { 'X-CSRF-Token': getCsrfToken() }, body: form });
     const data = await res.json();
     
     // Update the input and preview
@@ -2285,16 +2438,13 @@ async function loadHomepageSettings() {
 }
 
 async function saveHomepageSettings() {
-  console.log('>>> saveHomepageSettings() called');
   const xanreanBg = document.getElementById('homepage-xanrean-bg').value.trim();
   const standaloneBg = document.getElementById('homepage-standalone-bg').value.trim();
   const communityBg = document.getElementById('homepage-community-bg').value.trim();
-  console.log('>>> Values to save:', { xanrean_bg: xanreanBg, standalone_bg: standaloneBg, community_bg: communityBg });
   try {
-    console.log('>>> POSTing to /api/homepage...');
     const res = await fetch('/api/homepage', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
       cache: 'no-store',
       body: JSON.stringify({
         xanrean_bg: xanreanBg,
@@ -2302,16 +2452,13 @@ async function saveHomepageSettings() {
         community_bg: communityBg
       })
     });
-    console.log('>>> POST response status:', res.status);
-    const responseText = await res.text();
-    console.log('>>> POST response body:', responseText);
     if (res.ok) {
       showToast('✓ Saved!');
     } else {
       showToast('Save failed', 'error');
     }
   } catch(e) {
-    console.error('>>> POST error:', e);
+    console.error('saveHomepageSettings error:', e);
     showToast('Save failed: ' + e.message, 'error');
   }
 }
@@ -2344,7 +2491,7 @@ async function handleXanreanImageUpload(input, panel) {
   form.append('cover', file);
   form.append('bookId', `xanrean-cover-${panel}`);
   try {
-    const res = await fetch('/upload-cover', { method: 'POST', body: form });
+    const res = await fetch('/upload-cover', { method: 'POST', headers: { 'X-CSRF-Token': getCsrfToken() }, body: form });
     const data = await res.json();
     document.getElementById(`xanrean-${panel}-bg`).value = data.path;
     updateXanreanPreview(panel, data.path);
@@ -2385,23 +2532,20 @@ async function saveXanreanSettings() {
     lore_bg: document.getElementById('xanrean-lore-bg').value.trim(),
     game_bg: document.getElementById('xanrean-game-bg').value.trim()
   };
-  console.log('>>> Values to save:', data);
   try {
     const res = await fetch('/api/xanrean', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
       cache: 'no-store',
       body: JSON.stringify(data)
     });
-    const responseText = await res.text();
-    console.log('>>> POST response:', res.status, responseText);
     if (res.ok) {
       showToast('✓ Saved!');
     } else {
       showToast('Save failed', 'error');
     }
   } catch(e) {
-    console.error('>>> POST error:', e);
+    console.error('saveXanreanSettings error:', e);
     showToast('Save failed: ' + e.message, 'error');
   }
 }

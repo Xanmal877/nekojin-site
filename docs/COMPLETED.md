@@ -2,7 +2,7 @@
 
 > A running log of everything we've built, fixed, and improved.
 > 
-> **Last Updated:** 2026-07-11 (Late Night Session)
+> **Last Updated:** 2026-08-06
 
 ---
 
@@ -34,6 +34,44 @@
 - Small gap between cards (0.5rem)
 - Content positioned at 3vh from top
 - Perfect VBox layout with floating footer
+
+---
+
+## 🛠️ 2026-08-06 Session — Security, Data Safety, Content, and Publishing
+
+### Silent Full-Content Wipe — Fixed
+- `database.js`: `SaveAllContent()` refuses empty payloads when real content exists (`409 EMPTY_CONTENT_GUARD`).
+- `admin.html`: load failure now blocks the editor instead of silently rendering empty panels.
+- `tests/smoke.test.js`: regression test ensures empty save is rejected and content survives.
+
+### Last-Admin Lockout — Fixed
+- `accounts.isLastAdmin()` guards `DELETE /api/users/:username` and `POST /api/users/:username/role`.
+- Covered by smoke test.
+
+### Startup Silent-Wipe Warning
+- `dashboard-server.js` warns on startup if content tables are empty while `public/covers/` still has files.
+
+### Automated Pre-Import / Pre-Save Backups
+- `backup.js` exports `createRestorePoint(label)`.
+- `tools/restore-content.js` backs up before importing.
+- `/save-content` backs up before each bulk save.
+
+### Content Restoration
+- `tools/restore-content.js` imports real books/series/game/about from local sources.
+- Result: 1 series, 7 books, 1 game, 1 about record; 7 cover images in `public/covers/`.
+
+### Games Page Polish
+- `public/games.html`: Overview | Features | Media | Devlog tabs.
+- Screenshot lightbox, 16:9 gameplay video section, system requirements panel, animated progress bar.
+- New optional game fields: `progress`, `systemRequirements`, `videoUrl` (wired in `admin.html` and `restore-content.js`).
+
+### Book Status Workflow
+- Valid statuses enforced: `draft`, `preview`, `published`, `archived` (legacy `released` treated as published).
+- Public `/content` filters drafts/archived; preview books accessible via `/book-by-slug?slug=...&preview=1`.
+- Optional scheduled publishing via `publish_at`.
+- Admin book editor has Status dropdown + Publish At datetime input.
+
+**Tests:** `npm test` → 16/16 passing.
 
 ---
 
@@ -352,30 +390,31 @@ Admin-configurable homepage split-panel backgrounds:
 
 ## 🎯 What's Left (Known Issues)
 
-1. **Manuscript Upload Validation** — No file type/size checks
-2. **Legacy JSON Files** — `site-content.json` and `.backup` in data/ can be removed
-3. **Moderator Pages** — Most still use template, need dedicated pages
+See `docs/ISSUES.md` for the canonical issue list and `docs/PLANNED.md` for the roadmap.
+
+High-level reminders:
+1. **Verify production/Pi data** before treating the local DB as canonical.
+2. **Moderator Pages / Worlds Content** — need real source material; do not invent.
+3. **Content Validation** — slugs, duplicates, required fields, image validation.
+4. **Legacy JSON Files** — `data/site-content.json` and `.backup` can be removed once confirmed unused.
 
 ---
 
 ## 🚀 Deployment Status
 
-**Current Branch:** `dev`  
-**Commits:** 20+ commits ahead of origin  
-**Ready for:** Pi deployment testing  
-**Merge to main:** When you're satisfied
+**Environment:** Local working copy (not a git repo here).  
+**Local test status:** `npm test` → 16/16 passing.  
+**Next step:** Verify production/Pi `data/nekojin.db` and backups, or continue with roadmap items in `docs/PLANNED.md`.
 
 ---
 
 ## 💡 Next Ideas
 
-- **EJS Templates** — Server-side rendering for logged-in states
-- **Screenshot Gallery** — Lightbox for game images
-- **Reading Progress** — Track user's last read chapter
-- **Gumroad Integration** — Sell books/games directly
-- **Analytics Dashboard** — View counts, popular books
-- **More Moderator Pages** — Dedicated pages for remaining moderators
-- **Worlds Content** — Populate worldbuilding section
+- **Series Management Improvements** — drag-and-drop ordering, series cover/status, word counts.
+- **Content Validation** — URL-safe slugs, duplicates, required fields, image validation.
+- **Health Check Endpoint** — disk-space alerts, uptime ready.
+- **More Moderator Pages** — Dedicated pages for remaining moderators.
+- **Worlds Content** — Populate worldbuilding section.
 
 ---
 

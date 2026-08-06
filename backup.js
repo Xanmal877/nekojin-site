@@ -34,30 +34,49 @@ function ensureDir(dir) {
 
 function createBackup() {
     ensureDir(BACKUP_DIR);
-    
+
     if (!fs.existsSync(DB_FILE)) {
         console.error(`Database not found: ${DB_FILE}`);
         return false;
     }
-    
+
     const timestamp = getTimestamp();
     const backupFile = path.join(BACKUP_DIR, `nekojin-${timestamp}.db`);
-    
+
     // Don't overwrite if already exists today
     if (fs.existsSync(backupFile)) {
         console.log(`Backup already exists for today: ${backupFile}`);
         return true;
     }
-    
+
+    return copyDbTo(backupFile, 'daily backup');
+}
+
+function getRestoreTimestamp() {
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+}
+
+function createRestorePoint(label = 'restore') {
+    ensureDir(BACKUP_DIR);
+
+    if (!fs.existsSync(DB_FILE)) {
+        console.error(`Database not found: ${DB_FILE}`);
+        return false;
+    }
+
+    const safeLabel = String(label).replace(/[^a-z0-9_-]/gi, '-');
+    const backupFile = path.join(BACKUP_DIR, `nekojin-restore-${safeLabel}-${getRestoreTimestamp()}.db`);
+    return copyDbTo(backupFile, 'restore point');
+}
+
+function copyDbTo(backupFile, description) {
     try {
         fs.copyFileSync(DB_FILE, backupFile);
-        console.log(`✅ Backup created: ${backupFile}`);
-        
-        // Verify backup
         const stats = fs.statSync(backupFile);
         const sizeMB = (stats.size / 1024 / 1024).toFixed(2);
-        console.log(`   Size: ${sizeMB} MB`);
-        
+        console.log(`✅ ${description ? description[0].toUpperCase() + description.slice(1) : 'Backup'} created: ${backupFile} (${sizeMB} MB)`);
         return true;
     } catch (err) {
         console.error(`❌ Backup failed: ${err.message}`);
@@ -181,4 +200,4 @@ Configuration:
     getBackupStatus();
 }
 
-module.exports = { createBackup, cleanupOldBackups, getBackupStatus };
+module.exports = { createBackup, createRestorePoint, cleanupOldBackups, getBackupStatus };

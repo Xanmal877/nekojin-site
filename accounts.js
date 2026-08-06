@@ -69,14 +69,37 @@ setInterval(cleanupExpiredSessions, 60 * 60 * 1000);
 function saveSessions() {
     try {
         fs.writeFileSync(SESSIONS_FILE, JSON.stringify(Object.fromEntries(sessions), null, 2));
+        fs.chmodSync(SESSIONS_FILE, 0o600);
     } catch {}
 }
 
 function createSession(username) {
     const id = crypto.randomBytes(32).toString('hex');
-    sessions.set(id, { createdAt: Date.now(), username });
+    const csrfToken = crypto.randomBytes(24).toString('hex');
+    sessions.set(id, { createdAt: Date.now(), username, csrfToken });
     saveSessions();
     return id;
+}
+
+function getSessionCsrfToken(id) {
+    const s = sessions.get(id);
+    if (!s) return null;
+    // Lazily backfill sessions created before CSRF tokens existed, so
+    // already-logged-in users aren't forced to re-authenticate.
+    if (!s.csrfToken) {
+        s.csrfToken = crypto.randomBytes(24).toString('hex');
+        saveSessions();
+    }
+    return s.csrfToken;
+}
+
+function isValidCsrfToken(sessionId, token) {
+    const s = sessions.get(sessionId);
+    if (!s || !s.csrfToken || !token) return false;
+    const a = Buffer.from(String(s.csrfToken));
+    const b = Buffer.from(String(token));
+    if (a.length !== b.length) return false;
+    return crypto.timingSafeEqual(a, b);
 }
 
 function isValidSession(id) {
@@ -150,19 +173,39 @@ function ensureAdminUser() {
     let migrated = false;
     for (const [name, u] of Object.entries(db.users)) {
         if (!u.role) {
-            u.role = (name === 'xanmal') ? 'admin' : 'user';
+            u.role = 'user'; // legacy accounts default to non-admin; promote explicitly via /api/users
             migrated = true;
         }
     }
-    if (!db.users['xanmal']) {
-        db.users['xanmal'] = {
-            passwordHash: bcrypt.hashSync('nekojin2026', SALT_ROUNDS),
+
+    // Only bootstrap an admin account on a genuinely fresh install (no users at all).
+    // No hardcoded credentials: use ADMIN_BOOTSTRAP_USER/ADMIN_BOOTSTRAP_PASSWORD env vars,
+    // or fall back to a randomly generated password printed once to the console.
+    if (Object.keys(db.users).length === 0) {
+        const bootstrapUser = process.env.ADMIN_BOOTSTRAP_USER || 'admin';
+        const usedEnvPassword = !!process.env.ADMIN_BOOTSTRAP_PASSWORD;
+        const bootstrapPassword = process.env.ADMIN_BOOTSTRAP_PASSWORD || crypto.randomBytes(12).toString('base64url');
+
+        db.users[bootstrapUser] = {
+            passwordHash: bcrypt.hashSync(bootstrapPassword, SALT_ROUNDS),
             role: 'admin',
             createdAt: Date.now()
         };
         migrated = true;
-        console.log('Created default admin user: xanmal');
+
+        if (usedEnvPassword) {
+            console.log(`Created initial admin user "${bootstrapUser}" from ADMIN_BOOTSTRAP_PASSWORD env var.`);
+        } else {
+            console.log('='.repeat(64));
+            console.log(`No users found. Created initial admin user: ${bootstrapUser}`);
+            console.log(`Generated password: ${bootstrapPassword}`);
+            console.log('Save this now — it will not be shown again. Log in and change it,');
+            console.log('or set ADMIN_BOOTSTRAP_USER / ADMIN_BOOTSTRAP_PASSWORD env vars before');
+            console.log('first boot to control the initial credentials.');
+            console.log('='.repeat(64));
+        }
     }
+
     if (migrated) saveUsers(db);
 }
 
@@ -198,6 +241,17 @@ function setUserRole(username, role) {
     db.users[username].role = role;
     saveUsers(db);
     return true;
+}
+
+// True if `username` is an admin and removing/demoting them would leave
+// zero admin accounts — used to block deletes/role-changes that would lock
+// everyone out of the admin panel with no recovery path.
+function isLastAdmin(username) {
+    const db = loadUsers();
+    const user = db.users[username];
+    if (!user || (user.role || 'user') !== 'admin') return false;
+    const adminCount = Object.values(db.users).filter(u => (u.role || 'user') === 'admin').length;
+    return adminCount <= 1;
 }
 
 // ── USER KEYS ───────────────────────────────────────────
@@ -260,6 +314,8 @@ module.exports = {
     getSessionUser,
     deleteSession,
     cleanupExpiredSessions,
+    getSessionCsrfToken,
+    isValidCsrfToken,
     // Users
     findUser,
     createUser,
@@ -271,6 +327,7 @@ module.exports = {
     deleteUser,
     resetPassword,
     setUserRole,
+    isLastAdmin,
     // User keys
     getUserKeys,
     setUserKey,

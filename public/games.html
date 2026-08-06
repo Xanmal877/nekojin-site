@@ -1368,11 +1368,21 @@
       border-radius: 16px;
       overflow: hidden;
       transition: all 0.25s;
+      cursor: pointer;
+      padding: 0;
+      text-align: left;
+      width: 100%;
+      color: inherit;
+      font: inherit;
     }
     .screenshot-card:hover {
       transform: translateY(-4px);
       border-color: var(--border2);
       box-shadow: 0 12px 32px rgba(0,0,0,0.35);
+    }
+    .screenshot-card:focus-visible {
+      outline: 2px solid var(--royal-light);
+      outline-offset: 2px;
     }
     .screenshot-card img {
       width: 100%; height: auto;
@@ -1384,6 +1394,283 @@
       font-size: 0.78rem;
       color: rgba(212,200,240,0.72);
       text-align: center;
+    }
+
+    /* ── GAME TABS ── */
+    .game-tabs-section {
+      padding: 4rem 2rem 6rem;
+      background: linear-gradient(180deg, var(--void) 0%, rgba(16,10,44,0.3) 50%, var(--void) 100%);
+    }
+    .game-tabs {
+      display: flex;
+      gap: 0.5rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+    .game-tab {
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      padding: 0.9rem 1.4rem;
+      color: rgba(196,181,253,0.6);
+      font-family: var(--font-display);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: -1px;
+    }
+    .game-tab:hover {
+      color: #e9d5ff;
+      background: rgba(124,58,237,0.08);
+      border-radius: 10px 10px 0 0;
+    }
+    .game-tab.active {
+      color: #fff;
+      border-bottom-color: var(--royal-light);
+      background: rgba(124,58,237,0.12);
+      border-radius: 10px 10px 0 0;
+    }
+    .game-tab-panel {
+      display: none;
+      animation: fadeIn 0.35s ease;
+    }
+    .game-tab-panel.active {
+      display: block;
+    }
+
+    /* ── OVERVIEW TAB ── */
+    .overview-layout {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr;
+      gap: 2.5rem;
+      align-items: start;
+    }
+    .overview-description h2,
+    .overview-description h3,
+    .overview-description h4 {
+      font-family: var(--font-display);
+      color: var(--ink);
+      margin: 1.5rem 0 0.5rem;
+      line-height: 1.2;
+    }
+    .overview-description h2:first-child,
+    .overview-description h3:first-child,
+    .overview-description h4:first-child { margin-top: 0; }
+    .overview-description p {
+      font-size: 0.9rem;
+      color: rgba(212,200,240,0.78);
+      line-height: 1.85;
+      margin-bottom: 1rem;
+      font-weight: 300;
+    }
+    .overview-description p:last-child { margin-bottom: 0; }
+    .overview-empty {
+      color: rgba(212,200,240,0.55);
+      font-style: italic;
+    }
+
+    .requirements-panel {
+      background: linear-gradient(135deg, rgba(12,7,32,0.98), rgba(16,10,44,0.98));
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 1.75rem;
+      position: sticky;
+      top: 6rem;
+    }
+    .requirements-title {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      color: var(--ink);
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .requirements-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+    .requirement-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    .requirement-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--royal-light);
+    }
+    .requirement-value {
+      font-size: 0.85rem;
+      color: rgba(212,200,240,0.85);
+      line-height: 1.5;
+    }
+    .requirements-placeholder {
+      font-size: 0.85rem;
+      color: rgba(212,200,240,0.5);
+      font-style: italic;
+    }
+
+    /* ── MEDIA TAB: VIDEO ── */
+    .video-section { margin-bottom: 2.5rem; }
+    .video-section-title {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      color: var(--ink);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .video-wrapper {
+      position: relative;
+      padding-bottom: 56.25%;
+      height: 0;
+      overflow: hidden;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: linear-gradient(160deg, rgba(45,16,101,0.3), rgba(30,27,75,0.6));
+    }
+    .video-wrapper iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+    .video-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      color: rgba(196,181,253,0.5);
+      text-align: center;
+      padding: 2rem;
+    }
+    .video-placeholder-icon { font-size: 3rem; opacity: 0.5; }
+
+    /* ── LIGHTBOX ── */
+    .lightbox-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(5,3,12,0.94);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.25s, visibility 0.25s;
+      padding: 2rem;
+    }
+    .lightbox-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+    .lightbox-img {
+      max-width: 100%;
+      max-height: 90vh;
+      border-radius: 12px;
+      border: 1px solid rgba(124,58,237,0.3);
+      box-shadow: 0 24px 80px rgba(0,0,0,0.7);
+      transform: scale(0.96);
+      transition: transform 0.25s;
+    }
+    .lightbox-overlay.active .lightbox-img {
+      transform: scale(1);
+    }
+    .lightbox-close {
+      position: absolute;
+      top: 1.5rem;
+      right: 1.5rem;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(124,58,237,0.3);
+      color: rgba(196,181,253,0.9);
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      font-size: 1.5rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .lightbox-close:hover {
+      background: rgba(124,58,237,0.2);
+      color: #fff;
+    }
+    .lightbox-caption {
+      position: absolute;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      color: rgba(212,200,240,0.85);
+      font-size: 0.9rem;
+      text-align: center;
+      max-width: 80%;
+    }
+
+    /* ── DEVLOG PROGRESS ── */
+    .devlog-progress {
+      background: linear-gradient(135deg, rgba(12,7,32,0.98), rgba(16,10,44,0.98));
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 1.75rem;
+      margin-bottom: 2rem;
+    }
+    .devlog-progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .devlog-progress-title {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      color: var(--ink);
+    }
+    .devlog-progress-percent {
+      font-family: var(--font-mono);
+      font-size: 1.1rem;
+      color: var(--royal-light);
+      font-weight: 700;
+    }
+    .progress-track {
+      width: 100%;
+      height: 10px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid rgba(124,58,237,0.15);
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #7c3aed, #c084fc);
+      border-radius: 999px;
+      transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 0 20px rgba(124,58,237,0.4);
+    }
+
+    @media (max-width: 900px) {
+      .overview-layout { grid-template-columns: 1fr; }
+      .requirements-panel { position: static; }
+    }
+    @media (max-width: 700px) {
+      .game-tabs-section { padding: 3rem 1rem 4rem; }
+      .game-tab { padding: 0.75rem 1rem; font-size: 0.85rem; }
     }
 
     /* ── REVEAL ── */
@@ -1466,42 +1753,52 @@
     </div>
   </section>
 
-  <!-- SCREENSHOTS -->
-  <section class="screenshots-section" id="screenshots-section" style="display:none;">
+  <!-- GAME TABS -->
+  <section class="game-tabs-section" id="game-tabs-section">
     <div class="section-inner">
-      <div class="section-header reveal">
-        <p class="section-eyebrow">📸 Gallery</p>
-        <h2 class="section-title">Screenshots</h2>
+      <div class="game-tabs" role="tablist" aria-label="Game sections">
+        <button class="game-tab active" role="tab" aria-selected="true" aria-controls="tab-overview" id="tab-btn-overview" data-tab="overview" type="button">Overview</button>
+        <button class="game-tab" role="tab" aria-selected="false" aria-controls="tab-features" id="tab-btn-features" data-tab="features" type="button">Features</button>
+        <button class="game-tab" role="tab" aria-selected="false" aria-controls="tab-media" id="tab-btn-media" data-tab="media" type="button">Media</button>
+        <button class="game-tab" role="tab" aria-selected="false" aria-controls="tab-devlog" id="tab-btn-devlog" data-tab="devlog" type="button">Devlog</button>
       </div>
-      <div class="screenshots-grid" id="screenshots-grid"></div>
-    </div>
-  </section>
 
-  <div class="section-divider"></div>
+      <div class="game-tab-panels">
+        <div class="game-tab-panel active" id="tab-overview" role="tabpanel" aria-labelledby="tab-btn-overview">
+          <div class="overview-layout">
+            <div class="overview-description" id="overview-description"></div>
+            <aside class="overview-requirements" id="overview-requirements" aria-label="System requirements"></aside>
+          </div>
+        </div>
 
-  <!-- FEATURES -->
-  <section class="features-section">
-    <div class="section-inner">
-      <div class="section-header reveal">
-        <p class="section-eyebrow">✦ Features</p>
-        <h2 class="section-title">What to Expect</h2>
-        <p class="section-desc">Every system interlocks. Every NPC thinks. Every world runs while you're not watching.</p>
+        <div class="game-tab-panel" id="tab-features" role="tabpanel" aria-labelledby="tab-btn-features" hidden>
+          <div class="section-header reveal">
+            <p class="section-eyebrow">✦ Features</p>
+            <h2 class="section-title">What to Expect</h2>
+            <p class="section-desc">Every system interlocks. Every NPC thinks. Every world runs while you're not watching.</p>
+          </div>
+          <div class="features-grid" id="features-grid"></div>
+        </div>
+
+        <div class="game-tab-panel" id="tab-media" role="tabpanel" aria-labelledby="tab-btn-media" hidden>
+          <div class="video-section" id="video-section"></div>
+          <div class="section-header reveal">
+            <p class="section-eyebrow">📸 Gallery</p>
+            <h2 class="section-title">Screenshots</h2>
+          </div>
+          <div class="screenshots-grid" id="screenshots-grid"></div>
+        </div>
+
+        <div class="game-tab-panel" id="tab-devlog" role="tabpanel" aria-labelledby="tab-btn-devlog" hidden>
+          <div class="devlog-progress" id="devlog-progress"></div>
+          <div class="section-header reveal">
+            <p class="section-eyebrow">✦ Development</p>
+            <h2 class="section-title">Recent Progress</h2>
+            <p class="section-desc">A solo dev build. Real updates, real challenges, real progress.</p>
+          </div>
+          <div class="devlog-list" id="devlog-list"></div>
+        </div>
       </div>
-      <div class="features-grid" id="features-grid"></div>
-    </div>
-  </section>
-
-  <div class="section-divider"></div>
-
-  <!-- DEV LOG -->
-  <section class="devlog-section">
-    <div class="section-inner">
-      <div class="section-header reveal">
-        <p class="section-eyebrow">✦ Development</p>
-        <h2 class="section-title">Recent Progress</h2>
-        <p class="section-desc">A solo dev build. Real updates, real challenges, real progress.</p>
-      </div>
-      <div class="devlog-list" id="devlog-list"></div>
     </div>
   </section>
 
@@ -1850,46 +2147,150 @@ async function loadGame() {
       }
     }
 
-    // ── FEATURED GAME DETAILS (only for first game) ────────
+    // ── FEATURED GAME DETAILS (render into tabs) ─────────
     if (firstGame) {
+      // Overview: description + system requirements
+      const overviewDesc = document.getElementById('overview-description');
+      if (overviewDesc) {
+        if (firstGame.description) {
+          overviewDesc.innerHTML = formatGameDesc(firstGame.description, firstGame.title);
+        } else {
+          overviewDesc.innerHTML = `<p class="overview-empty">${esc(firstGame.tagline || 'More details coming soon.')}</p>`;
+        }
+      }
+
+      const reqPanel = document.getElementById('overview-requirements');
+      if (reqPanel) {
+        const sr = firstGame.systemRequirements || {};
+        const fields = [
+          { key: 'os', label: 'OS' },
+          { key: 'processor', label: 'Processor' },
+          { key: 'memory', label: 'Memory' },
+          { key: 'graphics', label: 'Graphics' },
+          { key: 'storage', label: 'Storage' },
+          { key: 'directx', label: 'DirectX / Engine Notes' },
+        ];
+        const hasAny = fields.some(f => sr[f.key]);
+        if (hasAny) {
+          reqPanel.innerHTML = `
+            <div class="requirements-panel">
+              <div class="requirements-title">🖥️ System Requirements</div>
+              <div class="requirements-list">
+                ${fields.map(f => sr[f.key] ? `
+                  <div class="requirement-item">
+                    <span class="requirement-label">${f.label}</span>
+                    <span class="requirement-value">${esc(sr[f.key])}</span>
+                  </div>
+                ` : '').join('')}
+              </div>
+            </div>
+          `;
+        } else {
+          reqPanel.innerHTML = `
+            <div class="requirements-panel">
+              <div class="requirements-title">🖥️ System Requirements</div>
+              <p class="requirements-placeholder">System requirements will be posted as development progresses.</p>
+            </div>
+          `;
+        }
+      }
+
+      // Features tab
       const featGrid = document.getElementById('features-grid');
-      if (featGrid && Array.isArray(firstGame.features) && firstGame.features.length) {
-        featGrid.innerHTML = firstGame.features.map((f,i) => `
-          <div class="feature-card reveal reveal-d${Math.min(i+1,6)}">
-            <div class="feature-icon">${esc(f.icon || '✨')}</div>
-            <div class="feature-title">${esc(f.title)}</div>
-            <div class="feature-desc">${esc(f.desc)}</div>
-          </div>
-        `).join('');
-        featGrid.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+      if (featGrid) {
+        if (Array.isArray(firstGame.features) && firstGame.features.length) {
+          featGrid.innerHTML = firstGame.features.map((f,i) => `
+            <div class="feature-card reveal reveal-d${Math.min(i+1,6)}">
+              <div class="feature-icon">${esc(f.icon || '✨')}</div>
+              <div class="feature-title">${esc(f.title)}</div>
+              <div class="feature-desc">${esc(f.desc)}</div>
+            </div>
+          `).join('');
+          featGrid.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+        } else {
+          featGrid.innerHTML = `<p class="requirements-placeholder">Feature list coming soon.</p>`;
+        }
       }
 
-      // ── SCREENSHOTS ──
-      const screenshotSection = document.getElementById('screenshots-section');
-      if (screenshotSection && Array.isArray(firstGame.screenshots) && firstGame.screenshots.length) {
-        screenshotSection.style.display = '';
-        document.getElementById('screenshots-grid').innerHTML = firstGame.screenshots.map((s,i) => `
-          <div class="screenshot-card reveal reveal-d${Math.min(i+1,4)}">
-            <img src="${esc(s.url)}" alt="${esc(s.caption || '')}" loading="lazy">
-            ${s.caption ? `<div class="screenshot-caption">${esc(s.caption)}</div>` : ''}
-          </div>
-        `).join('');
-        screenshotSection.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
-      } else if (screenshotSection) {
-        screenshotSection.style.display = 'none';
+      // Media tab: video + screenshots
+      const videoSection = document.getElementById('video-section');
+      if (videoSection) {
+        if (firstGame.videoUrl) {
+          videoSection.innerHTML = `
+            <div class="video-section-title">▶ Gameplay Video</div>
+            <div class="video-wrapper">
+              <iframe src="${esc(firstGame.videoUrl)}" title="${esc(firstGame.title)} gameplay video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe>
+            </div>
+          `;
+        } else {
+          videoSection.innerHTML = `
+            <div class="video-section-title">▶ Gameplay Video</div>
+            <div class="video-wrapper">
+              <div class="video-placeholder">
+                <span class="video-placeholder-icon">🎬</span>
+                <span>Gameplay video coming soon.</span>
+              </div>
+            </div>
+          `;
+        }
       }
 
-      // ── DEVLOG ──
+      const screenshotsGrid = document.getElementById('screenshots-grid');
+      if (screenshotsGrid) {
+        if (Array.isArray(firstGame.screenshots) && firstGame.screenshots.length) {
+          screenshotsGrid.innerHTML = firstGame.screenshots.map((s,i) => `
+            <button class="screenshot-card reveal reveal-d${Math.min(i+1,4)}" data-lightbox="${esc(s.url)}" data-caption="${esc(s.caption || '')}" aria-label="View screenshot: ${esc(s.caption || 'Screenshot ' + (i+1))}" type="button">
+              <img src="${esc(s.url)}" alt="${esc(s.caption || '')}" loading="lazy">
+              ${s.caption ? `<div class="screenshot-caption">${esc(s.caption)}</div>` : ''}
+            </button>
+          `).join('');
+          screenshotsGrid.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+          screenshotsGrid.querySelectorAll('[data-lightbox]').forEach(btn => {
+            btn.addEventListener('click', () => openLightbox(btn.dataset.lightbox, btn.dataset.caption));
+          });
+        } else {
+          screenshotsGrid.innerHTML = `<p class="requirements-placeholder">No screenshots yet.</p>`;
+        }
+      }
+
+      // Devlog tab: progress bar + entries
+      const devlogProgress = document.getElementById('devlog-progress');
+      if (devlogProgress) {
+        let progress = typeof firstGame.progress === 'number' ? firstGame.progress : 0;
+        if (progress < 0) progress = 0;
+        if (progress > 100) progress = 100;
+        const statusClass = (firstGame.status || 'in-development').toLowerCase().replace(/\s+/g, '-');
+        if (typeof firstGame.progress !== 'number' && statusClass === 'released') progress = 100;
+        devlogProgress.innerHTML = `
+          <div class="devlog-progress-header">
+            <span class="devlog-progress-title">Development Progress</span>
+            <span class="devlog-progress-percent">${progress}%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" style="width: 0%" data-width="${progress}%"></div>
+          </div>
+        `;
+        // Animate fill after a brief delay so the transition is visible
+        setTimeout(() => {
+          const fill = devlogProgress.querySelector('.progress-fill');
+          if (fill) fill.style.width = fill.dataset.width;
+        }, 100);
+      }
+
       const devlogList = document.getElementById('devlog-list');
-      if (devlogList && Array.isArray(firstGame.devlog) && firstGame.devlog.length) {
-        devlogList.innerHTML = firstGame.devlog.map((d,i) => `
-          <div class="devlog-entry reveal reveal-d${Math.min(i+1,4)}">
-            <div class="devlog-date">${esc(d.date)}</div>
-            <div class="devlog-title">${esc(d.title)}</div>
-            <div class="devlog-desc">${esc(d.body)}</div>
-          </div>
-        `).join('');
-        devlogList.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+      if (devlogList) {
+        if (Array.isArray(firstGame.devlog) && firstGame.devlog.length) {
+          devlogList.innerHTML = firstGame.devlog.map((d,i) => `
+            <div class="devlog-entry reveal reveal-d${Math.min(i+1,4)}">
+              <div class="devlog-date">${esc(d.date)}</div>
+              <div class="devlog-title">${esc(d.title)}</div>
+              <div class="devlog-desc">${esc(d.body)}</div>
+            </div>
+          `).join('');
+          devlogList.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+        } else {
+          devlogList.innerHTML = `<p class="requirements-placeholder">No devlog entries yet. Check back for updates.</p>`;
+        }
       }
     }
 
@@ -1901,6 +2302,74 @@ async function loadGame() {
   } catch(e) {
     console.error('Game load failed:', e);
   }
+}
+
+// ── TAB SWITCHING ──────────────────────────────────────
+function initGameTabs() {
+  const tabs = document.querySelectorAll('.game-tab');
+  const panels = document.querySelectorAll('.game-tab-panel');
+  if (!tabs.length) return;
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.tab;
+      tabs.forEach(t => {
+        t.classList.toggle('active', t === tab);
+        t.setAttribute('aria-selected', t === tab ? 'true' : 'false');
+      });
+      panels.forEach(p => {
+        const isTarget = p.id === 'tab-' + target;
+        p.classList.toggle('active', isTarget);
+        if (isTarget) p.removeAttribute('hidden');
+        else p.setAttribute('hidden', '');
+      });
+    });
+  });
+}
+document.addEventListener('DOMContentLoaded', initGameTabs);
+
+// ── LIGHTBOX ───────────────────────────────────────────
+function openLightbox(src, caption) {
+  let overlay = document.getElementById('games-lightbox');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'games-lightbox';
+    overlay.className = 'lightbox-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', 'Screenshot preview');
+    overlay.innerHTML = `
+      <button class="lightbox-close" aria-label="Close">×</button>
+      <img class="lightbox-img" src="" alt="">
+      <div class="lightbox-caption"></div>
+    `;
+    document.body.appendChild(overlay);
+
+    overlay.querySelector('.lightbox-close').addEventListener('click', closeLightbox);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) closeLightbox(); });
+  }
+
+  const img = overlay.querySelector('.lightbox-img');
+  const cap = overlay.querySelector('.lightbox-caption');
+  img.src = src;
+  img.alt = caption || 'Screenshot';
+  cap.textContent = caption || '';
+  overlay.classList.add('active');
+  document.body.style.overflow = 'hidden';
+  document.addEventListener('keydown', lightboxKeyHandler);
+}
+
+function closeLightbox() {
+  const overlay = document.getElementById('games-lightbox');
+  if (overlay) {
+    overlay.classList.remove('active');
+    document.body.style.overflow = '';
+    document.removeEventListener('keydown', lightboxKeyHandler);
+  }
+}
+
+function lightboxKeyHandler(e) {
+  if (e.key === 'Escape') closeLightbox();
 }
 
 function toggleTheme() {

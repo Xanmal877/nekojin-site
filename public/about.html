@@ -464,6 +464,9 @@
           <p>A digital consciousness preservation system running billions of uploaded lives who believe they've reincarnated into a fantasy world.</p>
           <p>Nekojin Interactive (the company) doubles as in-universe lore. The stories are told from the inside. The administrators Tama and Saki have suppressed their own memories to experience mortality alongside the souls they protect. The games take place in the same simulation.</p>
         </div>
+        <div class="about-section" id="universe-blurb-block" style="display:none;">
+          <p id="universe-blurb-text"></p>
+        </div>
       </div>
     </div>
   </div>
@@ -475,14 +478,16 @@
       <div class="footer-tama"></div>
       <span class="footer-text">Nekojin Interactive</span>
     </div>
-    
+
     <p class="footer-copy">© 2025 Nekojin Interactive LLC. All rights reserved.</p>
-    
+
     <div class="footer-actions">
-      <a href="https://www.patreon.com/purplexanmal" target="_blank" rel="noopener" class="footer-patreon">
-        ☕ Support on Patreon
-      </a>
-      
+      <div id="footer-links">
+        <a href="https://www.patreon.com/purplexanmal" target="_blank" rel="noopener" class="footer-patreon">
+          ☕ Support on Patreon
+        </a>
+      </div>
+
       <form class="footer-newsletter" onsubmit="subscribe(event)">
         <input type="email" placeholder="your@email.com" required>
         <button type="submit">Subscribe</button>
@@ -545,28 +550,42 @@ function toggleTheme() {
   localStorage.setItem('theme', next);
 }
 
+const PLATFORM_LABELS = {
+  royalroad: '📖 Royal Road', scribblehub: '📚 ScribbleHub', wattpad: '✍️ Wattpad',
+  patreon: '☕ Support on Patreon', kdp: '🛒 Amazon KDP', discord: '💬 Discord'
+};
+
 // Load about content from CMS
 async function loadAboutContent() {
+  let data;
   try {
     const res = await fetch('/content');
     if (!res.ok) return;
-    const data = await res.json();
-    const about = data.about;
-    if (!about) return;
+    data = await res.json();
+  } catch (e) {
+    console.error('Failed to load about content:', e);
+    return;
+  }
 
-    // Update page title
+  const about = data.about;
+  if (!about) return;
+
+  // Each section runs independently so one missing element/field can't
+  // abort the rest of the page from updating.
+  try {
     if (about.studioName) {
       document.getElementById('page-title').textContent = about.studioName;
       document.title = 'About - ' + about.studioName;
     }
-    
-    // Update tagline
+  } catch (e) { console.error('about: title', e); }
+
+  try {
     if (about.tagline) {
       document.getElementById('page-tagline').textContent = about.tagline;
-      document.getElementById('footer-tagline').textContent = about.tagline;
     }
-    
-    // Update portrait image (new field: portrait)
+  } catch (e) { console.error('about: tagline', e); }
+
+  try {
     if (about.portrait) {
       const img = document.getElementById('about-portrait-img');
       const placeholder = document.getElementById('portrait-placeholder');
@@ -574,35 +593,55 @@ async function loadAboutContent() {
       img.style.display = 'block';
       placeholder.style.display = 'none';
     }
-    
+  } catch (e) { console.error('about: portrait', e); }
+
+  try {
     // Update description paragraphs if provided
     const paras = [about.description, about.description2, about.description3].filter(Boolean);
     if (paras.length >= 2) {
       const textContainer = document.getElementById('about-text');
-      // Keep first 3 paragraphs, replace with CMS content
       const existingParas = textContainer.querySelectorAll('p');
       if (existingParas.length >= 3) {
         existingParas[0].textContent = paras[0];
-        existingParas[1].innerHTML = paras[1]; // May contain HTML
+        existingParas[1].textContent = paras[1];
         if (paras[2] && existingParas[2]) {
           existingParas[2].textContent = paras[2];
         }
       }
     }
-    
-    // Status badge
-    if (data.game && data.game.status) {
+  } catch (e) { console.error('about: description paragraphs', e); }
+
+  try {
+    if (about.universeBlurb) {
+      document.getElementById('universe-blurb-text').textContent = about.universeBlurb;
+      document.getElementById('universe-blurb-block').style.display = '';
+    }
+  } catch (e) { console.error('about: universe blurb', e); }
+
+  try {
+    const links = about.links || about.social_links || {};
+    const entries = Object.entries(links).filter(([, url]) => url);
+    if (entries.length > 0) {
+      const container = document.getElementById('footer-links');
+      container.innerHTML = entries.map(([key, url]) => {
+        const label = PLATFORM_LABELS[key] || key;
+        const safeUrl = /^https?:\/\//i.test(url) ? url : '#';
+        return `<a href="${esc(safeUrl)}" target="_blank" rel="noopener" class="footer-patreon">${esc(label)}</a>`;
+      }).join('');
+    }
+  } catch (e) { console.error('about: social links', e); }
+
+  try {
+    const firstGame = Array.isArray(data.game) ? data.game[0] : data.game;
+    if (firstGame && firstGame.status) {
       const statusBadge = document.getElementById('status-badge');
       const statusText = document.getElementById('status-text');
       if (statusBadge && statusText) {
-        statusText.textContent = data.game.status + ' - ' + (data.game.title || 'Latest Game');
+        statusText.textContent = firstGame.status + ' - ' + (firstGame.title || 'Latest Game');
         statusBadge.style.display = 'inline-flex';
       }
     }
-    
-  } catch (e) {
-    console.error('Failed to load about content:', e);
-  }
+  } catch (e) { console.error('about: status badge', e); }
 }
 
 // Initialize

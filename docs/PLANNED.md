@@ -43,23 +43,24 @@ Populate `/xanrean/lore/world` with actual content:
 **Priority:** Medium
 
 Remaining work:
-- [ ] Screenshot gallery with lightbox
-- [ ] Gameplay video section
-- [ ] System requirements panel
-- [ ] Tabbed interface (Overview/Features/Media/Devlog)
-- [ ] Development progress bar
+- [x] Screenshot gallery with lightbox
+- [x] Gameplay video section
+- [x] System requirements panel
+- [x] Tabbed interface (Overview/Features/Media/Devlog)
+- [x] Development progress bar
 
 ---
 
 ### 2.4 Book Status Workflow
 **Priority:** Low  
-**Estimated:** 0.5 sessions
+**Estimated:** 0.5 sessions  
+**Status:** Complete ✅
 
 Better book publishing control:
-- [ ] Status: `draft` → `preview` → `published` → `archived`
-- [ ] Draft books hidden from public API
-- [ ] Preview mode (accessible via direct link only)
-- [ ] Scheduled publishing (date-based)
+- [x] Status: `draft` → `preview` → `published` → `archived`
+- [x] Draft books hidden from public API
+- [x] Preview mode (accessible via direct link only)
+- [x] Scheduled publishing (date-based)
 
 ---
 
