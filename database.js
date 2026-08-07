@@ -974,7 +974,6 @@ class ContentDB {
             } catch {
                 row.related_character_slugs = [];
             }
-            row.visible = !!row.visible;
         }
         return rows;
     }
