@@ -18,7 +18,7 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { height: 100%; overflow: hidden; }
-    
+
     nav {
       position: fixed;
       top: 0;
@@ -33,7 +33,7 @@
       backdrop-filter: blur(12px);
       border-bottom: 1px solid rgba(16,185,129,0.2);
     }
-    
+
     .nav-logo {
       display: flex;
       align-items: center;
@@ -44,27 +44,28 @@
       color: var(--royal);
       text-decoration: none;
     }
-    
+
     body {
       display: flex;
       flex-direction: column;
     }
-    
+
     main {
       flex: 1;
       margin-top: 60px;
       display: flex;
       flex-direction: column;
     }
-    
+
     .species-grid {
-      display: flex;
+      display: grid;
       flex: 1;
       width: 100%;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(2, 1fr);
     }
-    
+
     .species-panel {
-      flex: 1;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -72,13 +73,15 @@
       color: white;
       position: relative;
       overflow: hidden;
-      transition: flex 0.4s ease;
+      transition: transform 0.3s ease;
       border-right: 1px solid rgba(255,255,255,0.1);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
     }
-    
-    .species-panel:last-child { border-right: none; }
-    .species-panel:hover { flex: 1.15; }
-    
+
+    .species-panel:nth-child(3n) { border-right: none; }
+    .species-panel:nth-child(n+4) { border-bottom: none; }
+    .species-panel:hover { transform: scale(1.02); z-index: 2; }
+
     .species-panel::after {
       content: '';
       position: absolute;
@@ -86,39 +89,49 @@
       background: rgba(0,0,0,0.35);
       transition: background 0.3s;
     }
-    
+
     .species-panel:hover::after { background: rgba(0,0,0,0.25); }
-    
+
     /* Panel backgrounds */
     .panel-nekojin {
       background: linear-gradient(180deg, rgba(139,92,246,0.2) 0%, rgba(10,6,20,0.95) 100%),
                   url('/images/tama-bg.png') center bottom / contain no-repeat;
     }
-    
+
     .panel-foxkin {
       background: linear-gradient(180deg, rgba(245,158,11,0.2) 0%, rgba(10,6,20,0.95) 100%),
                   url('/images/tama-bg.png') center bottom / contain no-repeat;
     }
-    
+
     .panel-elves {
       background: linear-gradient(180deg, rgba(16,185,129,0.2) 0%, rgba(10,6,20,0.95) 100%),
                   url('/images/tama-bg.png') center bottom / contain no-repeat;
     }
-    
+
+    .panel-wolfkin {
+      background: linear-gradient(180deg, rgba(100,116,139,0.25) 0%, rgba(10,6,20,0.95) 100%),
+                  url('/images/tama-bg.png') center bottom / contain no-repeat;
+    }
+
+    .panel-kitsune {
+      background: linear-gradient(180deg, rgba(236,72,153,0.2) 0%, rgba(10,6,20,0.95) 100%),
+                  url('/images/tama-bg.png') center bottom / contain no-repeat;
+    }
+
     .panel-travelers {
       background: linear-gradient(180deg, rgba(59,130,246,0.2) 0%, rgba(10,6,20,0.95) 100%),
                   url('/images/tama-bg.png') center bottom / contain no-repeat;
     }
-    
+
     .panel-content {
       position: relative;
       z-index: 1;
       text-align: center;
-      padding: 3rem;
+      padding: 2rem;
       padding-top: 3vh;
       max-width: 350px;
     }
-    
+
     .panel-badge {
       display: inline-block;
       padding: 0.5rem 1rem;
@@ -129,32 +142,36 @@
       text-transform: uppercase;
       margin-bottom: 1.5rem;
     }
-    
+
     .panel-badge.purple { background: rgba(139,92,246,0.3); border: 1px solid rgba(139,92,246,0.5); color: #c4b5fd; }
     .panel-badge.orange { background: rgba(245,158,11,0.3); border: 1px solid rgba(245,158,11,0.5); color: #fcd34d; }
     .panel-badge.green { background: rgba(16,185,129,0.3); border: 1px solid rgba(16,185,129,0.5); color: #6ee7b7; }
+    .panel-badge.slate { background: rgba(100,116,139,0.3); border: 1px solid rgba(100,116,139,0.5); color: #cbd5e1; }
+    .panel-badge.pink { background: rgba(236,72,153,0.3); border: 1px solid rgba(236,72,153,0.5); color: #fbcfe8; }
     .panel-badge.blue { background: rgba(59,130,246,0.3); border: 1px solid rgba(59,130,246,0.5); color: #93c5fd; }
-    
+
     .panel-title {
       font-family: var(--font-display);
-      font-size: clamp(1.75rem, 4vw, 3rem);
+      font-size: clamp(1.5rem, 3vw, 2.5rem);
       font-weight: 700;
       line-height: 1.1;
       margin-bottom: 1rem;
     }
-    
+
     .panel-title.purple { background: linear-gradient(135deg, #c4b5fd, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     .panel-title.orange { background: linear-gradient(135deg, #fcd34d, #f59e0b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     .panel-title.green { background: linear-gradient(135deg, #a7f3d0, #10b981); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .panel-title.slate { background: linear-gradient(135deg, #cbd5e1, #64748b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .panel-title.pink { background: linear-gradient(135deg, #fbcfe8, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     .panel-title.blue { background: linear-gradient(135deg, #bfdbfe, #3b82f6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    
+
     .panel-desc {
       font-size: 0.95rem;
       line-height: 1.6;
       opacity: 0.95;
       margin-bottom: 1.5rem;
     }
-    
+
     .panel-cta {
       display: inline-block;
       padding: 0.75rem 1.5rem;
@@ -164,12 +181,12 @@
       color: white;
       font-weight: 600;
     }
-    
+
     .species-panel:hover .panel-cta {
       background: rgba(255,255,255,0.2);
       border-color: rgba(255,255,255,0.4);
     }
-    
+
     footer {
       flex-shrink: 0;
       height: 52px;
@@ -181,36 +198,37 @@
       align-items: center;
       justify-content: center;
     }
-    
+
     .footer-link {
       color: rgba(255,255,255,0.7);
       text-decoration: none;
     }
-    
+
     @media (max-width: 900px) {
       .species-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: 1fr 1fr;
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: repeat(3, 1fr);
       }
       .species-panel {
         border-right: 1px solid rgba(255,255,255,0.1);
         border-bottom: 1px solid rgba(255,255,255,0.1);
       }
-      .species-panel:nth-child(2) { border-right: none; }
-      .species-panel:nth-child(3) { border-bottom: none; }
-      .species-panel:nth-child(4) { border-right: none; border-bottom: none; }
+      .species-panel:nth-child(3n) { border-right: 1px solid rgba(255,255,255,0.1); }
+      .species-panel:nth-child(n+4) { border-bottom: 1px solid rgba(255,255,255,0.1); }
+      .species-panel:nth-child(2n) { border-right: none; }
+      .species-panel:nth-child(n+5) { border-bottom: none; }
     }
-    
+
     @media (max-width: 500px) {
       .species-grid {
         grid-template-columns: 1fr;
-        grid-template-rows: repeat(4, 1fr);
+        grid-template-rows: repeat(6, minmax(200px, 1fr));
       }
       .species-panel {
         border-right: none;
         border-bottom: 1px solid rgba(255,255,255,0.1);
       }
+      .species-panel:nth-child(n+5) { border-bottom: 1px solid rgba(255,255,255,0.1); }
       .species-panel:last-child { border-bottom: none; }
     }
   </style>
@@ -228,34 +246,52 @@
       <div class="panel-content">
         <div class="panel-badge purple">🐱 Species</div>
         <h2 class="panel-title purple">Nekojin</h2>
-        <p class="panel-desc">The cat-kin of Xanrea. Playful, curious, and unexpectedly dangerous.</p>
+        <p class="panel-desc">The prolific cat-kin of Xanrea. Moment-to-moment creatures whose passions run hot and hobbies change fast.</p>
         <span class="panel-cta">Learn More →</span>
       </div>
     </a>
-    
+
     <a href="/xanrean/lore/foxkin" class="species-panel panel-foxkin">
       <div class="panel-content">
         <div class="panel-badge orange">🦊 Species</div>
         <h2 class="panel-title orange">Foxkin</h2>
-        <p class="panel-desc">Tricksters, traders, and travelers. Masters of illusion and commerce.</p>
+        <p class="panel-desc">The second-most prolific species. Culturally driven by pleasure, connection, and centuries-old service traditions.</p>
         <span class="panel-cta">Learn More →</span>
       </div>
     </a>
-    
+
     <a href="/xanrean/lore/elves" class="species-panel panel-elves">
       <div class="panel-content">
         <div class="panel-badge green">🌿 Species</div>
         <h2 class="panel-title green">Elves</h2>
-        <p class="panel-desc">Ancient, elegant, and endlessly patient. Keepers of forgotten knowledge.</p>
+        <p class="panel-desc">Long-lived but slow to mature. Eccentric planners whose grand schemes rarely go as expected.</p>
         <span class="panel-cta">Learn More →</span>
       </div>
     </a>
-    
+
+    <a href="/xanrean/lore/wolfkin" class="species-panel panel-wolfkin">
+      <div class="panel-content">
+        <div class="panel-badge slate">🐺 Species</div>
+        <h2 class="panel-title slate">Wolfkin</h2>
+        <p class="panel-desc">Honor-bound warriors who mate for life. Military service is a rite of passage, and commitment is sacred.</p>
+        <span class="panel-cta">Learn More →</span>
+      </div>
+    </a>
+
+    <a href="/xanrean/lore/kitsune" class="species-panel panel-kitsune">
+      <div class="panel-content">
+        <div class="panel-badge pink">👻 Species</div>
+        <h2 class="panel-title pink">Kitsune</h2>
+        <p class="panel-desc">Rare, essence-based spirits born from revenge. Feared predators capable of splitting themselves into multiple forms.</p>
+        <span class="panel-cta">Learn More →</span>
+      </div>
+    </a>
+
     <a href="/xanrean/lore/travelers" class="species-panel panel-travelers">
       <div class="panel-content">
         <div class="panel-badge blue">✨ Species</div>
         <h2 class="panel-title blue">Travelers</h2>
-        <p class="panel-desc">Souls that traverse worlds. Neither fully mortal nor divine.</p>
+        <p class="panel-desc">Souls pulled from Earth's death queue into Xanrea. Immortal until the pull to move on becomes too strong.</p>
         <span class="panel-cta">Learn More →</span>
       </div>
     </a>

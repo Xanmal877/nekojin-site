@@ -14,13 +14,14 @@
 
 Create dedicated HTML pages for remaining characters:
 - [x] Moderator Space
-- [ ] Moderator Chaos
-- [ ] Moderator Order
+- [x] Moderator Chaos
+- [x] Moderator Order
 - [ ] Moderator Devotion
-- [ ] Tama (incarnation)
-- [ ] Saki (incarnation)
-- [ ] Acros (incarnation)
-- [ ] Sarah (character)
+- [x] Tama (incarnation)
+- [x] Saki (incarnation)
+- [x] Acros (incarnation)
+- [x] Sarah (character)
+- [x] Anna (incarnation)
 
 **Template:** Follow `admin-creation.html` style
 

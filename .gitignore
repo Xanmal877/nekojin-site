@@ -3,6 +3,10 @@ data/
 nekojin.db
 *.db
 
+# Static lore/character content (served publicly)
+!public/data/
+!public/data/**
+
 # Dependencies
 node_modules/
 package-lock.json
