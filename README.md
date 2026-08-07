@@ -40,10 +40,7 @@ nekojin-site/
 │   ├── games.html         # Games showcase
 │   ├── about.html         # About page
 │   └── style.css          # Shared styles
-├── docs/                  # Documentation
-│   ├── COMPLETED.md       # What's been built
-│   ├── PLANNED.md         # Roadmap
-│   └── ISSUES.md          # Known issues
+├── TASKS.md               # Roadmap, issues, changelog (all-in-one)
 └── scraper/               # Stats scraper (optional)
 ```
 
@@ -102,9 +99,7 @@ nekojin-site/
 
 | Document | Description |
 |----------|-------------|
-| [docs/COMPLETED.md](./docs/COMPLETED.md) | Everything we've built |
-| [docs/PLANNED.md](./docs/PLANNED.md) | Roadmap & future ideas |
-| [docs/ISSUES.md](./docs/ISSUES.md) | Known bugs & limitations |
+| [TASKS.md](./TASKS.md) | Roadmap, known issues, layout reference & changelog — all in one file |
 
 ---
 
@@ -131,6 +126,12 @@ pm2 restart nekojin-site
 | `ALLOW_PUBLIC_REGISTRATION` | `false` | Set `true` to re-enable the public `/register` page. Off by default — this is a single-author site, not a multi-tenant app. |
 | `TRUST_PROXY` | `false` | Set `true` only if the server sits behind a reverse proxy (nginx, etc.) that sets `X-Forwarded-For`/`X-Real-IP`. Otherwise those headers are client-controlled and must not be trusted for rate limiting. |
 | `ALLOWED_ORIGINS` | `https://worldofxanrea.com` | Comma-separated list of origins allowed to make credentialed cross-origin requests. Same-origin browser requests (the normal case) don't need this at all. |
+| `NEWSLETTER_PROVIDER` | `none` | External provider to use: `none` (default), `buttondown`, `mailerlite`, `convertkit`, or `generic_webhook`. |
+| `BUTTONDOWN_API_KEY` | `null` | API key for Buttondown. |
+| `MAILERLITE_API_KEY` | `null` | API key for MailerLite. |
+| `CONVERTKIT_API_KEY` | `null` | API key for ConvertKit. |
+| `CONVERTKIT_FORM_ID` | `null` | Form ID for ConvertKit subscriptions. |
+| `NEWSLETTER_WEBHOOK_URL` | `null` | URL for `generic_webhook` provider (e.g., Zapier/Make/n8n). |
 
 **Important:** there are no hardcoded credentials in the codebase anymore. If your existing `users.json` still has the old default `xanmal` / `nekojin2026` account, log in and change that password immediately — it was previously committed in source.
 

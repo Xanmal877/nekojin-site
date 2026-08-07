@@ -6,21 +6,22 @@
   "scripts": {
     "start": "node dashboard-server.js",
     "meta": "node generate-meta.js",
-    "test": "node --test"
+    "test": "node --test",
+    "dev": "node --watch dashboard-server.js"
   },
   "keywords": [],
   "author": "Purple Xanmal",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "adm-zip": "^0.5.17",
+    "adm-zip": "^0.6.0",
     "bcryptjs": "^3.0.3",
     "mammoth": "^1.12.0",
-    "sharp": "^0.33.0",
+    "sharp": "^0.35.3",
     "sqlite3": "^6.0.1"
   },
   "allowScripts": {
     "sqlite3@6.0.1": true,
-    "sharp@0.33.5": true
+    "sharp@0.35.3": true
   }
 }

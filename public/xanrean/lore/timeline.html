@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Timeline - The Lore | Xanrean Chronicles</title>
+  <link rel="stylesheet" href="/style.css">
+  <script>
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+  </script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.7;
+    }
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem 2rem; background: rgba(10,6,20,0.9);
+      backdrop-filter: blur(12px); border-bottom: 1px solid rgba(59,130,246,0.2);
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 0.75rem;
+      font-family: var(--font-display); font-size: 1.25rem;
+      font-weight: 700; color: var(--royal); text-decoration: none;
+    }
+    main {
+      flex: 1; margin-top: 60px; display: flex; flex-direction: column;
+      align-items: center; padding: 2rem;
+    }
+    .page-header {
+      text-align: center; margin-bottom: 3rem;
+    }
+    .page-header h1 {
+      font-family: var(--font-display); font-size: 2.5rem;
+      margin-bottom: 1rem; color: var(--text);
+    }
+    .page-header p {
+      color: var(--muted); font-size: 1.1rem;
+      max-width: 600px; margin: 0 auto;
+    }
+    .timeline-container {
+      position: relative; width: 100%; max-width: 800px;
+      padding: 2rem 0;
+    }
+    .timeline-line {
+      position: absolute; left: 50%; top: 0; bottom: 0;
+      width: 2px; background: var(--border);
+      transform: translateX(-50%);
+    }
+    .timeline-event {
+      position: relative; width: 50%; margin-bottom: 3rem;
+      padding: 0 2rem;
+    }
+    .timeline-event:nth-child(odd) { left: 0; text-align: right; }
+    .timeline-event:nth-child(even) { left: 50%; text-align: left; }
+    
+    .event-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 1.5rem;
+      transition: all 0.3s;
+    }
+    .event-card:hover { border-color: var(--royal); transform: translateY(-4px); }
+    .event-era {
+      font-family: var(--mono); font-size: 0.75rem;
+      color: var(--royal-light); font-weight: 700;
+      text-transform: uppercase; margin-bottom: 0.5rem;
+    }
+    .event-title {
+      font-family: var(--font-display); font-size: 1.4rem;
+      margin-bottom: 0.75rem; color: var(--text);
+    }
+    .event-desc { color: var(--muted); font-size: 0.95rem; margin-bottom: 1rem; }
+    .event-chars {
+      display: flex; gap: 0.5rem; flex-wrap: wrap;
+      justify-content: inherit;
+    }
+    .char-tag {
+      font-size: 0.75rem; padding: 0.2rem 0.6rem;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 4px; color: var(--royal-light);
+      text-decoration: none;
+    }
+    .char-tag:hover { border-color: var(--royal); }
+    
+    footer {
+      flex-shrink: 0; height: 52px; background: rgba(10,6,20,0.9);
+      backdrop-filter: blur(12px); border-top: 1px solid rgba(255,255,255,0.1);
+      padding: 0.75rem 1.5rem; display: flex; align-items: center; justify-content: center;
+    }
+    .footer-link { color: rgba(255,255,255,0.7); text-decoration: none; }
+    
+    .loading { text-align: center; padding: 4rem 2rem; color: var(--muted); font-family: var(--font-display); font-size: 1.2rem; }
+    
+    @media (max-width: 600px) {
+      .timeline-line { left: 20px; }
+      .timeline-event { width: 100%; left: 0 !important; text-align: left !important; padding-left: 40px; }
+      .event-chars { justify-content: flex-start !important; }
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="/xanrean/lore" class="nav-logo">⬅ The Lore</a>
+    <span style="color: var(--muted);">Timeline</span>
+  </nav>
+  <main>
+    <div class="page-header">
+      <h1>⏳ Timeline</h1>
+      <p>A chronological record of the events that shaped the World of Xanrea.</p>
+    </div>
+    <div id="loading" class="loading">Loading timeline data...</div>
+    <div id="timeline" class="timeline-container" style="display:none;">
+      <div class="timeline-line"></div>
+      <div id="events-list"></div>
+    </div>
+  </main>
+  <footer>
+    <a href="/xanrean/lore" class="footer-link">← Back to The Lore</a>
+  </footer>
+  <script>
+    async function loadTimeline() {
+      const list = document.getElementById('events-list');
+      const container = document.getElementById('timeline');
+      const loader = document.getElementById('loading');
+      try {
+        const res = await fetch('/api/timeline');
+        const events = await res.json();
+        if (!events || events.length === 0) {
+          loader.innerHTML = 'No timeline events found.';
+          return;
+        }
+        const html = events.map(e => `
+          <div class="timeline-event">
+            <div class="event-card">
+              <div class="event-era">${e.era || 'Unknown Era'}</div>
+              <h2 class="event-title">${e.title}</h2>
+              <div class="event-desc">${e.description}</div>
+              <div class="event-chars">
+                ${(e.related_character_slugs || []).map(slug => 
+                  `<a href="/xanrean/characters/${slug}" class="char-tag">${slug}</a>`
+                ).join('')}
+              </div>
+            </div>
+          </div>
+        `).join('');
+        list.innerHTML = html;
+        container.style.display = 'block';
+        loader.style.display = 'none';
+      } catch (err) {
+        console.error('Error loading timeline', err);
+        loader.innerHTML = 'Failed to load timeline data.';
+      }
+    }
+    loadTimeline();
+  </script>
+</body>
+</html>

@@ -98,6 +98,11 @@
       max-width: 440px; line-height: 1.7; font-weight: 300;
       text-align: right;
     }
+    .series-cover {
+      width: 80px; height: 120px; object-fit: cover;
+      border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      background: var(--surface);
+    }
     @media (max-width: 600px) {
       .series-header { flex-direction: column; align-items: flex-start; }
       .series-desc { text-align: left; }
@@ -419,9 +424,12 @@ async function loadBooks() {
       html += `
         <div class="series-block reveal">
           <div class="series-header">
-            <div>
-              <span class="series-eyebrow">Series ${si + 1}</span>
-              <h2 class="series-name">${esc(s.universe)}</h2>
+            <div style="display:flex;gap:1rem;align-items:center;">
+              ${s.cover_image ? `<img src="${esc(s.cover_image)}" class="series-cover" alt="${esc(s.universe)} cover">` : ''}
+              <div>
+                <span class="series-eyebrow">Series ${si + 1}</span>
+                <h2 class="series-name">${esc(s.universe)}</h2>
+              </div>
             </div>
             ${s.universeDesc ? `<p class="series-desc">${esc(s.universeDesc)}</p>` : ''}
           </div>

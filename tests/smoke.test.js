@@ -25,6 +25,7 @@ function copyRepoFiles() {
     ];
     for (const f of filesToCopy) fs.copyFileSync(path.join(ROOT, f), path.join(WORKDIR, f));
     fs.cpSync(path.join(ROOT, 'public'), path.join(WORKDIR, 'public'), { recursive: true });
+    fs.cpSync(path.join(ROOT, 'lib'), path.join(WORKDIR, 'lib'), { recursive: true });
     fs.cpSync(path.join(ROOT, 'node_modules'), path.join(WORKDIR, 'node_modules'), { recursive: true });
 }
 
@@ -304,4 +305,252 @@ test('preview books are hidden from plain /content but reachable via the preview
     // Without the preview flag the same slug must 404.
     const noPreviewRes = await fetch(`${BASE}/book-by-slug?slug=preview-book`);
     assert.strictEqual(noPreviewRes.status, 404);
+});
+
+test('save-content rejects duplicate book slugs', async () => {
+    const res = await fetch(`${BASE}/save-content`, {
+        method: 'POST',
+        headers: sharedAuth.headers,
+        body: JSON.stringify({
+            series: [],
+            books: [
+                { id: 'dup1', title: 'Book One', slug: 'same-slug', status: 'published' },
+                { id: 'dup2', title: 'Book Two', slug: 'same-slug', status: 'published' },
+            ],
+            game: [], about: {},
+        }),
+    });
+    assert.strictEqual(res.status, 409);
+    const body = await res.json();
+    assert.match(body.error, /Duplicate book slug detected/);
+});
+
+test('save-content rejects invalid book slugs', async () => {
+    const res = await fetch(`${BASE}/save-content`, {
+        method: 'POST',
+        headers: sharedAuth.headers,
+        body: JSON.stringify({
+            series: [],
+            books: [{ id: 'inv1', title: 'Invalid Book', slug: 'Invalid Slug!', status: 'published' }],
+            game: [], about: {},
+        }),
+    });
+    assert.strictEqual(res.status, 400);
+    const body = await res.json();
+    assert.match(body.error, /Slugs must be lowercase, numbers, hyphens, or underscores/);
+});
+
+test('save-content enforces required fields', async () => {
+    // Missing book title
+    const resBook = await fetch(`${BASE}/save-content`, {
+        method: 'POST',
+        headers: sharedAuth.headers,
+        body: JSON.stringify({
+            series: [],
+            books: [{ id: 'nobook', slug: 'no-title', status: 'published' }],
+            game: [], about: {},
+        }),
+    });
+    assert.strictEqual(resBook.status, 400);
+
+    // Missing series name/universe
+    const resSeries = await fetch(`${BASE}/save-content`, {
+        method: 'POST',
+        headers: sharedAuth.headers,
+        body: JSON.stringify({
+            series: [{ id: 'noseries' }],
+            books: [], game: [], about: {},
+        }),
+    });
+    assert.strictEqual(resSeries.status, 400);
+});
+
+test('series cover image persists', async () => {
+    const coverPath = '/covers/series-test-cover.webp';
+    const res = await fetch(`${BASE}/save-content`, {
+        method: 'POST',
+        headers: sharedAuth.headers,
+        body: JSON.stringify({
+            series: [{ id: 'cover-test', universe: 'Cover Test Universe', cover_image: coverPath }],
+            books: [], game: [], about: {},
+        }),
+    });
+    assert.strictEqual(res.status, 200);
+
+    const content = await (await fetch(`${BASE}/content`)).json();
+    const series = content.series.find(s => s.id === 'cover-test');
+    assert.ok(series);
+    assert.strictEqual(series.cover_image, coverPath);
+});
+
+test('book sequence reordering persists', async () => {
+    // Seed a series with 2 books
+    await fetch(`${BASE}/save-content`, {
+        method: 'POST',
+        headers: sharedAuth.headers,
+        body: JSON.stringify({
+            series: [{ id: 'order-series', universe: 'Order Test' }],
+            books: [
+                { id: 'book-a', title: 'Book A', slug: 'book-a', seriesId: 'order-series', volumeNumber: 1, status: 'published' },
+                { id: 'book-b', title: 'Book B', slug: 'book-b', seriesId: 'order-series', volumeNumber: 2, status: 'published' },
+            ],
+            game: [], about: {},
+        }),
+    });
+
+    // Reorder: B then A
+    const reorderRes = await fetch(`${BASE}/api/books/reorder`, {
+        method: 'POST',
+        headers: sharedAuth.headers,
+        body: JSON.stringify({ seriesId: 'order-series', bookIds: ['book-b', 'book-a'] }),
+    });
+    assert.strictEqual(reorderRes.status, 200);
+
+    const content = await (await fetch(`${BASE}/content`)).json();
+    const bookA = content.books.find(b => b.id === 'book-a');
+    const bookB = content.books.find(b => b.id === 'book-b');
+    
+    // Book B should now be 1, Book A should be 2
+    assert.strictEqual(bookB.volume_number, 1);
+    assert.strictEqual(bookA.volume_number, 2);
+});
+
+// ── CHARACTERS API TESTS ───────────────────────────────────
+
+test('GET /api/characters returns visible characters', async () => {
+    // Seed characters
+    const seedRes = await fetch(`${BASE}/api/characters`, {
+        method: 'POST',
+        headers: sharedAuth.headers,
+        body: JSON.stringify({
+            id: 'char-tama', slug: 'tama', name: 'Tama', content: 'Tama content', visible: true
+        }),
+    });
+    assert.strictEqual(seedRes.status, 200);
+
+    const res = await fetch(`${BASE}/api/characters`);
+    assert.strictEqual(res.status, 200);
+    const body = await res.json();
+    assert.ok(Array.isArray(body));
+    assert.ok(body.some(c => c.slug === 'tama'));
+});
+
+test('GET /api/characters/:slug returns full character object', async () => {
+    const res = await fetch(`${BASE}/api/characters/tama`);
+    assert.strictEqual(res.status, 200);
+    const body = await res.json();
+    assert.strictEqual(body.slug, 'tama');
+    assert.strictEqual(body.content, 'Tama content');
+});
+
+test('GET /api/characters/:slug returns 404 for nonexistent slug', async () => {
+    const res = await fetch(`${BASE}/api/characters/nonexistent-slug`);
+    assert.strictEqual(res.status, 404);
+});
+
+test('unauthenticated POST /api/characters is rejected', async () => {
+    const res = await fetch(`${BASE}/api/characters`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: 'fail', slug: 'fail', name: 'Fail' }),
+    });
+    assert.strictEqual(res.status, 401);
+});
+
+test('authenticated POST /api/characters WITHOUT CSRF is rejected', async () => {
+    const res = await fetch(`${BASE}/api/characters`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: sharedAuth.cookieHeader },
+        body: JSON.stringify({ id: 'csrf-fail', slug: 'csrf-fail', name: 'CSRF Fail' }),
+    });
+    assert.strictEqual(res.status, 403);
+});
+
+test('authenticated POST /api/characters WITH CSRF succeeds and persists', async () => {
+    const charData = { id: 'char-saki', slug: 'saki', name: 'Saki', content: 'Saki content', visible: true };
+    const res = await fetch(`${BASE}/api/characters`, {
+        method: 'POST',
+        headers: sharedAuth.headers,
+        body: JSON.stringify(charData),
+    });
+    assert.strictEqual(res.status, 200);
+
+    const checkRes = await fetch(`${BASE}/api/characters/saki`);
+    const checkBody = await checkRes.json();
+    assert.strictEqual(checkBody.name, 'Saki');
+});
+
+// ── LORE TOPICS API TESTS ──────────────────────────────────
+
+test('GET /api/lore-topics returns visible topics', async () => {
+    // Seed topics
+    await fetch(`${BASE}/api/lore-topics`, {
+        method: 'POST',
+        headers: sharedAuth.headers,
+        body: JSON.stringify({ id: 'lore-world', slug: 'world-lore', section: 'world', title: 'World Lore', content: 'World content', visible: true }),
+    });
+    await fetch(`${BASE}/api/lore-topics`, {
+        method: 'POST',
+        headers: sharedAuth.headers,
+        body: JSON.stringify({ id: 'lore-char', slug: 'char-lore', section: 'characters', title: 'Char Lore', content: 'Char content', visible: true }),
+    });
+
+    const res = await fetch(`${BASE}/api/lore-topics`);
+    assert.strictEqual(res.status, 200);
+    const body = await res.json();
+    assert.ok(Array.isArray(body));
+    assert.ok(body.some(t => t.slug === 'world-lore'));
+});
+
+test('GET /api/lore-topics?section= filters correctly', async () => {
+    const res = await fetch(`${BASE}/api/lore-topics?section=world`);
+    assert.strictEqual(res.status, 200);
+    const body = await res.json();
+    assert.ok(body.every(t => t.section === 'world'));
+    assert.ok(body.some(t => t.slug === 'world-lore'));
+});
+
+test('GET /api/lore-topics/:slug returns full topic object', async () => {
+    const res = await fetch(`${BASE}/api/lore-topics/world-lore`);
+    assert.strictEqual(res.status, 200);
+    const body = await res.json();
+    assert.strictEqual(body.slug, 'world-lore');
+    assert.strictEqual(body.content, 'World content');
+});
+
+test('GET /api/lore-topics/:slug returns 404 for nonexistent slug', async () => {
+    const res = await fetch(`${BASE}/api/lore-topics/nonexistent-lore`);
+    assert.strictEqual(res.status, 404);
+});
+
+test('unauthenticated POST /api/lore-topics is rejected', async () => {
+    const res = await fetch(`${BASE}/api/lore-topics`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: 'fail', slug: 'fail', section: 'world', title: 'Fail' }),
+    });
+    assert.strictEqual(res.status, 401);
+});
+
+test('authenticated POST /api/lore-topics WITHOUT CSRF is rejected', async () => {
+    const res = await fetch(`${BASE}/api/lore-topics`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: sharedAuth.cookieHeader },
+        body: JSON.stringify({ id: 'csrf-fail', slug: 'csrf-fail', section: 'world', title: 'CSRF Fail' }),
+    });
+    assert.strictEqual(res.status, 403);
+});
+
+test('authenticated POST /api/lore-topics WITH CSRF succeeds and persists', async () => {
+    const loreData = { id: 'lore-test', slug: 'test-lore', section: 'test', title: 'Test Lore', content: 'Test content', visible: true };
+    const res = await fetch(`${BASE}/api/lore-topics`, {
+        method: 'POST',
+        headers: sharedAuth.headers,
+        body: JSON.stringify(loreData),
+    });
+    assert.strictEqual(res.status, 200);
+
+    const checkRes = await fetch(`${BASE}/api/lore-topics/test-lore`);
+    const checkBody = await checkRes.json();
+    assert.strictEqual(checkBody.title, 'Test Lore');
 });

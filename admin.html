@@ -114,7 +114,7 @@
       display: block; font-size: 0.75rem; font-weight: 600;
       letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.35rem;
     }
-    input[type="text"], input[type="url"], textarea, select {
+    input[type="text"], input[type="url"], input[type="number"], textarea, select {
       width: 100%; background: var(--surface2); border: 1px solid var(--border);
       border-radius: 8px; padding: 0.6rem 0.85rem; color: var(--text);
       font-family: var(--body); font-size: 0.9rem; outline: none;
@@ -402,6 +402,9 @@
     <div class="sidebar-item" data-panel="games" onclick="switchPanel('games')">
       <span class="sidebar-icon">🎮</span> Games
     </div>
+    <div class="sidebar-item" data-panel="lore_characters" onclick="switchPanel('lore_characters')">
+      <span class="sidebar-icon">📜</span> Lore & Characters
+    </div>
     <div class="sidebar-item" data-panel="about" onclick="switchPanel('about')">
       <span class="sidebar-icon">🏛️</span> About Page
     </div>
@@ -464,8 +467,218 @@
       </div>
     </div>
 
-    <!-- Add Game Modal -->
-    <div id="add-game-modal" class="modal" style="display:none;">
+    <!-- LORE & CHARACTERS PANEL -->
+    <div class="panel" id="panel-lore_characters">
+      <h1 class="panel-title">📜 Lore & Characters</h1>
+      <p class="panel-sub">Manage world-building topics and character profiles.</p>
+ 
+      <div style="display:flex;gap:0.5rem;margin-bottom:1.5rem;">
+        <button class="btn btn-ghost btn-sm active-sub-tab" id="tab-chars-btn" onclick="switchLoreSubTab('chars')">Characters</button>
+        <button class="btn btn-ghost btn-sm" id="tab-lore-btn" onclick="switchLoreSubTab('lore')">Lore Topics</button>
+        <button class="btn btn-ghost btn-sm" id="tab-timeline-btn" onclick="switchLoreSubTab('timeline')">Timeline</button>
+      </div>
+ 
+      <!-- Characters Sub-section -->
+      <div id="lore-sub-chars">
+        <div class="books-toolbar">
+          <button class="btn btn-primary" onclick="openAddCharacterModal()">+ Add Character</button>
+          <div style="flex:1;"></div>
+          <input class="search-input" type="text" placeholder="🔍 Search characters…" oninput="filterCharacters(this.value)">
+        </div>
+        <div id="characters-list" class="games-grid">
+          <p style="color:var(--muted);">Loading characters...</p>
+        </div>
+      </div>
+ 
+      <!-- Lore Sub-section -->
+      <div id="lore-sub-lore" style="display:none;">
+        <div class="books-toolbar">
+          <button class="btn btn-primary" onclick="openAddLoreModal()">+ Add Lore Topic</button>
+          <div style="flex:1;"></div>
+          <input class="search-input" type="text" placeholder="🔍 Search lore…" oninput="filterLore(this.value)">
+        </div>
+        <div id="lore-topics-list" class="games-grid">
+          <p style="color:var(--muted);">Loading lore topics...</p>
+        </div>
+      </div>
+
+      <!-- Timeline Sub-section -->
+      <div id="lore-sub-timeline" style="display:none;">
+        <div class="books-toolbar">
+          <button class="btn btn-primary" onclick="openAddTimelineModal()">+ Add Event</button>
+          <div style="flex:1;"></div>
+          <input class="search-input" type="text" placeholder="🔍 Search timeline…" oninput="filterTimeline(this.value)">
+        </div>
+        <div id="timeline-list" class="games-grid">
+          <p style="color:var(--muted);">Loading timeline events...</p>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ADD CHARACTER MODAL -->
+    <div id="char-modal" class="modal" style="display:none;">
+      <div class="modal-content" style="max-width:600px;">
+        <div class="modal-header">
+          <h3 id="char-modal-title">Add Character</h3>
+          <button class="modal-close" onclick="closeCharModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-row">
+            <div>
+              <label>Name *</label>
+              <input type="text" id="char-name" placeholder="e.g. Saki">
+            </div>
+            <div>
+              <label>Slug *</label>
+              <input type="text" id="char-slug" placeholder="e.g. saki">
+            </div>
+          </div>
+          <div class="form-row">
+            <div>
+              <label>Title</label>
+              <input type="text" id="char-title" placeholder="e.g. The Senior Investigator">
+            </div>
+            <div>
+              <label>Type</label>
+              <select id="char-type">
+                <option value="Admin">Admin</option>
+                <option value="Incarnation">Incarnation</option>
+                <option value="Moderator">Moderator</option>
+                <option value="Character">Character</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div>
+              <label>Species</label>
+              <input type="text" id="char-species" placeholder="e.g. Neko">
+            </div>
+            <div>
+              <label>Emoji</label>
+              <input type="text" id="char-emoji" placeholder="e.g. 🦊">
+            </div>
+          </div>
+          <label>Image URL</label>
+          <input type="text" id="char-image" placeholder="/images/characters/saki.webp">
+          <label>Content (Markdown)</label>
+          <textarea id="char-content" rows="8" placeholder="Character profile in markdown..."></textarea>
+           <div class="form-row">
+             <div>
+               <label>Sort Order</label>
+               <input type="number" id="char-sort" value="0">
+             </div>
+             <div style="display:flex;align-items:center;gap:0.5rem;padding-top:1.5rem;">
+               <input type="checkbox" id="char-visible" checked>
+               <label style="margin:0;">Visible</label>
+             </div>
+           </div>
+           <div id="char-relationships-editor" style="margin-top:1rem; border-top:1px solid var(--border); padding-top:1rem;">
+             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+               <label style="margin:0;">Relationships</label>
+               <button class="btn btn-ghost btn-sm" onclick="addRelationshipRow()">+ Add</button>
+             </div>
+             <div id="char-rel-rows" class="platform-inputs"></div>
+           </div>
+         </div>
+         <div class="modal-footer">
+           <button class="btn btn-ghost" onclick="closeCharModal()">Cancel</button>
+           <button class="btn btn-primary" onclick="saveCharacter()">Save Character</button>
+         </div>
+ la
+
+      </div>
+    </div>
+
+    <!-- ADD LORE MODAL -->
+    <div id="lore-modal" class="modal" style="display:none;">
+      <div class="modal-content" style="max-width:600px;">
+        <div class="modal-header">
+          <h3 id="lore-modal-title">Add Lore Topic</h3>
+          <button class="modal-close" onclick="closeLoreModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-row">
+            <div>
+              <label>Title *</label>
+              <input type="text" id="lore-title" placeholder="e.g. The Great Divide">
+            </div>
+            <div>
+              <label>Slug *</label>
+              <input type="text" id="lore-slug" placeholder="e.g. the-great-divide">
+            </div>
+          </div>
+          <label>Section</label>
+          <select id="lore-section">
+            <option value="species">Species</option>
+            <option value="world">World</option>
+            <option value="compendium">Compendium</option>
+          </select>
+          <label>Content (Markdown)</label>
+          <textarea id="lore-content" rows="8" placeholder="Lore details in markdown..."></textarea>
+          <div class="form-row">
+            <div>
+              <label>Sort Order</label>
+              <input type="number" id="lore-sort" value="0">
+            </div>
+            <div style="display:flex;align-items:center;gap:0.5rem;padding-top:1.5rem;">
+              <input type="checkbox" id="lore-visible" checked>
+              <label style="margin:0;">Visible</label>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" onclick="closeLoreModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="saveLoreTopic()">Save Lore Topic</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TIMELINE MODAL -->
+    <div id="timeline-modal" class="modal" style="display:none;">
+      <div class="modal-content" style="max-width:600px;">
+        <div class="modal-header">
+          <h3 id="timeline-modal-title">Add Timeline Event</h3>
+          <button class="modal-close" onclick="closeTimelineModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-row">
+            <div style="flex:2;">
+              <label>Title *</label>
+              <input type="text" id="timeline-title" placeholder="e.g. The Great Collapse">
+            </div>
+            <div style="flex:1;">
+              <label>ID *</label>
+              <input type="text" id="timeline-id" placeholder="e.g. great-collapse">
+            </div>
+          </div>
+          <div class="form-row">
+            <div>
+              <label>Era</label>
+              <input type="text" id="timeline-era" placeholder="e.g. Second Era / 120 AF">
+            </div>
+            <div>
+              <label>Sort Order</label>
+              <input type="number" id="timeline-sort" value="0">
+            </div>
+          </div>
+          <label>Description</label>
+          <textarea id="timeline-desc" rows="4" placeholder="Event details..."></textarea>
+          <label>Related Character Slugs (comma separated)</label>
+          <input type="text" id="timeline-chars" placeholder="saki, tama, anna">
+          <label>Related Book ID (optional)</label>
+          <input type="text" id="timeline-book" placeholder="book-123">
+          <div style="display:flex;align-items:center;gap:0.5rem;padding-top:1rem;">
+            <input type="checkbox" id="timeline-visible" checked>
+            <label style="margin:0;">Visible</label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" onclick="closeTimelineModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="saveTimelineEvent()">Save Event</button>
+        </div>
+      </div>
+    </div>
       <div class="modal-content">
         <div class="modal-header">
           <h3>Add New Game</h3>
@@ -713,10 +926,6 @@ async function init() {
   try {
     const ok = await loadContent();
     if (!ok) {
-      // Do NOT render/enable the editor panels on a failed load: several of
-      // them (e.g. ensureGamesArray) would otherwise happily treat a null
-      // siteContent as "nothing exists yet" and let the user save an empty
-      // payload over real data. Block editing entirely until reload succeeds.
       showContentLoadError();
       return;
     }
@@ -724,6 +933,8 @@ async function init() {
     renderGamesPanel();
     renderAboutPanel();
     renderVisibilityPanel();
+    renderCharacters();
+    renderLoreTopics();
   } catch(e) {
     showToast('Init failed: ' + e.message, 'error');
     console.error(e);
@@ -1081,8 +1292,40 @@ function renderBooksPanel() {
       <label>Universe Description</label>
       <textarea oninput="siteContent.series[${si}].universeDesc=this.value; markDirty()">${esc(series.universeDesc)}</textarea>
 
+      <label>Series Cover Image</label>
+      <div class="cover-upload-area" onclick="triggerSeriesCoverUpload(${si})">
+        ${series.cover_image
+          ? `<img class="cover-preview" src="${esc(series.cover_image)}" id="series-cover-preview-${si}" alt="Series Cover">`
+          : `<div style="font-size:2rem;margin-bottom:0.5rem;">🖼️</div>`
+        }
+        <div class="upload-hint">Click to upload a new cover image</div>
+        <input type="file" accept="image/*" id="series-cover-input-${si}"
+          onchange="handleSeriesCoverUpload(event,${si})">
+      </div>
+      <div style="margin-bottom:0.5rem;">
+        <label>Cover URL (or leave blank)</label>
+        <input type="text" value="${esc(series.cover_image||'')}" placeholder="/covers/series-cover.jpg"
+          oninput="siteContent.series[${si}].cover_image=this.value; markDirty(); updateSeriesCoverPreview(${si},this.value)">
+      </div>
+
+      <div class="form-row">
+        <div>
+          <label>Series Status</label>
+          <select onchange="siteContent.series[${si}].status=this.value; markDirty()">
+            <option value="Planned" ${series.status === 'Planned' ? 'selected' : ''}>Planned</option>
+            <option value="Ongoing" ${series.status === 'Ongoing' ? 'selected' : ''}>Ongoing</option>
+            <option value="Complete" ${series.status === 'Complete' ? 'selected' : ''}>Complete</option>
+          </select>
+        </div>
+        <div>
+          <label>Reading Order</label>
+          <input type="number" value="${esc(series.reading_order || 0)}"
+            oninput="siteContent.series[${si}].reading_order=parseInt(this.value)||0; markDirty()">
+        </div>
+      </div>
+
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
-        <div style="font-size:0.75rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Books (${series.books.length})</div>
+        <div style="font-size:0.75rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Books (${series.books.length}) • ${series.totalWordCount?.toLocaleString() || 0} words</div>
         <button class="btn btn-ghost btn-sm" onclick="collapseAllBooks(${si})">Collapse All</button>
       </div>
 
@@ -1305,6 +1548,10 @@ function triggerCoverUpload(si, bi) {
   document.getElementById(`cover-input-${si}-${bi}`).click();
 }
 
+function triggerSeriesCoverUpload(si) {
+  document.getElementById(`series-cover-input-${si}`).click();
+}
+
 async function handleCoverUpload(event, si, bi) {
   const file = event.target.files[0];
   if (!file) return;
@@ -1324,8 +1571,32 @@ async function handleCoverUpload(event, si, bi) {
   }
 }
 
+async function handleSeriesCoverUpload(event, si) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const form = new FormData();
+  form.append('cover', file);
+  form.append('bookId', siteContent.series[si].id);
+  try {
+    const res = await fetch('/upload-cover', { method: 'POST', headers: { 'X-CSRF-Token': getCsrfToken() }, body: form });
+    const data = await res.json();
+    siteContent.series[si].cover_image = data.path;
+    markDirty();
+    const preview = document.getElementById(`series-cover-preview-${si}`);
+    if (preview) preview.src = data.path;
+    showToast('Series cover uploaded!');
+  } catch(e) {
+    showToast('Upload failed', 'error');
+  }
+}
+
 function updateCoverPreview(si, bi, url) {
   const el = document.getElementById(`cover-preview-${si}-${bi}`);
+  if (el) el.src = url;
+}
+
+function updateSeriesCoverPreview(si, url) {
+  const el = document.getElementById(`series-cover-preview-${si}`);
   if (el) el.src = url;
 }
 
@@ -2121,35 +2392,321 @@ function dragLeave(e) {
   if (!el.contains(e.relatedTarget)) el.classList.remove('drag-over');
 }
 
+async function saveBookOrder(si, bookIds) {
+  const seriesId = si === -1 ? null : (siteContent.series[si] ? siteContent.series[si].id : null);
+  try {
+    const res = await fetch('/api/books/reorder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
+      body: JSON.stringify({ seriesId, bookIds })
+    });
+    if (!res.ok) throw new Error('Failed to save order');
+    showToast('Order saved');
+  } catch (e) {
+    showToast('Order save failed: ' + e.message, 'error');
+  }
+}
+
 function dragDrop(e, targetSi, targetBi) {
   e.preventDefault();
   document.querySelectorAll('.book-editor').forEach(el => {
     el.classList.remove('drag-over', 'dragging');
   });
   if (_dragSi === null) return;
+
+  const sourceSi = _dragSi;
+  const sourceBi = _dragBi;
+
   // Same list reorder
-  if (_dragSi === targetSi && _dragBi !== targetBi) {
-    const arr = getBooks(_dragSi);
-    const [moved] = arr.splice(_dragBi, 1);
+  if (sourceSi === targetSi && sourceBi !== targetBi) {
+    const arr = getBooks(sourceSi);
+    const [moved] = arr.splice(sourceBi, 1);
     arr.splice(targetBi, 0, moved);
     markDirty();
     renderBooksPanel();
     renderVisibilityPanel();
+    saveBookOrder(sourceSi, arr.map(b => b.id));
   }
-  // Cross-series move: only allowed if both are series (not standalone -1 to -1 which is same)
-  else if (_dragSi !== targetSi) {
-    const book = getBooks(_dragSi).splice(_dragBi, 1)[0];
+  // Cross-series move
+  else if (sourceSi !== targetSi) {
+    const book = getBooks(sourceSi).splice(sourceBi, 1)[0];
     getBooks(targetSi).splice(targetBi, 0, book);
     markDirty();
     renderBooksPanel();
     renderVisibilityPanel();
     showToast(`"${book.title}" moved.`);
+
+    // Save both lists
+    saveBookOrder(sourceSi, getBooks(sourceSi).map(b => b.id));
+    saveBookOrder(targetSi, getBooks(targetSi).map(b => b.id));
   }
   _dragSi = null; _dragBi = null;
 }
 
-// ── INLINE MANUSCRIPT UPLOAD (per book) ─────────────────
-// ── USER MANAGEMENT ─────────────────────────────────────
+// ── LORE & CHARACTERS LOGIC ────────────────────────────────
+
+let currentEditingCharId = null;
+let currentEditingLoreId = null;
+
+function switchLoreSubTab(tab) {
+  const isChars = tab === 'chars';
+  document.getElementById('lore-sub-chars').style.display = isChars ? 'block' : 'none';
+  document.getElementById('lore-sub-lore').style.display = isChars ? 'none' : 'block';
+  document.getElementById('tab-chars-btn').className = isChars ? 'btn btn-primary btn-sm' : 'btn btn-ghost btn-sm';
+  document.getElementById('tab-lore-btn').className = isChars ? 'btn btn-ghost btn-sm' : 'btn btn-primary btn-sm';
+}
+
+async function renderCharacters() {
+  const container = document.getElementById('characters-list');
+  try {
+    const res = await fetch('/api/characters');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const chars = await res.json();
+    
+    if (chars.length === 0) {
+      container.innerHTML = '<div class="empty-state">No characters found.</div>';
+      return;
+    }
+
+    container.innerHTML = chars.map(c => `
+      <div class="game-list-item">
+        <img class="game-list-thumb" src="${esc(c.image || '')}" onerror="this.src='/assets/default-char.webp'" style="border-radius:50%;">
+        <div class="game-list-info">
+          <div class="game-list-title">${esc(c.emoji || '')} ${esc(c.name)} <small style="color:var(--muted);font-size:0.75rem;">(${esc(c.type)})</small></div>
+          <div class="game-list-status">${esc(c.title || 'No title')} • ${c.visible ? 'Visible' : 'Hidden'}</div>
+        </div>
+        <div class="game-list-actions">
+          <button class="btn btn-ghost btn-sm" onclick="editCharacter('${esc(c.slug)}')" title="Edit">✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteCharacter('${esc(c.id)}')" title="Delete">🗑️</button>
+        </div>
+      </div>
+    `).join('');
+  } catch(e) {
+    container.innerHTML = `<p style="color:var(--red);">Error loading characters: ${e.message}</p>`;
+  }
+}
+
+async function renderLoreTopics() {
+  const container = document.getElementById('lore-topics-list');
+  try {
+    const res = await fetch('/api/lore-topics');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const topics = await res.json();
+
+    if (topics.length === 0) {
+      container.innerHTML = '<div class="empty-state">No lore topics found.</div>';
+      return;
+    }
+
+    container.innerHTML = topics.map(t => `
+      <div class="game-list-item">
+        <div class="game-list-thumb" style="display:flex;align-items:center;justify-content:center;background:var(--surface3);font-size:1.5rem;">📜</div>
+        <div class="game-list-info">
+          <div class="game-list-title">${esc(t.title)}</div>
+          <div class="game-list-status">${esc(t.section)} • ${t.visible ? 'Visible' : 'Hidden'}</div>
+        </div>
+        <div class="game-list-actions">
+          <button class="btn btn-ghost btn-sm" onclick="editLoreTopic('${esc(t.slug)}')" title="Edit">✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteLoreTopic('${esc(t.id)}')" title="Delete">🗑️</button>
+        </div>
+      </div>
+    `).join('');
+  } catch(e) {
+    container.innerHTML = `<p style="color:var(--red);">Error loading lore: ${e.message}</p>`;
+  }
+}
+
+function filterCharacters(term) {
+  const t = term.toLowerCase();
+  document.querySelectorAll('#characters-list .game-list-item').forEach(el => {
+    const text = el.textContent.toLowerCase();
+    el.style.display = (!t || text.includes(t)) ? '' : 'none';
+  });
+}
+
+function filterLore(term) {
+  const t = term.toLowerCase();
+  document.querySelectorAll('#lore-topics-list .game-list-item').forEach(el => {
+    const text = el.textContent.toLowerCase();
+    el.style.display = (!t || text.includes(t)) ? '' : 'none';
+  });
+}
+
+async function openAddCharacterModal() {
+  currentEditingCharId = null;
+  document.getElementById('char-modal-title').textContent = 'Add Character';
+  document.getElementById('char-name').value = '';
+  document.getElementById('char-slug').value = '';
+  document.getElementById('char-title').value = '';
+  document.getElementById('char-species').value = '';
+  document.getElementById('char-emoji').value = '';
+  document.getElementById('char-image').value = '';
+  document.getElementById('char-content').value = '';
+  document.getElementById('char-sort').value = '0';
+  document.getElementById('char-visible').checked = true;
+  document.getElementById('char-modal').style.display = 'flex';
+}
+
+async function editCharacter(slug) {
+  try {
+    const res = await fetch(`/api/characters/${slug}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const char = await res.json();
+    
+    currentEditingCharId = char.id;
+    document.getElementById('char-modal-title').textContent = 'Edit Character';
+    document.getElementById('char-name').value = char.name || '';
+    document.getElementById('char-slug').value = char.slug || '';
+    document.getElementById('char-title').value = char.title || '';
+    document.getElementById('char-type').value = char.char_type || 'Character';
+    document.getElementById('char-species').value = char.species || '';
+    document.getElementById('char-emoji').value = char.emoji || '';
+    document.getElementById('char-image').value = char.image || '';
+    document.getElementById('char-content').value = char.content || '';
+    document.getElementById('char-sort').value = char.sort_order || 0;
+    document.getElementById('char-visible').checked = !!char.visible;
+    
+    document.getElementById('char-modal').style.display = 'flex';
+  } catch(e) {
+    showToast('Failed to load character: ' + e.message, 'error');
+  }
+}
+
+function closeCharModal() {
+  document.getElementById('char-modal').style.display = 'none';
+}
+
+async function saveCharacter() {
+  const data = {
+    id: currentEditingCharId || 'char-' + Date.now(),
+    name: document.getElementById('char-name').value.trim(),
+    slug: document.getElementById('char-slug').value.trim().toLowerCase(),
+    title: document.getElementById('char-title').value.trim(),
+    char_type: document.getElementById('char-type').value,
+    species: document.getElementById('char-species').value.trim(),
+    emoji: document.getElementById('char-emoji').value.trim(),
+    image: document.getElementById('char-image').value.trim(),
+    content: document.getElementById('char-content').value,
+    sort_order: parseInt(document.getElementById('char-sort').value) || 0,
+    visible: document.getElementById('char-visible').checked
+  };
+
+  if (!data.name || !data.slug) {
+    showToast('Name and slug are required', 'error');
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/characters', {
+      method: currentEditingCharId ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    showToast('Character saved successfully', 'success');
+    closeCharModal();
+    await renderCharacters();
+  } catch(e) {
+    showToast('Error saving character: ' + e.message, 'error');
+  }
+}
+
+async function deleteCharacter(id) {
+  if (!confirm('Are you sure you want to delete this character?')) return;
+  try {
+    const res = await fetch(`/api/characters/${id}`, {
+      method: 'DELETE',
+      headers: { 'X-CSRF-Token': getCsrfToken() }
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    showToast('Character deleted', 'success');
+    await renderCharacters();
+  } catch(e) {
+    showToast('Error deleting character: ' + e.message, 'error');
+  }
+}
+async function openAddLoreModal() {
+  currentEditingLoreId = null;
+  document.getElementById('lore-modal-title').textContent = 'Add Lore Topic';
+  document.getElementById('lore-title').value = '';
+  document.getElementById('lore-slug').value = '';
+  document.getElementById('lore-section').value = 'world';
+  document.getElementById('lore-content').value = '';
+  document.getElementById('lore-sort').value = '0';
+  document.getElementById('lore-visible').checked = true;
+  document.getElementById('lore-modal').style.display = 'flex';
+}
+
+function closeLoreModal() {
+  document.getElementById('lore-modal').style.display = 'none';
+}
+
+async function editLoreTopic(slug) {
+  try {
+    const res = await fetch(`/api/lore-topics/${slug}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const topic = await res.json();
+    
+    currentEditingLoreId = topic.id;
+    document.getElementById('lore-modal-title').textContent = 'Edit Lore Topic';
+    document.getElementById('lore-title').value = topic.title || '';
+    document.getElementById('lore-slug').value = topic.slug || '';
+    document.getElementById('lore-section').value = topic.section || 'world';
+    document.getElementById('lore-content').value = topic.content || '';
+    document.getElementById('lore-sort').value = topic.sort_order || 0;
+    document.getElementById('lore-visible').checked = !!topic.visible;
+    
+    document.getElementById('lore-modal').style.display = 'flex';
+  } catch(e) {
+    showToast('Failed to load lore topic: ' + e.message, 'error');
+  }
+}
+
+async function saveLoreTopic() {
+  const data = {
+    id: currentEditingLoreId || 'lore-' + Date.now(),
+    title: document.getElementById('lore-title').value.trim(),
+    slug: document.getElementById('lore-slug').value.trim().toLowerCase(),
+    section: document.getElementById('lore-section').value,
+    content: document.getElementById('lore-content').value,
+    sort_order: parseInt(document.getElementById('lore-sort').value) || 0,
+    visible: document.getElementById('lore-visible').checked
+  };
+
+  if (!data.title || !data.slug || !data.section) {
+    showToast('Title, slug, and section are required', 'error');
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/lore-topics', {
+      method: currentEditingLoreId ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    showToast('Lore topic saved successfully', 'success');
+    closeLoreModal();
+    await renderLoreTopics();
+  } catch(e) {
+    showToast('Error saving lore topic: ' + e.message, 'error');
+  }
+}
+
+async function deleteLoreTopic(id) {
+  if (!confirm('Are you sure you want to delete this lore topic?')) return;
+  try {
+    const res = await fetch(`/api/lore-topics/${id}`, {
+      method: 'DELETE',
+      headers: { 'X-CSRF-Token': getCsrfToken() }
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    showToast('Lore topic deleted', 'success');
+    await renderLoreTopics();
+  } catch(e) {
+    showToast('Error deleting lore topic: ' + e.message, 'error');
+  }
+}
 let usersData = [];
 
 async function loadUsers() {
