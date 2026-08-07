@@ -92,31 +92,77 @@ ${urls.map(u => `  <url>
 }
 
 // ── rss.xml (Atom) ──────────────────────────────────────
-async function generateRSS(books) {
-  const visibleBooks = books.filter(b => b.visible !== false);
 
-  const entries = visibleBooks.map(book => {
+/**
+ * Helper: Cleans up Markdown for simple text representation in summary/devlog body.
+ */
+function stripMarkdown(markdown) {
+  if (!markdown) return '';
+  return markdown.replace(/[*_`#]/g, '');
+}
+
+/**
+ * Helper: Creates a single Atom <entry> XML block.
+ */
+function createEntryXml(item, type) {
+  let title, id_slug, summaryText, contentHtml;
+
+  if (type === 'book') {
+    const book = item;
+    title = `${esc(book.title)}${book.volume ? ' - ' + esc(book.volume) : ''}`;
+    id_slug = `/books#${encodeURIComponent(book.id)}`;
     const description = book.description || '';
+    summaryText = description.slice(0, 300);
+    
     const platforms = (book.platforms || []).map(p =>
       `<a href="${esc(p.url)}">${esc(p.name || p.type)}</a>`
     ).join(' · ');
+    
+    contentHtml = `<p>${esc(description)}</p><p><strong>Platforms:</strong> ${platforms}</p>`;
+  } else {
+    const devlog = item;
+    title = esc(devlog.title);
+    id_slug = `/games#devlog-${devlog.id}`;
+    const rawContent = devlog.content || '';
+    summaryText = stripMarkdown(rawContent).slice(0, 300);
+    contentHtml = `<p>${esc(stripMarkdown(rawContent))}</p>`;
+  }
 
-    return `  <entry>
-    <title>${esc(book.title)}${book.volume ? ' - ' + esc(book.volume) : ''}</title>
-    <link href="${BASE_URL}/books#${encodeURIComponent(book.id)}" />
-    <id>${BASE_URL}/books#${encodeURIComponent(book.id)}</id>
+  return `  <entry>
+    <title>${title}</title>
+    <link href="${BASE_URL}${id_slug}" />
+    <id>${BASE_URL}${id_slug}</id>
     <updated>${nowIso()}</updated>
-    <summary>${esc(description.slice(0, 300))}${description.length > 300 ? '…' : ''}</summary>
+    <summary>${esc(summaryText)}${summaryText.length > 300 ? '…' : ''}</summary>
     <content type="html"><![CDATA[
-      <p>${esc(description)}</p>
-      <p><strong>Platforms:</strong> ${platforms}</p>
+      ${contentHtml}
     ]]></content>
   </entry>`;
-  }).join('\n');
+}
+
+async function generateRSS({ books, devlogs }) {
+  const allEntries = [];
+
+  for (const book of books.filter(b => b.visible !== false)) {
+    allEntries.push({ data: book, type: 'book', date: book.publishAt ? new Date(book.publishAt) : new Date(book.updated_at || 0) });
+  }
+
+  if (devlogs) {
+    for (const devlog of devlogs) {
+      allEntries.push({ data: devlog, type: 'devlog', date: new Date(devlog.date || 0) });
+    }
+  }
+
+  // Sort descending (most recent first)
+  allEntries.sort((a, b) => b.date.getTime() - a.date.getTime());
+
+  const entriesXml = allEntries
+    .map(item => createEntryXml(item.data, item.type))
+    .join('\n');
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
-  <title>Nekojin Interactive - Latest Books</title>
+  <title>Nekojin Interactive - Latest Updates</title>
   <link href="${BASE_URL}/" />
   <link rel="self" href="${BASE_URL}/rss.xml" />
   <updated>${nowIso()}</updated>
@@ -124,25 +170,24 @@ async function generateRSS(books) {
   <author>
     <name>Nekojin Interactive</name>
   </author>
-${entries}
+${entriesXml}
 </feed>`;
 
   fs.writeFileSync(path.join(PUBLIC_DIR, 'rss.xml'), xml);
 }
 
-// Regenerates robots.txt, sitemap.xml, and rss.xml from the current DB content.
-// Safe to call repeatedly (e.g. after every /save-content).
 async function generateAll() {
   await contentDB.Open();
   const books = await contentDB.SelectBooks();
+  const devlogs = await contentDB.SelectAllVisibleDevlogEntries();
+  
   generateRobots();
   await generateSitemap(books);
-  await generateRSS(books);
+  await generateRSS({ books, devlogs });
 }
 
 module.exports = { generateAll };
 
-// CLI usage: `node generate-meta.js` / `npm run meta`
 if (require.main === module) {
   generateAll()
     .then(() => {

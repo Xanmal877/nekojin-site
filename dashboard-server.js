@@ -18,6 +18,7 @@ const accounts = require('./accounts.js');
 const contentDB = require('./database.js');
 const backup = require('./backup.js');
 const meta = require('./generate-meta.js');
+const { subscribeToProvider } = require('./lib/newsletter-provider.js');
 
 // ── DEPLOYMENT / ENV CONFIG ────────────────────────────────
 // Only trust X-Forwarded-For / X-Real-IP when actually running behind a
@@ -398,14 +399,16 @@ const PUBLIC_ROUTES = {
     '/xanrean/characters/moderator-chaos': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'character.html'),
     '/xanrean/characters/moderator-order': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'character.html'),
     '/xanrean/characters/moderator-time': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'moderators', 'moderator-time.html'),
-    '/xanrean/characters/moderator-space': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'moderators', 'moderator-space.html'),
+    '/xanrean/characters/moderator-space': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'character.html'),
     '/xanrean/characters/moderator-devotion': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'character.html'),
     '/xanrean/characters/acros': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'character.html'),
     '/xanrean/characters/sarah': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'character.html'),
     '/xanrean/characters/anna': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'character.html'),
+    '/xanrean/characters/xanari': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'character.html'),
     '/xanrean/wiki': path.join(PUBLIC_DIR, 'xanrean', 'wiki.html'),
     '/xanrean/characters/moderators': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'moderators', 'moderators.html'),
     '/xanrean/lore': path.join(PUBLIC_DIR, 'xanrean', 'lore.html'),
+    '/xanrean/lore/timeline': path.join(PUBLIC_DIR, 'xanrean', 'lore', 'timeline.html'),
     '/xanrean/lore/characters': path.join(PUBLIC_DIR, 'xanrean', 'lore', 'characters.html'),
     '/xanrean/lore/species': path.join(PUBLIC_DIR, 'xanrean', 'lore', 'species.html'),
     '/xanrean/lore/world': path.join(PUBLIC_DIR, 'xanrean', 'lore', 'world.html'),
@@ -494,12 +497,31 @@ async function handleRequest(req, res) {
             await contentDB.SelectHomepageSettings();
             let diskFree = null;
             try { diskFree = fs.statfsSync(__dirname).bfree * fs.statfsSync(__dirname).bsize; } catch {}
+
+            let diskStatus = 'unknown';
+            let alerts = [];
+
+            if (diskFree === null) {
+                alerts = ['Could not determine available disk space'];
+            } else if (diskFree < 100 * 1024 * 1024) {
+                diskStatus = 'critical';
+                alerts = ['Disk space is critically low (< 100MB)'];
+            } else if (diskFree < 1 * 1024 * 1024 * 1024) {
+                diskStatus = 'warning';
+                alerts = ['Disk space is low (< 1GB)'];
+            } else {
+                diskStatus = 'ok';
+                alerts = [];
+            }
+
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({
                 ok: true,
                 uptimeSeconds: Math.floor(process.uptime()),
                 dbConnected: true,
-                diskFreeBytes: diskFree
+                diskFreeBytes: diskFree,
+                diskStatus: diskStatus,
+                alerts: alerts
             }));
         } catch (err) {
             res.writeHead(503, { 'Content-Type': 'application/json' });
@@ -524,6 +546,93 @@ async function handleRequest(req, res) {
             console.error('Database error:', err);
             res.writeHead(500);
             return res.end('{"error":"Failed to load content"}');
+        }
+    }
+
+    // Character API
+    if (url.startsWith('/api/characters')) {
+        try {
+            if (req.method === 'GET' && url === '/api/characters') {
+                const characters = await contentDB.SelectCharacters();
+                const filtered = accounts.isAdmin(req) 
+                    ? characters 
+                    : characters.filter(c => c.visible === 1);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify(filtered));
+            }
+            if (req.method === 'GET' && url.match(/\/api\/characters\/([^\/]+)$/)) {
+                const slug = url.split('/').pop();
+                const char = await contentDB.SelectCharacterBySlug(slug);
+                if (!char) {
+                    res.writeHead(404);
+                    return res.end(JSON.stringify({ error: 'Character not found' }));
+                }
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify(char));
+            }
+        } catch (err) {
+            console.error('Character API error:', err);
+            res.writeHead(500);
+            return res.end(JSON.stringify({ error: err.message }));
+        }
+    }
+
+    // Timeline API
+    if (url.startsWith('/api/timeline')) {
+        try {
+            if (req.method === 'GET' && url === '/api/timeline') {
+                const events = await contentDB.SelectTimelineEvents();
+                const filtered = accounts.isAdmin(req) 
+                    ? events 
+                    : events.filter(e => e.visible === 1);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify(filtered));
+            }
+            if (req.method === 'GET' && url.match(/\/api\/timeline\/([^\/]+)$/)) {
+                const id = url.split('/').pop();
+                const event = await contentDB.SelectTimelineEventById(id);
+                if (!event) {
+                    res.writeHead(404);
+                    return res.end(JSON.stringify({ error: 'Timeline event not found' }));
+                }
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify(event));
+            }
+        } catch (err) {
+            console.error('Timeline API error:', err);
+            res.writeHead(500);
+            return res.end(JSON.stringify({ error: err.message }));
+        }
+    }
+
+    // Lore API
+    if (url.startsWith('/api/lore-topics')) {
+        try {
+            if (req.method === 'GET' && url === '/api/lore-topics') {
+                const section = query.get('section');
+                const where = section ? 'section = ?' : '';
+                const params = section ? [section] : [];
+                const topics = await contentDB.SelectLoreTopics(where, params);
+                const filtered = accounts.isAdmin(req)
+                    ? topics
+                    : topics.filter(t => t.visible === 1);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify(filtered));
+            }
+            if (req.method === 'GET' && url.match(/\/api\/lore-topics\/([^\/]+)$/)) {
+                const slug = url.split('/').pop();
+                const topic = await contentDB.SelectLoreTopicBySlug(slug);
+                if (!topic) {
+                    res.writeHead(404);
+                    return res.end(JSON.stringify({ error: 'Lore topic not found' }));
+                }
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify(topic));
+            }
+        } catch (err) {
+            console.error('Lore API error:', err);
+            res.writeHead(500);
+            return res.end(JSON.stringify({ error: err.message }));
         }
     }
 
@@ -715,6 +824,14 @@ async function handleRequest(req, res) {
                 return res.end(JSON.stringify({ error: result.error }));
             }
             
+            // Fire-and-forget call to external provider. 
+            // We do not await this to ensure the user gets an immediate response 
+            // and doesn't suffer latency from 3rd party API calls.
+            // Internal try/catch and timeout in subscribeToProvider handle errors.
+            subscribeToProvider(email, 'website').catch(err => 
+                console.error('[Newsletter] Critical failure in provider call:', err)
+            );
+            
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end('{"ok":true}');
         } catch (e) { 
@@ -762,6 +879,87 @@ async function handleRequest(req, res) {
     // ── AUTHENTICATED ROUTES ──────────────────────────────
     const username = accounts.getUsername(req);
 
+    // Admin Character API
+    if (url.startsWith('/api/characters')) {
+        try {
+            if (req.method === 'POST' || req.method === 'PUT') {
+                const body = await readRawBody(req, 10 * 1024 * 1024);
+                const data = JSON.parse(body.toString());
+                if (!data.name || !data.slug) {
+                    res.writeHead(400);
+                    return res.end(JSON.stringify({ error: 'Name and slug are required' }));
+                }
+                const result = await contentDB.InsertCharacter(data);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify(result));
+            }
+            if (req.method === 'DELETE' && url.match(/\/api\/characters\/([^\/]+)$/)) {
+                const id = url.split('/').pop();
+                const result = await contentDB.DeleteCharacter(id);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify(result));
+            }
+        } catch (err) {
+            console.error('Admin Character API error:', err);
+            res.writeHead(500);
+            return res.end(JSON.stringify({ error: err.message }));
+        }
+    }
+
+    // Admin Timeline API
+    if (url.startsWith('/api/timeline')) {
+        try {
+            if (req.method === 'POST' || req.method === 'PUT') {
+                const body = await readRawBody(req, 10 * 1024 * 1024);
+                const data = JSON.parse(body.toString());
+                if (!data.title || !data.id) {
+                    res.writeHead(400);
+                    return res.end(JSON.stringify({ error: 'Title and ID are required' }));
+                }
+                const result = await contentDB.InsertTimelineEvent(data);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify(result));
+            }
+            if (req.method === 'DELETE' && url.match(/\/api\/timeline\/([^\/]+)$/)) {
+                const id = url.split('/').pop();
+                const result = await contentDB.DeleteTimelineEvent(id);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify(result));
+            }
+        } catch (err) {
+            console.error('Admin Timeline API error:', err);
+            res.writeHead(500);
+            return res.end(JSON.stringify({ error: err.message }));
+        }
+    }
+
+    // Admin Lore API
+    if (url.startsWith('/api/lore-topics')) {
+        try {
+            if (req.method === 'POST' || req.method === 'PUT') {
+                const body = await readRawBody(req, 10 * 1024 * 1024);
+                const data = JSON.parse(body.toString());
+                if (!data.title || !data.slug || !data.section) {
+                    res.writeHead(400);
+                    return res.end(JSON.stringify({ error: 'Title, slug, and section are required' }));
+                }
+                const result = await contentDB.InsertLoreTopic(data);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify(result));
+            }
+            if (req.method === 'DELETE' && url.match(/\/api\/lore-topics\/([^\/]+)$/)) {
+                const id = url.split('/').pop();
+                const result = await contentDB.DeleteLoreTopic(id);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify(result));
+            }
+        } catch (err) {
+            console.error('Admin Lore API error:', err);
+            res.writeHead(500);
+            return res.end(JSON.stringify({ error: err.message }));
+        }
+    }
+
     // API Keys (read / write) - kept for potential future use
     if (url === '/api/keys') {
         if (req.method === 'GET') {
@@ -787,12 +985,78 @@ async function handleRequest(req, res) {
         return serveFile(res, ADMIN_FILE);
     }
 
+    // Update book sequence (admin only)
+    if (req.method === 'POST' && url === '/api/books/reorder') {
+        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        try {
+            const body = await readRawBody(req, 64 * 1024);
+            const { seriesId, bookIds } = JSON.parse(body.toString());
+            if (!Array.isArray(bookIds)) {
+                res.writeHead(400);
+                return res.end(JSON.stringify({ error: 'bookIds must be an array' }));
+            }
+            const result = await contentDB.UpdateBookSequence(seriesId || null, bookIds);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify(result));
+        } catch (e) {
+            res.writeHead(500);
+            return res.end(JSON.stringify({ error: e.message }));
+        }
+    }
+
     // Save site content (admin only) - now to database
     if (req.method === 'POST' && url === '/save-content') {
         if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
         try {
             const body = await readRawBody(req, 10 * 1024 * 1024);
             const data = JSON.parse(body.toString());
+
+            // Validate book slugs: lowercase, numbers, hyphens, underscores only.
+            if (data.books && Array.isArray(data.books)) {
+                for (const book of data.books) {
+                    const slug = book.slug || book.id;
+                    if (!/^[a-z0-9_-]+$/.test(slug)) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({
+                            error: `Invalid slug for book "${book.title || 'Unknown'}": "${slug}". Slugs must be lowercase, numbers, hyphens, or underscores.`
+                        }));
+                    }
+                }
+            }
+
+            // Required field enforcement to prevent DB NOT NULL constraint violations.
+            if (data.books && Array.isArray(data.books)) {
+                for (const book of data.books) {
+                    if (!book.title) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ error: `Book (ID: ${book.id}) is missing a title.` }));
+                    }
+                }
+            }
+            if (data.series && Array.isArray(data.series)) {
+                for (const s of data.series) {
+                    if (!s.name && !s.universe) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ error: `Series (ID: ${s.id}) is missing a name.` }));
+                    }
+                }
+            }
+            if (data.game) {
+                const games = Array.isArray(data.game) ? data.game : [data.game];
+                for (const g of games) {
+                    if (g && Object.keys(g).length > 0 && !g.title) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ error: `Game is missing a title.` }));
+                    }
+                }
+            }
+            if (data.about && Object.keys(data.about).length > 0) {
+                if (!data.about.studio_name && !data.about.studioName) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ error: `About page is missing the studio name.` }));
+                }
+            }
+
             // Safety: backup the DB before any bulk replacement, then proceed.
             try {
                 backup.createRestorePoint('save-content');
@@ -806,7 +1070,10 @@ async function handleRequest(req, res) {
             return res.end('{"ok":true}');
         } catch (e) {
             console.error('Save content error:', e);
-            const status = e.code === 'EMPTY_CONTENT_GUARD' ? 409 : 500;
+            let status = 500;
+            if (e.code === 'EMPTY_CONTENT_GUARD' || e.code === 'DUPLICATE_SLUG') {
+                status = 409;
+            }
             res.writeHead(status, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ error: e.message }));
         }
@@ -823,6 +1090,7 @@ async function handleRequest(req, res) {
             const parts = parseMultipart(body, bm[1]);
             const file = parts['cover'];
             if (!file || !file.data) { res.writeHead(400); return res.end('No file'); }
+            if (file.data.length === 0) { res.writeHead(400); return res.end('Image file is empty'); }
             if (file.data.length > 20 * 1024 * 1024) { res.writeHead(413); return res.end('Image too large (max 20MB)'); }
 
             // bookId ends up in a filename written under COVERS_DIR — strip
@@ -876,15 +1144,16 @@ async function handleRequest(req, res) {
             }
             
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ 
+            return res.end(JSON.stringify({
                 path: `/covers/${fname}`,
                 thumbnail: `/covers/${thumbFname}`,
                 originalSize: file.data.length,
                 optimized: true
             }));
-        } catch (e) { 
-            res.writeHead(500); 
-            return res.end(e.message); 
+        } catch (e) {
+            const isSharpError = e.message && (e.message.includes('unsupported image format') || e.message.includes('Input buffer contains insufficient pixel data'));
+            res.writeHead(isSharpError ? 400 : 500, { 'Content-Type': 'text/plain' });
+            return res.end(isSharpError ? `Invalid image file: ${e.message}` : e.message);
         }
     }
 
@@ -977,6 +1246,21 @@ async function handleRequest(req, res) {
 
     // ── XANREAN SETTINGS API ──────────────────────────────
     // Get xanrean settings (public)
+    // Get world lore topics (public)
+    if (req.method === 'GET' && url === '/api/lore/world-topics') {
+        try {
+            const worldDir = path.join(PUBLIC_DIR, 'data', 'lore', 'world');
+            const topics = fs.readdirSync(worldDir).filter(f => 
+                fs.statSync(path.join(worldDir, f)).isDirectory()
+            );
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ topics }));
+        } catch (e) {
+            res.writeHead(500);
+            return res.end(JSON.stringify({ error: e.message }));
+        }
+    }
+
     if (req.method === 'GET' && url === '/api/xanrean') {
         try {
             const settings = await contentDB.SelectXanreanSettings();

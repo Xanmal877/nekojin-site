@@ -17,7 +17,7 @@
   </script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { height: 100%; overflow: hidden; }
+    html, body { height: 100%; overflow: auto; }
     
     nav {
       position: fixed;
@@ -55,9 +55,27 @@
       margin-top: 60px;
       display: flex;
       flex-direction: column;
-      justify-content: center;
       align-items: center;
       padding: 2rem;
+    }
+
+    .page-header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .page-header h1 {
+      font-family: var(--font-display);
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      color: var(--text);
+    }
+
+    .page-header p {
+      color: var(--muted);
+      font-size: 1.1rem;
+      max-width: 600px;
+      margin: 0 auto;
     }
     
     .worlds-grid {
@@ -76,23 +94,39 @@
       text-decoration: none;
       color: var(--text);
       transition: all 0.3s;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
     }
     
     .world-card:hover {
       border-color: var(--royal);
       transform: translateY(-4px);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.2);
     }
     
     .world-card h2 {
       font-family: var(--font-display);
       font-size: 1.75rem;
-      margin-bottom: 0.5rem;
+      margin-bottom: 0.75rem;
       color: var(--royal-light);
+      text-transform: capitalize;
     }
     
-    .world-card p {
+    .world-card .md-content {
       color: var(--muted);
       line-height: 1.6;
+      font-size: 0.95rem;
+      flex: 1;
+    }
+
+    .world-card .cta {
+      margin-top: 1.5rem;
+      font-weight: 600;
+      color: var(--royal-light);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
     
     footer {
@@ -111,18 +145,13 @@
       color: rgba(255,255,255,0.7);
       text-decoration: none;
     }
-    
-    .placeholder {
+
+    .loading {
       text-align: center;
-      color: var(--muted);
       padding: 4rem 2rem;
-    }
-    
-    .placeholder h1 {
+      color: var(--muted);
       font-family: var(--font-display);
-      font-size: 2.5rem;
-      margin-bottom: 1rem;
-      color: var(--text);
+      font-size: 1.2rem;
     }
   </style>
 </head>
@@ -134,16 +163,80 @@
 </nav>
 
 <main>
-  <div class="placeholder">
+  <div class="page-header">
     <h1>🌍 Worlds</h1>
     <p>Explore the Server Clusters, magic systems, and worldbuilding of Xanrea.</p>
-    <p style="margin-top: 2rem; opacity: 0.6;">Content coming soon...</p>
   </div>
+
+  <div id="loading" class="loading">Loading world data...</div>
+  <section id="worlds-grid" class="worlds-grid" style="display: none;"></section>
 </main>
 
 <footer>
   <a href="/xanrean/lore" class="footer-link">← Back to The Lore</a>
 </footer>
+
+<script>
+  function parseMarkdown(md) {
+    if (!md) return '';
+    return md
+      .replace(/^# (.*$)/gim, '<h2 style="font-size:1.2rem; margin-bottom:0.5rem;">$1</h2>')
+      .replace(/^## (.*$)/gim, '<h3 style="font-size:1rem; margin-bottom:0.5rem;">$1</h3>')
+      .replace(/\*\*(.*?)\*\*/g, '<strong style="color:var(--royal-light)">$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/\n\n/g, '</p><p>')
+      .replace(/^(?!<h)/gim, '<p>')
+      .replace(/$(?!<\/)/gim, '</p>')
+      .split('\n').join(' ');
+  }
+
+  async function loadWorlds() {
+    const grid = document.getElementById('worlds-grid');
+    const loader = document.getElementById('loading');
+ 
+    try {
+      const response = await fetch('/api/lore-topics?section=world');
+      const topics = await response.json();
+ 
+      if (!topics || topics.length === 0) {
+        loader.innerHTML = 'No world data found.';
+        return;
+      }
+ 
+      const cards = await Promise.all(topics.map(async topic => {
+        try {
+          // Use a simple summary from the content (first paragraph)
+          const summary = topic.content.split('\n\n')[0] || topic.content;
+          
+          const title = topic.title;
+          
+          return `
+            <a href="/xanrean/lore/world/${topic.slug}" class="world-card">
+              <h2>${title}</h2>
+              <div class="md-content">
+                ${parseMarkdown(summary)}
+              </div>
+              <div class="cta">Explore World →</div>
+            </a>
+          `;
+        } catch (e) {
+          console.error('Error loading topic ' + topic.slug, e);
+          return '';
+        }
+      }));
+ 
+      grid.innerHTML = cards.join('');
+      grid.style.display = 'grid';
+      loader.style.display = 'none';
+    } catch (err) {
+      console.error('Error loading worlds', err);
+      loader.innerHTML = 'Failed to load world data. Please refresh.';
+    }
+  }
+
+
+  loadWorlds();
+</script>
 
 </body>
 </html>

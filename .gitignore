@@ -53,6 +53,7 @@ chrome-profile/
 users.json
 user-keys.json
 *.zip
+*.tar.gz
 
 # Runtime / generated data
 story-metrics.json

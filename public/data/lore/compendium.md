@@ -76,7 +76,7 @@ It is actually very common for a mother to have a child with her own son, along 
 
 The World of Xanrea has many species — from Humans to Elves, Dwarves to Gnomes, and all kinds of beastkin. The largest population by a wide margin is beastkin.
 
-Elves are strange. Unlike the ancient, wise elves one may think of from other popular media, these elves are rather informal and childish. Despite their relatively long lifespans, they mature at a quarter of the rate of the other races — making them unusually immature for their age by a large margin.
+Elves are strange. Unlike the ancient, wise elves one might think of from other popular media, these elves are rather informal and childish. Despite their relatively long lifespans, they mature at a quarter of the rate of the other races — making them unusually immature for their age by a large margin.
 
 They are actually one of only three species that do not reproduce normally but are still capable of the act of procreation. This makes them, ironically, one of the least common races in all of Xanrea. Most other races do not care to be with them, as they feel they'd be raising a child rather than being with a partner. In a world as dangerous as Xanrea, that isn't adorable — it's terrifying.
 

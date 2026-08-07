@@ -237,6 +237,15 @@ class ContentDB {
             }
         }
 
+        // Migration: Add series table extensions (if not exists)
+        for (const col of ['cover_image TEXT', 'status TEXT', 'word_count INTEGER DEFAULT 0', 'reading_order INTEGER DEFAULT 0']) {
+            try {
+                await this._run(`ALTER TABLE series ADD COLUMN ${col}`);
+            } catch (e) {
+                // Column likely already exists, ignore
+            }
+        }
+
         // Newsletter subscribers
         await this._run(`
             CREATE TABLE IF NOT EXISTS subscribers (
@@ -287,10 +296,72 @@ class ContentDB {
         await this._run(`
             INSERT OR IGNORE INTO xanrean_settings (id) VALUES (1)
         `);
+
+        // Characters table
+        await this._run(`
+            CREATE TABLE IF NOT EXISTS characters (
+                id TEXT PRIMARY KEY,
+                slug TEXT UNIQUE NOT NULL,
+                name TEXT NOT NULL,
+                title TEXT,
+                char_type TEXT,
+                species TEXT,
+                emoji TEXT,
+                content TEXT,
+                image TEXT,
+                sort_order INTEGER DEFAULT 0,
+                visible INTEGER DEFAULT 1,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        // Lore Topics table
+        await this._run(`
+            CREATE TABLE IF NOT EXISTS lore_topics (
+                id TEXT PRIMARY KEY,
+                slug TEXT UNIQUE NOT NULL,
+                section TEXT NOT NULL,
+                title TEXT NOT NULL,
+                content TEXT,
+                sort_order INTEGER DEFAULT 0,
+                visible INTEGER DEFAULT 1,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
         await this._run('CREATE INDEX IF NOT EXISTS idx_books_series ON books(series_id)');
         await this._run('CREATE INDEX IF NOT EXISTS idx_books_status ON books(status)');
         await this._run('CREATE INDEX IF NOT EXISTS idx_books_visible ON books(visible)');
         await this._run('CREATE INDEX IF NOT EXISTS idx_platforms_book ON book_platforms(book_id)');
+        await this._run('CREATE INDEX IF NOT EXISTS idx_chars_slug ON characters(slug)');
+        await this._run('CREATE INDEX IF NOT EXISTS idx_lore_slug ON lore_topics(slug)');
+        // Migration: Add relationships column to characters table (if not exists)
+        try {
+            await this._run(`ALTER TABLE characters ADD COLUMN relationships TEXT`);
+            console.log('ContentDB: Added relationships column to characters table');
+        } catch (e) {
+            // Column likely already exists, ignore
+        }
+        
+        // Timeline Events table
+        await this._run(`
+            CREATE TABLE IF NOT EXISTS timeline_events (
+                id TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                era TEXT,
+                description TEXT,
+                related_character_slugs TEXT,
+                related_book_id TEXT,
+                sort_order INTEGER DEFAULT 0,
+                visible INTEGER DEFAULT 1,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        await this._run('CREATE INDEX IF NOT EXISTS idx_timeline_sort ON timeline_events(sort_order)');
     }
 
     /**
@@ -298,6 +369,7 @@ class ContentDB {
      * Similar to your Close(path) method
      */
     async Close() {
+
         if (!this.db || !this.isOpen) return;
         this.isOpen = false;
         await new Promise((resolve) => {
@@ -316,12 +388,16 @@ class ContentDB {
 
     async InsertSeries(data) {
         const sql = `
-            INSERT INTO series (id, name, description, sort_order)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO series (id, name, description, sort_order, cover_image, status, word_count, reading_order)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
                 name = excluded.name,
                 description = excluded.description,
                 sort_order = excluded.sort_order,
+                cover_image = excluded.cover_image,
+                status = excluded.status,
+                word_count = excluded.word_count,
+                reading_order = excluded.reading_order,
                 updated_at = CURRENT_TIMESTAMP
         `;
         const result = await this._run(sql, [
@@ -334,7 +410,11 @@ class ContentDB {
             // riding along in the object silently overwrites every edit.
             data.universe || data.name || data.title || '',
             data.universeDesc || data.description || '',
-            data.sort_order || 0
+            data.sort_order || 0,
+            data.cover_image || null,
+            data.status || null,
+            data.word_count || 0,
+            data.reading_order || 0
         ]);
         return { id: data.id, changes: result.changes };
     }
@@ -532,30 +612,7 @@ class ContentDB {
         return { id: data.id || 'main' };
     }
 
-    async SelectGame() {
-        const row = await this._get('SELECT * FROM game WHERE id = ?', ['main']);
-        if (!row) return null;
-
-        // Parse the stored JSON data
-        let gameData = {};
-        if (row.data) {
-            try {
-                gameData = JSON.parse(row.data);
-            } catch {
-                gameData = {};
-            }
-        }
-
-        // Ensure title is present
-        gameData.title = gameData.title || row.title;
-
-        // Load related data
-        gameData.screenshots = await this.SelectGameScreenshots(row.id);
-        gameData.devlog = await this.SelectDevlog(row.id);
-
-        return gameData;
-    }
-
+    
     async SelectGames() {
         const rows = await this._all('SELECT * FROM game ORDER BY created_at DESC');
         if (!rows || rows.length === 0) return [];
@@ -643,6 +700,18 @@ class ContentDB {
         return await this._all(sql, params);
     }
 
+    /**
+     * Select all visible devlog entries across all games (used for global feeds).
+     */
+    async SelectAllVisibleDevlogEntries() {
+        return await this._all(
+            'SELECT * FROM devlog WHERE visible = 1 ORDER BY date DESC',
+            []
+        );
+    }
+
+    // ============================================================
+    // ABOUT CRUD
     // ============================================================
     // ABOUT CRUD
     // ============================================================
@@ -768,9 +837,216 @@ class ContentDB {
         }
     }
 
+    async UpdateBookSequence(seriesId, bookIds) {
+        if (!bookIds || !Array.isArray(bookIds)) return { success: false, error: 'Invalid book IDs' };
+
+        try {
+            await this._run('BEGIN TRANSACTION');
+            for (let i = 0; i < bookIds.length; i++) {
+                const sql = seriesId
+                    ? 'UPDATE books SET volume_number = ? WHERE id = ? AND series_id = ?'
+                    : 'UPDATE books SET volume_number = ? WHERE id = ? AND series_id IS NULL';
+
+                const params = seriesId ? [i + 1, bookIds[i], seriesId] : [i + 1, bookIds[i]];
+                await this._run(sql, params);
+            }
+            await this._run('COMMIT');
+            return { success: true, changes: bookIds.length };
+        } catch (err) {
+            await this._run('ROLLBACK').catch(() => {});
+            console.error('UpdateBookSequence error:', err);
+            throw err;
+        }
+    }
+
     // ============================================================
-    // NEWSLETTER SUBSCRIBERS
+    // CHARACTERS CRUD
     // ============================================================
+
+    async InsertCharacter(data) {
+        const sql = `
+            INSERT INTO characters (id, slug, name, title, char_type, species, emoji, content, image, sort_order, visible, relationships, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(id) DO UPDATE SET
+                slug = excluded.slug,
+                name = excluded.name,
+                title = excluded.title,
+                char_type = excluded.char_type,
+                species = excluded.species,
+                emoji = excluded.emoji,
+                content = excluded.content,
+                image = excluded.image,
+                sort_order = excluded.sort_order,
+                visible = excluded.visible,
+                relationships = excluded.relationships,
+                updated_at = CURRENT_TIMESTAMP
+        `;
+        const result = await this._run(sql, [
+            data.id,
+            data.slug,
+            data.name,
+            data.title || null,
+            data.char_type,
+            data.species || null,
+            data.emoji || '',
+            data.content,
+            data.image || null,
+            data.sort_order || 0,
+            data.visible !== false ? 1 : 0,
+            JSON.stringify(data.relationships || [])
+        ]);
+        return { id: data.id, changes: result.changes };
+    }
+
+    async SelectCharacters(whereClause = '', params = []) {
+        let sql = 'SELECT * FROM characters ORDER BY sort_order, name';
+        if (whereClause) {
+            sql = `SELECT * FROM characters WHERE ${whereClause} ORDER BY sort_order, name`;
+        }
+        const rows = await this._all(sql, params);
+        for (const row of rows) {
+            try {
+                row.relationships = row.relationships ? JSON.parse(row.relationships) : [];
+            } catch {
+                row.relationships = [];
+            }
+        }
+        return rows;
+    }
+
+    async SelectCharacterBySlug(slug) {
+        const row = await this._get('SELECT * FROM characters WHERE slug = ?', [slug]);
+        if (row) {
+            try {
+                row.relationships = row.relationships ? JSON.parse(row.relationships) : [];
+            } catch {
+                row.relationships = [];
+            }
+        }
+        return row;
+    }
+
+    async DeleteCharacter(id) {
+        const result = await this._run('DELETE FROM characters WHERE id = ?', [id]);
+        return { changes: result.changes };
+    }
+
+    // ============================================================
+    // TIMELINE EVENTS CRUD
+    // ============================================================
+
+    async InsertTimelineEvent(data) {
+        const sql = `
+            INSERT INTO timeline_events (id, title, era, description, related_character_slugs, related_book_id, sort_order, visible, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(id) DO UPDATE SET
+                title = excluded.title,
+                era = excluded.era,
+                description = excluded.description,
+                related_character_slugs = excluded.related_character_slugs,
+                related_book_id = excluded.related_book_id,
+                sort_order = excluded.sort_order,
+                visible = excluded.visible,
+                updated_at = CURRENT_TIMESTAMP
+        `;
+        const result = await this._run(sql, [
+            data.id,
+            data.title,
+            data.era || null,
+            data.description || '',
+            JSON.stringify(data.related_character_slugs || []),
+            data.related_book_id || null,
+            data.sort_order || 0,
+            data.visible !== false ? 1 : 0
+        ]);
+        return { id: data.id, changes: result.changes };
+    }
+
+    async SelectTimelineEvents(whereClause = '', params = []) {
+        let sql = 'SELECT * FROM timeline_events ORDER BY sort_order, created_at';
+        if (whereClause) {
+            sql = `SELECT * FROM timeline_events WHERE ${whereClause} ORDER BY sort_order, created_at`;
+        }
+        const rows = await this._all(sql, params);
+        for (const row of rows) {
+            try {
+                row.related_character_slugs = row.related_character_slugs ? JSON.parse(row.related_character_slugs) : [];
+            } catch {
+                row.related_character_slugs = [];
+            }
+            row.visible = !!row.visible;
+        }
+        return rows;
+    }
+
+    async SelectTimelineEventById(id) {
+        const row = await this._get('SELECT * FROM timeline_events WHERE id = ?', [id]);
+        if (row) {
+            try {
+                row.related_character_slugs = row.related_character_slugs ? JSON.parse(row.related_character_slugs) : [];
+            } catch {
+                row.related_character_slugs = [];
+            }
+        }
+        return row;
+    }
+
+    async DeleteTimelineEvent(id) {
+        const result = await this._run('DELETE FROM timeline_events WHERE id = ?', [id]);
+        return { changes: result.changes };
+    }
+
+    async UpdateCharacterRelationships(slug, relationships) {
+        const result = await this._run(
+            'UPDATE characters SET relationships = ? WHERE slug = ?',
+            [JSON.stringify(relationships), slug]
+        );
+        return { changes: result.changes };
+    }
+
+    // ============================================================
+
+    async InsertLoreTopic(data) {
+        const sql = `
+            INSERT INTO lore_topics (id, slug, section, title, content, sort_order, visible, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(id) DO UPDATE SET
+                slug = excluded.slug,
+                section = excluded.section,
+                title = excluded.title,
+                content = excluded.content,
+                sort_order = excluded.sort_order,
+                visible = excluded.visible,
+                updated_at = CURRENT_TIMESTAMP
+        `;
+        const result = await this._run(sql, [
+            data.id,
+            data.slug,
+            data.section,
+            data.title,
+            data.content,
+            data.sort_order || 0,
+            data.visible !== false ? 1 : 0
+        ]);
+        return { id: data.id, changes: result.changes };
+    }
+
+    async SelectLoreTopics(whereClause = '', params = []) {
+        let sql = 'SELECT * FROM lore_topics ORDER BY sort_order, title';
+        if (whereClause) {
+            sql = `SELECT * FROM lore_topics WHERE ${whereClause} ORDER BY sort_order, title`;
+        }
+        return await this._all(sql, params);
+    }
+
+    async SelectLoreTopicBySlug(slug) {
+        return await this._get('SELECT * FROM lore_topics WHERE slug = ?', [slug]);
+    }
+
+    async DeleteLoreTopic(id) {
+        const result = await this._run('DELETE FROM lore_topics WHERE id = ?', [id]);
+        return { changes: result.changes };
+    }
 
     async InsertSubscriber(email, source = 'website') {
         try {
@@ -828,8 +1104,15 @@ class ContentDB {
             this.SelectHomepageSettings()
         ]);
 
+        const seriesWithCounts = (series || []).map(s => {
+            const totalWords = books
+                .filter(b => b.series_id === s.id)
+                .reduce((sum, b) => sum + (b.wordCount || 0), 0);
+            return { ...s, totalWordCount: totalWords };
+        });
+
         return {
-            series: series || [],
+            series: seriesWithCounts,
             books: books || [],
             game: games || [],
             about: about || {},
@@ -839,6 +1122,21 @@ class ContentDB {
 
     async SaveAllContent(data) {
         const { series = [], books = [], game = [], about = {} } = data;
+
+        // Prevent duplicate slugs within the book set.
+        const seenSlugs = new Set();
+        for (const b of books) {
+            const slug = b.slug || b.id;
+            if (slug) {
+                if (seenSlugs.has(slug)) {
+                    const err = new Error(`Duplicate book slug detected: "${slug}" is used by multiple books.`);
+                    err.code = 'DUPLICATE_SLUG';
+                    throw err;
+                }
+                seenSlugs.add(slug);
+            }
+        }
+
 
         // Guard against wiping the site: /save-content does a full delete-and-
         // reinsert, so a client that sends an empty payload (e.g. because its
@@ -900,7 +1198,11 @@ class ContentDB {
                     universe: s.universe,
                     description: s.description,
                     universeDesc: s.universeDesc,
-                    sort_order: s.sort_order || i
+                    sort_order: s.sort_order || i,
+                    cover_image: s.cover_image,
+                    status: s.status,
+                    word_count: s.word_count,
+                    reading_order: s.reading_order
                 });
             }
 

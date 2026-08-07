@@ -206,9 +206,27 @@
       margin: 2rem 0;
     }
     
-    .char-main p, .char-content p {
-      margin-bottom: 1rem;
+    .rel-section { margin-top: 2rem; }
+    .rel-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem; margin-top: 1rem;
     }
+    .rel-card {
+      background: var(--surface); border: 1px la solid var(--border);
+      border-radius: 12px; padding: 1rem;
+      border-left: 4px solid var(--royal);
+    }
+    .rel-name {
+      font-family: var(--font-display); font-size: 1.1rem;
+      color: var(--royal-light); text-decoration: none;
+      display: block; margin-bottom: 0.25rem;
+    }
+    .rel-type {
+      font-size: 0.8rem; color: var(--muted);
+      text-transform: uppercase; font-weight: 600;
+      margin-bottom: 0.5rem; display: block;
+    }
+    .rel-desc { font-size: 0.9rem; color: var(--text); }
   </style>
 </head>
 <body>
@@ -289,8 +307,13 @@
         emoji: '⚖️',
         backLink: '/xanrean/characters/moderators',
         type: 'Moderator'
-      },
-      // Moderators - Incarnations
+        },
+      'moderator-devotion': { 
+        file: 'moderator-devotion.md', 
+        emoji: '💜',
+        backLink: '/xanrean/characters/moderators',
+        type: 'Moderator'
+      }
       'anna': { 
         file: 'anna.md', 
         emoji: '💧',
@@ -403,44 +426,32 @@
     async function loadCharacter() {
       const charKey = getCharName();
       console.log('Loading character:', charKey);
-      const config = CHARACTERS[charKey];
       
-      if (!config) {
-        document.getElementById('char-content').innerHTML = 
-          `<div class="char-error">Character "${charKey}" not found.</div>`;
-        return;
-      }
-
-      // Update back link
-      document.getElementById('back-link').href = config.backLink;
-
       try {
-        console.log('Fetching:', `/data/characters/${config.file}`);
-        const response = await fetch(`/data/characters/${config.file}`);
+        console.log('Fetching:', `/api/characters/${charKey}`);
+        const response = await fetch(`/api/characters/${charKey}`);
         console.log('Response status:', response.status);
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-        const md = await response.text();
-        console.log('Loaded content length:', md.length);
+        const char = await response.json();
+        console.log('Loaded character:', char);
         
-        // Extract name from first h1
-        const nameMatch = md.match(/^#\s+(.+?)(?:\n|$)/m);
-        const name = nameMatch ? nameMatch[1] : 'Unknown';
-        console.log('Extracted name:', name);
+        const md = char.content;
+        const name = char.name;
         
         // Extract info from content
         const info = extractInfoFromContent(md);
         console.log('Extracted info:', info);
         
         // Update sidebar
-        document.getElementById('char-avatar').textContent = config.emoji;
+        document.getElementById('char-avatar').textContent = char.emoji;
         document.getElementById('card-name').textContent = name;
         
         // Set role/type
-        let roleText = config.type;
+        let roleText = char.char_type;
         if (info.underlyingidentity) {
-          roleText = `${config.type} of ${info.underlyingidentity}`;
+          roleText = `${char.char_type} of ${info.underlyingidentity}`;
         } else if (info.role) {
           roleText = info.role;
         }
@@ -450,7 +461,7 @@
         // Build stats
         const stats = [];
         if (info.age) stats.push({label: 'Age', value: info.age});
-        if (info.species) stats.push({label: 'Species', value: info.species});
+        if (info.species || char.species) stats.push({label: 'Species', value: info.species || char.species});
         
         // Elements (without "Level")
         if (info.primaryelement || info.secondaryelement) {
@@ -503,6 +514,23 @@
           }
         }
         
+        // Relationships Section
+        if (char.relationships && char.relationships.length > 0) {
+          const relsHtml = char.relationships.map(r => `
+            <div class="rel-card">
+              <a href="/xanrean/characters/${r.character_slug}" class="rel-name">${r.character_name || r.character_slug}</a>
+              <span class="rel-type">${r.relationship_type}</span>
+              <div class="rel-desc">${r.description}</div>
+            </div>
+          `).join('');
+          contentHtml += `
+            <div class="rel-section">
+              <h3>Relationships</h3>
+              <div class="rel-grid">${relsHtml}</div>
+            </div>
+          `;
+        }
+
         document.getElementById('char-content').innerHTML = contentHtml;
         
       } catch (err) {
@@ -514,6 +542,7 @@
         document.getElementById('char-avatar').textContent = '❌';
       }
     }
+
 
     loadCharacter();
   </script>
