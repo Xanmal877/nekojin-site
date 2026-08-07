@@ -12,6 +12,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
+const crypto = require('node:crypto');
 
 // Import modules
 const accounts = require('./accounts.js');
@@ -912,9 +913,12 @@ async function handleRequest(req, res) {
             if (req.method === 'POST' || req.method === 'PUT') {
                 const body = await readRawBody(req, 10 * 1024 * 1024);
                 const data = JSON.parse(body.toString());
-                if (!data.title || !data.id) {
+                if (!data.title) {
                     res.writeHead(400);
-                    return res.end(JSON.stringify({ error: 'Title and ID are required' }));
+                    return res.end(JSON.stringify({ error: 'Title is required' }));
+                }
+                if (!data.id) {
+                    data.id = crypto.randomUUID();
                 }
                 const result = await contentDB.InsertTimelineEvent(data);
                 res.writeHead(200, { 'Content-Type': 'application/json' });

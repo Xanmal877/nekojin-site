@@ -554,3 +554,119 @@ test('authenticated POST /api/lore-topics WITH CSRF succeeds and persists', asyn
     const checkBody = await checkRes.json();
     assert.strictEqual(checkBody.title, 'Test Lore');
 });
+
+// ── TIMELINE API TESTS ──────────────────────────────────
+
+test('GET /api/timeline returns an array', async () => {
+    const res = await fetch(`${BASE}/api/timeline`);
+    assert.strictEqual(res.status, 200);
+    const body = await res.json();
+    assert.ok(Array.isArray(body));
+});
+
+test('GET /api/timeline/:id returns 404 for nonexistent id', async () => {
+    const res = await fetch(`${BASE}/api/timeline/nonexistent-id`);
+    assert.strictEqual(res.status, 404);
+});
+
+test('unauthenticated POST /api/timeline is rejected', async () => {
+    const res = await fetch(`${BASE}/api/timeline`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: 'Fail', era: 'Fail', description: 'Fail' }),
+    });
+    assert.ok([401, 403].includes(res.status));
+});
+
+test('authenticated POST /api/timeline WITHOUT CSRF is rejected', async () => {
+    const res = await fetch(`${BASE}/api/timeline`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: sharedAuth.cookieHeader },
+        body: JSON.stringify({ title: 'CSRF Fail', era: 'Fail', description: 'Fail' }),
+    });
+    assert.strictEqual(res.status, 403);
+});
+
+test('authenticated POST /api/timeline WITH CSRF persists and can be deleted', async () => {
+    const eventData = { title: 'Timeline Event', era: 'Test Era', description: 'Test Desc' };
+    const res = await fetch(`${BASE}/api/timeline`, {
+        method: 'POST',
+        headers: sharedAuth.headers,
+        body: JSON.stringify(eventData),
+    });
+    assert.strictEqual(res.status, 200);
+    const created = await res.json();
+    assert.ok(created.id);
+
+    const checkRes = await fetch(`${BASE}/api/timeline`);
+    const list = await checkRes.json();
+    const found = list.find(e => e.id === created.id);
+    assert.ok(found);
+    assert.strictEqual(found.title, eventData.title);
+    assert.strictEqual(found.era, eventData.era);
+    assert.strictEqual(found.description, eventData.description);
+
+    const delRes = await fetch(`${BASE}/api/timeline/${created.id}`, {
+        method: 'DELETE',
+        headers: sharedAuth.headers,
+    });
+    assert.strictEqual(delRes.status, 200);
+
+    const finalRes = await fetch(`${BASE}/api/timeline/${created.id}`);
+    assert.strictEqual(finalRes.status, 404);
+});
+
+test('DELETE /api/timeline/:id requires CSRF', async () => {
+    const eventData = { title: 'Delete Guard', era: 'Fail', description: 'Fail' };
+    const createRes = await fetch(`${BASE}/api/timeline`, {
+        method: 'POST',
+        headers: sharedAuth.headers,
+        body: JSON.stringify(eventData),
+    });
+    const created = await createRes.json();
+
+    const delRes = await fetch(`${BASE}/api/timeline/${created.id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', Cookie: sharedAuth.cookieHeader },
+    });
+    assert.strictEqual(delRes.status, 403);
+
+    // Cleanup
+    await fetch(`${BASE}/api/timeline/${created.id}`, { method: 'DELETE', headers: sharedAuth.headers });
+});
+
+// ── CHARACTER RELATIONSHIPS TESTS ────────────────────────────────
+
+test('character relationships round-trip', async () => {
+    const charSlug = `test-char-rel-${Math.random().toString(36).substring(7)}`;
+    const charData = {
+        id: `char-rel-${charSlug}`,
+        slug: charSlug,
+        name: 'Rel Test Char',
+        content: 'Rel content',
+        visible: true,
+        relationships: [
+            { character_slug: 'tama', character_name: 'Tama', relationship_type: 'Friend', description: 'Best buds' },
+            { character_slug: 'saki', character_name: 'Saki', relationship_type: 'Rival', description: 'Technical rivalry' }
+        ]
+    };
+
+    const createRes = await fetch(`${BASE}/api/characters`, {
+        method: 'POST',
+        headers: sharedAuth.headers,
+        body: JSON.stringify(charData),
+    });
+    assert.strictEqual(createRes.status, 200);
+
+    const getRes = await fetch(`${BASE}/api/characters/${charSlug}`);
+    assert.strictEqual(getRes.status, 200);
+    const body = await getRes.json();
+    
+    assert.ok(Array.isArray(body.relationships));
+    assert.strictEqual(body.relationships.length, 2);
+    assert.ok(body.relationships.some(r => r.character_slug === 'tama' && r.relationship_type === 'Friend'));
+    assert.ok(body.relationships.some(r => r.character_slug === 'saki' && r.relationship_type === 'Rival'));
+
+    // Cleanup
+    await fetch(`${BASE}/api/characters/${charSlug}`, { method: 'DELETE', headers: sharedAuth.headers });
+});

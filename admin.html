@@ -642,16 +642,16 @@
           <button class="modal-close" onclick="closeTimelineModal()">&times;</button>
         </div>
         <div class="modal-body">
-          <div class="form-row">
-            <div style="flex:2;">
-              <label>Title *</label>
-              <input type="text" id="timeline-title" placeholder="e.g. The Great Collapse">
-            </div>
-            <div style="flex:1;">
-              <label>ID *</label>
-              <input type="text" id="timeline-id" placeholder="e.g. great-collapse">
-            </div>
-          </div>
+           <div class="form-row">
+             <div style="flex:2;">
+               <label>Title *</label>
+               <input type="text" id="timeline-title" placeholder="e.g. The Great Collapse">
+             </div>
+             <div style="flex:1;">
+               <label>ID (optional)</label>
+               <input type="text" id="timeline-id" placeholder="e.g. great-collapse">
+             </div>
+           </div>
           <div class="form-row">
             <div>
               <label>Era</label>
@@ -935,6 +935,7 @@ async function init() {
     renderVisibilityPanel();
     renderCharacters();
     renderLoreTopics();
+    renderTimeline();
   } catch(e) {
     showToast('Init failed: ' + e.message, 'error');
     console.error(e);
@@ -2450,10 +2451,16 @@ let currentEditingLoreId = null;
 
 function switchLoreSubTab(tab) {
   const isChars = tab === 'chars';
+  const isLore = tab === 'lore';
+  const isTimeline = tab === 'timeline';
+
   document.getElementById('lore-sub-chars').style.display = isChars ? 'block' : 'none';
-  document.getElementById('lore-sub-lore').style.display = isChars ? 'none' : 'block';
+  document.getElementById('lore-sub-lore').style.display = isLore ? 'block' : 'none';
+  document.getElementById('lore-sub-timeline').style.display = isTimeline ? 'block' : 'none';
+
   document.getElementById('tab-chars-btn').className = isChars ? 'btn btn-primary btn-sm' : 'btn btn-ghost btn-sm';
-  document.getElementById('tab-lore-btn').className = isChars ? 'btn btn-ghost btn-sm' : 'btn btn-primary btn-sm';
+  document.getElementById('tab-lore-btn').className = isLore ? 'btn btn-primary btn-sm' : 'btn btn-ghost btn-sm';
+  document.getElementById('tab-timeline-btn').className = isTimeline ? 'btn btn-primary btn-sm' : 'btn btn-ghost btn-sm';
 }
 
 async function renderCharacters() {
@@ -2566,6 +2573,12 @@ async function editCharacter(slug) {
     document.getElementById('char-sort').value = char.sort_order || 0;
     document.getElementById('char-visible').checked = !!char.visible;
     
+    // Render existing relationships
+    const relRows = document.getElementById('char-rel-rows');
+    relRows.innerHTML = '';
+    const relationships = char.relationships || [];
+    relationships.forEach(rel => addRelationshipRow(rel));
+    
     document.getElementById('char-modal').style.display = 'flex';
   } catch(e) {
     showToast('Failed to load character: ' + e.message, 'error');
@@ -2591,11 +2604,24 @@ async function saveCharacter() {
     visible: document.getElementById('char-visible').checked
   };
 
+  // Read relationships from the UI
+  const relRows = document.querySelectorAll('#char-rel-rows .rel-row');
+  const relationships = [];
+  relRows.forEach(row => {
+    const slug = row.querySelector('.rel-slug').value.trim();
+    const type = row.querySelector('.rel-type').value.trim();
+    const desc = row.querySelector('.rel-desc').value.trim();
+    if (slug) {
+      relationships.push({ character_slug: slug, relationship_type: type, description: desc });
+    }
+  });
+  data.relationships = relationships;
+  
   if (!data.name || !data.slug) {
     showToast('Name and slug are required', 'error');
     return;
   }
-
+  
   try {
     const res = await fetch('/api/characters', {
       method: currentEditingCharId ? 'PUT' : 'POST',
@@ -2624,6 +2650,27 @@ async function deleteCharacter(id) {
   } catch(e) {
     showToast('Error deleting character: ' + e.message, 'error');
   }
+}
+
+async function addRelationshipRow(data = {}) {
+  const container = document.getElementById('char-rel-rows');
+  const row = document.createElement('div');
+  row.className = 'rel-row platform-row';
+  
+  const res = await fetch('/api/characters');
+  const chars = await res.json();
+  const options = chars.map(c => `<option value="${esc(c.slug)}" ${data.character_slug === c.slug ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
+
+  row.innerHTML = `
+    <select class="rel-slug">
+      <option value="">-- Select Character --</option>
+      ${options}
+    </select>
+    <input type="text" class="rel-type" placeholder="Type" value="${esc(data.relationship_type || '')}">
+    <input type="text" class="rel-desc" placeholder="Description" value="${esc(data.description || '')}">
+    <button class="btn-icon danger" onclick="this.parentElement.remove()">🗑️</button>
+  `;
+  container.appendChild(row);
 }
 async function openAddLoreModal() {
   currentEditingLoreId = null;

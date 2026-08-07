@@ -141,20 +141,40 @@
           loader.innerHTML = 'No timeline events found.';
           return;
         }
-        const html = events.map(e => `
-          <div class="timeline-event">
-            <div class="event-card">
-              <div class="event-era">${e.era || 'Unknown Era'}</div>
-              <h2 class="event-title">${e.title}</h2>
-              <div class="event-desc">${e.description}</div>
-              <div class="event-chars">
-                ${(e.related_character_slugs || []).map(slug => 
-                  `<a href="/xanrean/characters/${slug}" class="char-tag">${slug}</a>`
-                ).join('')}
+
+        // Sort events by sort_order
+        events.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+
+        // Group by era
+        const groups = {};
+        events.forEach(e => {
+          const era = e.era || 'Unknown Era';
+          if (!groups[era]) groups[era] = [];
+          groups[era].push(e);
+        });
+
+        let html = '';
+        for (const era in groups) {
+          html += `<div style="text-align:center; margin: 2rem 0; position:relative; z-index:2;">
+                    <span style="background:var(--bg); padding: 0 1rem; color:var(--royal); font-family:var(--font-display); font-size:1.5rem; border: 1px solid var(--royal); border-radius:8px;">${era}</span>
+                  </div>`;
+          
+          html += groups[era].map(e => `
+            <div class="timeline-event">
+              <div class="event-card">
+                <div class="event-era">${e.era || 'Unknown Era'}</div>
+                <h2 class="event-title">${e.title}</h2>
+                <div class="event-desc">${e.description}</div>
+                <div class="event-chars">
+                  ${(e.related_character_slugs || []).map(slug => 
+                    `<a href="/xanrean/characters/${slug}" class="char-tag">${slug}</a>`
+                  ).join('')}
+                </div>
               </div>
             </div>
-          </div>
-        `).join('');
+          `).join('');
+        }
+        
         list.innerHTML = html;
         container.style.display = 'block';
         loader.style.display = 'none';
