@@ -75,6 +75,31 @@
 
 ---
 
+## 📚 2026-08-06 Session — Character & Lore Content Integration
+
+### Lore Compendium Live
+- Added `public/data/lore/compendium.md` from source material.
+- Lore reader (`/xanrean/lore/reader.html`) now loads the full compendium with TOC.
+- Species hub expanded from 4 to 6 panels: added **Wolfkin** and **Kitsune**.
+- Updated public-facing species descriptions to match canon.
+
+### Character Pages Populated
+- Added Markdown sources under `public/data/characters/` for:
+  - **Tama** (incarnation of Admin Creation)
+  - **Saki** (incarnation of Admin Destruction)
+  - **Anna** (incarnation of Moderator Time)
+  - **Sarah** (first incarnation of Moderator Chaos)
+  - **Acros** (first incarnation of Moderator Order)
+  - **Moderator Chaos** & **Moderator Order** entity profiles
+- Added server route for `/xanrean/characters/anna`.
+- Updated Admins and Moderators hub footers with incarnation links.
+- Updated `sitemap.xml` with new character and lore URLs.
+- Updated `.gitignore` to include `public/data/` content in the repo.
+
+**Tests:** `npm test` → 16/16 passing.
+
+---
+
 ### Newsletter Database ✅
 **What:** Moved newsletter subscribers from JSON to SQLite
 - `subscribers` table with email, source, subscribed_at, active status

@@ -402,6 +402,7 @@ const PUBLIC_ROUTES = {
     '/xanrean/characters/moderator-devotion': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'character.html'),
     '/xanrean/characters/acros': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'character.html'),
     '/xanrean/characters/sarah': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'character.html'),
+    '/xanrean/characters/anna': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'character.html'),
     '/xanrean/wiki': path.join(PUBLIC_DIR, 'xanrean', 'wiki.html'),
     '/xanrean/characters/moderators': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'moderators', 'moderators.html'),
     '/xanrean/lore': path.join(PUBLIC_DIR, 'xanrean', 'lore.html'),

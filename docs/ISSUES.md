@@ -102,24 +102,23 @@ JavaScript objects allow duplicate keys, but last one wins.
 
 ---
 
-### 2. Most Moderator Pages Use Template
-**Status:** Open  
+### 2. Character Pages Populated
+**Status:** Partially Resolved  
 **Impact:** Medium
 
-Currently have dedicated pages for:
+Dynamic Markdown-based character pages now exist for:
 - ✅ Moderator Time
 - ✅ Moderator Space
+- ✅ Moderator Chaos
+- ✅ Moderator Order
+- ❌ Moderator Devotion (awaiting source material)
+- ✅ Tama (incarnation)
+- ✅ Saki (incarnation)
+- ✅ Acros (incarnation)
+- ✅ Sarah (character)
+- ✅ Anna (incarnation)
 
-Still using dynamic template (`character.html`) for:
-- ❌ Moderator Chaos
-- ❌ Moderator Order
-- ❌ Moderator Devotion
-- ❌ Tama (incarnation)
-- ❌ Saki (incarnation)
-- ❌ Acros (incarnation)
-- ❌ Sarah (character)
-
-**Action:** Create dedicated HTML pages for each as content is finalized.
+**Action:** Dedicated standalone HTML pages remain a future polish item; current dynamic pages are content-complete.
 
 ---
 
@@ -139,6 +138,8 @@ Needs actual worldbuilding content: Server Clusters, magic systems, etc.
 | Issue | Date | Commit |
 |-------|------|--------|
 | **Duplicate moderator-chaos route** | 2026-07-11 | `fix: remove duplicate route` |
+| **Character pages populated** | 2026-08-06 | Source material integrated into dynamic pages |
+| **Lore compendium integrated** | 2026-08-06 | Added Wolfkin/Kitsune to species hub |
 | **Character folder restructure** | 2026-07-11 | Multiple commits |
 | **Lore system architecture** | 2026-07-11 | Complete rebuild |
 | **VBox layout** | 2026-07-11 | Header/Cards/Footer |
@@ -152,6 +153,8 @@ Needs actual worldbuilding content: Server Clusters, magic systems, etc.
 | Issue | Date | Commit |
 |-------|------|--------|
 | **Duplicate moderator-chaos route** | 2026-07-11 | `fix: remove duplicate route` |
+| **Character pages populated** | 2026-08-06 | Source material integrated into dynamic pages |
+| **Lore compendium integrated** | 2026-08-06 | Added Wolfkin/Kitsune to species hub |
 | **Character folder restructure** | 2026-07-11 | Multiple commits |
 | **Lore system architecture** | 2026-07-11 | Complete rebuild |
 | **VBox layout** | 2026-07-11 | Header/Cards/Footer |
