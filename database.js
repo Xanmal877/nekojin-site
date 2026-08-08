@@ -8,6 +8,7 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const crypto = require('node:crypto');
 
 // Database location - single file like your Godot project
 const DB_DIR = path.join(__dirname, 'data');
@@ -288,6 +289,11 @@ class ContentDB {
                 characters_bg TEXT DEFAULT '/images/tama-bg.png',
                 lore_bg TEXT DEFAULT '/images/tama-bg.png',
                 game_bg TEXT DEFAULT '/images/tama-bg.png',
+                gumroad_seller_id TEXT,
+                gumroad_access_token TEXT,
+                youtube_channel_id TEXT,
+                discord_server_id TEXT,
+                discord_invite_code TEXT,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         `);
@@ -360,6 +366,23 @@ class ContentDB {
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         `);
+
+        // Sales table
+        await this._run(`
+            CREATE TABLE IF NOT EXISTS sales (
+                id TEXT PRIMARY KEY,
+                gumroad_sale_id TEXT UNIQUE,
+                product_name TEXT,
+                price_cents INTEGER,
+                currency TEXT,
+                recurrence TEXT,
+                email TEXT,
+                seller_id TEXT,
+                is_test INTEGER DEFAULT 0,
+                purchased_at TEXT
+            )
+        `);
+        await this._run('CREATE INDEX IF NOT EXISTS idx_sales_purchased_at ON sales(purchased_at)');
 
         await this._run('CREATE INDEX IF NOT EXISTS idx_timeline_sort ON timeline_events(sort_order)');
     }
@@ -807,26 +830,41 @@ class ContentDB {
             books_bg: '/covers/sb-cover.png',
             characters_bg: '/images/tama-bg.png',
             lore_bg: '/images/tama-bg.png',
-            game_bg: '/images/tama-bg.png'
+            game_bg: '/images/tama-bg.png',
+            gumroad_seller_id: null,
+            gumroad_access_token: null,
+            youtube_channel_id: null,
+            discord_server_id: null,
+            discord_invite_code: null
         };
     }
 
     async UpdateXanreanSettings(data) {
         const sql = `
-            INSERT INTO xanrean_settings (id, books_bg, characters_bg, lore_bg, game_bg)
-            VALUES (1, ?, ?, ?, ?)
+            INSERT INTO xanrean_settings (id, books_bg, characters_bg, lore_bg, game_bg, gumroad_seller_id, gumroad_access_token, youtube_channel_id, discord_server_id, discord_invite_code)
+            VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
                 books_bg = excluded.books_bg,
                 characters_bg = excluded.characters_bg,
                 lore_bg = excluded.lore_bg,
                 game_bg = excluded.game_bg,
+                gumroad_seller_id = excluded.gumroad_seller_id,
+                gumroad_access_token = excluded.gumroad_access_token,
+                youtube_channel_id = excluded.youtube_channel_id,
+                discord_server_id = excluded.discord_server_id,
+                discord_invite_code = excluded.discord_invite_code,
                 updated_at = CURRENT_TIMESTAMP
         `;
         const params = [
             data.books_bg || '/covers/sb-cover.png',
             data.characters_bg || '/images/tama-bg.png',
             data.lore_bg || '/images/tama-bg.png',
-            data.game_bg || '/images/tama-bg.png'
+            data.game_bg || '/images/tama-bg.png',
+            data.gumroad_seller_id || null,
+            data.gumroad_access_token || null,
+            data.youtube_channel_id || null,
+            data.discord_server_id || null,
+            data.discord_invite_code || null
         ];
         try {
             const result = await this._run(sql, params);
@@ -857,6 +895,38 @@ class ContentDB {
             console.error('UpdateBookSequence error:', err);
             throw err;
         }
+    }
+
+    async InsertSale(data) {
+        const sql = `
+            INSERT INTO sales (id, gumroad_sale_id, product_name, price_cents, currency, recurrence, email, seller_id, is_test, purchased_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(gumroad_sale_id) DO NOTHING
+        `;
+        const result = await this._run(sql, [
+            data.id || crypto.randomUUID(),
+            data.sale_id,
+            data.product_name,
+            data.price,
+            data.currency,
+            data.recurrence,
+            data.email,
+            data.seller_id,
+            data.is_test,
+            data.purchased_at
+        ]);
+        return { id: data.id, changes: result.changes };
+    }
+
+    async SelectRecentSales(limit = 25) {
+        return await this._all(
+            'SELECT * FROM sales WHERE is_test = 0 ORDER BY purchased_at DESC LIMIT ?',
+            [limit]
+        );
+    }
+
+    async SelectAllSales() {
+        return await this._all('SELECT * FROM sales ORDER BY purchased_at DESC');
     }
 
     // ============================================================
