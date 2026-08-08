@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Community - Nekojin Interactive</title>
+  <meta name="description" content="Join the Nekojin community, watch latest videos, and see recent supporters.">
+  <link rel="stylesheet" href="/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Darumadrop+One&family=Zen+Kaku+Gothic+New:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <script>
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+  </script>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo">
+    <div class="nav-tama"></div>
+    Nekojin Interactive
+  </a>
+  <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+    <span id="theme-icon">☀️</span>
+  </button>
+</nav>
+
+<main>
+  <section class="hero">
+    <div class="hero-orbs">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
+    </div>
+    <div class="hero-eyebrow">Connect</div>
+    <h1 class="hero-title">Community</h1>
+    <p class="hero-sub">Connect with the studio, follow our progress, and join the conversation.</p>
+  </section>
+
+  <section id="sales-section" style="display:none;">
+    <div class="section-inner">
+      <div class="section-header">
+        <span class="section-eyebrow">Supporters</span>
+        <h2 class="section-title">Recent Purchases</h2>
+        <p class="section-desc">Showing the latest souls to support the project.</p>
+      </div>
+      <div id="sales-list" class="sales-list"></div>
+    </div>
+  </section>
+
+  <section id="youtube-section">
+    <div class="section-inner">
+      <div class="section-header">
+        <span class="section-eyebrow">Visuals</span>
+        <h2 class="section-title">Latest Videos</h2>
+        <p class="section-desc">The latest updates and showcases from the studio.</p>
+      </div>
+      <div id="video-grid" class="video-grid">
+        <p class="loading-text">Loading videos...</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="discord-section" style="display:none;">
+    <div class="section-inner">
+      <div class="section-header">
+        <span class="section-eyebrow">Chat</span>
+        <h2 class="section-title">Join the Discord</h2>
+        <p class="section-desc">Jump into our server to chat about lore, games, and development.</p>
+      </div>
+      <div class="discord-wrap">
+        <div id="discord-widget-container"></div>
+        <a id="discord-join-btn" href="#" class="btn btn-primary">Join the Discord →</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <div class="footer-tama"></div>
+      <span class="footer-text">Nekojin Interactive</span>
+    </div>
+    <p class="footer-copy">© 2025 Nekojin Interactive LLC. All rights reserved.</p>
+    <div class="footer-actions">
+      <a href="/about" class="footer-link">About</a>
+      <a href="https://www.patreon.com/purplexanmal" target="_blank" rel="noopener" class="footer-patreon">
+        ☕ Support on Patreon
+      </a>
+      <form class="footer-newsletter" onsubmit="subscribe(event)">
+        <input type="email" placeholder="your@email.com" required>
+        <button type="submit">Subscribe</button>
+      </form>
+    </div>
+  </div>
+</footer>
+
+<div class="nl-message" id="nl-message"></div>
+
+<script src="/common.js"></script>
+<script>
+  function toggleTheme() {
+    const html = document.documentElement;
+    const icon = document.getElementById('theme-icon');
+    const current = html.getAttribute('data-theme') || 'light';
+    const next = current === 'light' ? 'dark' : 'light';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    if (icon) icon.textContent = next === 'dark' ? '🌙' : '☀️';
+  }
+
+  async function subscribe(e) {
+    e.preventDefault();
+    const input = e.target.querySelector('input');
+    const email = input.value.trim();
+    const msg = document.getElementById('nl-message');
+    try {
+      const res = await fetch('/newsletter', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({email})
+      });
+      if (res.ok) {
+        msg.textContent = '✓ Subscribed!';
+        input.value = '';
+      } else {
+        msg.textContent = 'Try again later';
+      }
+    } catch {
+      msg.textContent = 'Network error';
+    }
+    msg.classList.add('visible');
+    setTimeout(() => msg.classList.remove('visible'), 3000);
+  }
+
+  async function loadSales() {
+    const section = document.getElementById('sales-section');
+    const list = document.getElementById('sales-list');
+    try {
+      const res = await fetch('/api/sales');
+      if (!res.ok) throw new Error('API error');
+      const data = await res.json();
+      if (!data.sales || data.sales.length === 0) {
+        section.style.display = 'none';
+        return;
+      }
+      
+      const items = data.sales.map(sale => {
+        const price = (sale.price_cents / 100).toFixed(2);
+        return `<div class="sale-item">Someone just picked up <strong>${esc(sale.product_name)}</strong> ✦ $${price} ${esc(sale.currency)}</div>`;
+      }).join('');
+      
+      list.innerHTML = items;
+      section.style.display = 'block';
+    } catch (e) {
+      console.error('Sales load failed:', e);
+      section.style.display = 'none';
+    }
+  }
+
+  async function loadVideos() {
+    const grid = document.getElementById('video-grid');
+    try {
+      const res = await fetch('/api/youtube');
+      if (!res.ok) throw new Error('API error');
+      const data = await res.json();
+      if (!data.videos || data.videos.length === 0) {
+        grid.innerHTML = '<p class="no-content">No videos yet.</p>';
+        return;
+      }
+      
+      const cards = data.videos.map(v => `
+        <a href="https://www.youtube.com/watch?v=${esc(v.id)}" target="_blank" rel="noopener" class="video-card">
+          <div class="video-thumb">
+            <img src="${esc(v.thumbnail)}" alt="${esc(v.title)}" loading="lazy">
+          </div>
+          <div class="video-info">
+            <h3 class="video-title">${esc(v.title)}</h3>
+            <span class="video-date">${esc(v.published)}</span>
+          </div>
+        </a>
+      `).join('');
+      
+      grid.innerHTML = cards;
+    } catch (e) {
+      console.error('Videos load failed:', e);
+      grid.innerHTML = '<p class="no-content">Failed to load videos.</p>';
+    }
+  }
+
+  async function loadDiscord() {
+    const section = document.getElementById('discord-section');
+    const container = document.getElementById('discord-widget-container');
+    const btn = document.getElementById('discord-join-btn');
+    try {
+      const res = await fetch('/api/discord');
+      if (!res.ok) throw new Error('API error');
+      const data = await res.json();
+      
+      if (data.server_id) {
+        container.innerHTML = `
+          <iframe src="https://discord.com/widget?id=${esc(data.server_id)}&theme=dark" 
+                  width="350" height="500" allowtransparency="true" 
+                  frameborder="0" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts">
+          </iframe>`;
+      }
+
+      const inviteUrl = data.invite_url || (data.invite_code ? `https://discord.gg/${esc(data.invite_code)}` : null);
+      if (inviteUrl) {
+        btn.href = inviteUrl;
+      } else {
+        btn.style.display = 'none';
+      }
+
+      if (!data.server_id && !inviteUrl) {
+        section.style.display = 'none';
+      } else {
+        section.style.display = 'block';
+      }
+    } catch (e) {
+      console.error('Discord load failed:', e);
+      section.style.display = 'none';
+    }
+  }
+
+  // Init
+  loadSales();
+  loadVideos();
+  loadDiscord();
+</script>
+
+</body>
+</html>

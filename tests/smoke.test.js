@@ -616,6 +616,70 @@ test('authenticated POST /api/timeline WITH CSRF persists and can be deleted', a
     assert.strictEqual(finalRes.status, 404);
 });
 
+test('Gumroad webhook persists sales and handles duplicates', async () => {
+    const ping = 'product_name=Test+Product&price=1000&currency=USD&sale_id=sale_123&seller_id=test_seller&test=false';
+    
+    // First ping
+    const res1 = await fetch(`${BASE}/webhook/gumroad`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: ping,
+    });
+    assert.strictEqual(res1.status, 200);
+
+    // Duplicate ping
+    const res2 = await fetch(`${BASE}/webhook/gumroad`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: ping,
+    });
+    assert.strictEqual(res2.status, 200);
+
+    const salesRes = await fetch(`${BASE}/api/sales`);
+    const salesData = await salesRes.json();
+    const matches = salesData.sales.filter(s => s.product_name === 'Test Product');
+    assert.strictEqual(matches.length, 1, 'Should deduplicate sales by sale_id');
+});
+
+test('Integration APIs return correct shapes', async () => {
+    const youtubeRes = await fetch(`${BASE}/api/youtube`);
+    const youtubeData = await youtubeRes.json();
+    assert.ok(Array.isArray(youtubeData.videos));
+
+    const discordRes = await fetch(`${BASE}/api/discord`);
+    const discordData = await discordRes.json();
+    assert.ok('server_id' in discordData);
+    assert.ok('invite_code' in discordData);
+});
+
+test('Admin settings API is protected and persists', async () => {
+    // Unauth'd
+    const unauthRes = await fetch(`${BASE}/api/settings`);
+    assert.strictEqual(unauthRes.status, 302);
+
+    // Auth'd GET
+    const authGetRes = await fetch(`${BASE}/api/settings`, { headers: sharedAuth.headers });
+    assert.strictEqual(authGetRes.status, 200);
+
+    // Auth'd POST
+    const postRes = await fetch(`${BASE}/api/settings`, {
+        method: 'POST',
+        headers: sharedAuth.headers,
+        body: JSON.stringify({
+            gumroad_seller_id: 'set_seller',
+            gumroad_access_token: 'set_token',
+            youtube_channel_id: 'set_yt',
+            discord_server_id: 'set_ds',
+            discord_invite_code: 'set_inv'
+        }),
+    });
+    assert.strictEqual(postRes.status, 200);
+
+    const verifyRes = await fetch(`${BASE}/api/settings`, { headers: sharedAuth.headers });
+    const verifyData = await verifyRes.json();
+    assert.strictEqual(verifyData.gumroad_seller_id, 'set_seller');
+});
+
 test('DELETE /api/timeline/:id requires CSRF', async () => {
     const eventData = { title: 'Delete Guard', era: 'Fail', description: 'Fail' };
     const createRes = await fetch(`${BASE}/api/timeline`, {

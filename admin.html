@@ -876,6 +876,23 @@
           <button class="btn btn-ghost" onclick="clearBgSettings()">Remove Background</button>
         </div>
       </div>
+
+      <div class="card" style="margin-top:1.5rem;">
+        <div class="card-title">🔌 Integrations</div>
+        <label>Gumroad Seller ID</label>
+        <input type="text" id="settings-gumroad-seller-id" placeholder="seller-id">
+        <label>Gumroad Access Token</label>
+        <input type="password" id="settings-gumroad-token" placeholder="••••••" style="width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem 0.85rem; color: var(--text); font-family: var(--body); font-size: 0.9rem; outline: none; transition: border-color 0.2s; margin-bottom: 1rem;">
+        <label>YouTube Channel ID</label>
+        <input type="text" id="settings-youtube-channel" placeholder="UC...">
+        <label>Discord Server ID</label>
+        <input type="text" id="settings-discord-server" placeholder="server-id">
+        <label>Discord Invite Code</label>
+        <input type="text" id="settings-discord-invite" placeholder="invite-code">
+        <div style="margin-top:1rem;">
+          <button class="btn btn-primary" id="settings-save-btn" onclick="saveIntegrationsSettings()">💾 Save Integrations</button>
+        </div>
+      </div>
     </div>
 
   </main>
@@ -936,6 +953,7 @@ async function init() {
     renderCharacters();
     renderLoreTopics();
     renderTimeline();
+    await loadIntegrationsSettings();
   } catch(e) {
     showToast('Init failed: ' + e.message, 'error');
     console.error(e);
@@ -1054,6 +1072,55 @@ async function discardChanges() {
   renderAboutPanel();
   renderVisibilityPanel();
   showToast('Changes discarded.');
+}
+
+// ── INTEGRATIONS SETTINGS ──────────────────────────────────
+async function loadIntegrationsSettings() {
+  try {
+    const res = await fetch('/api/settings');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    
+    document.getElementById('settings-gumroad-seller-id').value = data.gumroad_seller_id || '';
+    document.getElementById('settings-gumroad-token').value = data.gumroad_access_token || '';
+    document.getElementById('settings-youtube-channel').value = data.youtube_channel_id || '';
+    document.getElementById('settings-discord-server').value = data.discord_server_id || '';
+    document.getElementById('settings-discord-invite').value = data.discord_invite_code || '';
+  } catch(e) {
+    console.error('loadIntegrationsSettings failed:', e);
+    // We don't show a toast here to avoid cluttering init, but could be added if requested
+  }
+}
+
+async function saveIntegrationsSettings() {
+  const data = {
+    gumroad_seller_id: document.getElementById('settings-gumroad-seller-id').value.trim(),
+    gumroad_access_token: document.getElementById('settings-gumroad-token').value.trim(),
+    youtube_channel_id: document.getElementById('settings-youtube-channel').value.trim(),
+    discord_server_id: document.getElementById('settings-discord-server').value.trim(),
+    discord_invite_code: document.getElementById('settings-discord-invite').value.trim()
+  };
+
+  try {
+    const res = await fetch('/api/settings', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json', 
+        'X-CSRF-Token': getCsrfToken() 
+      },
+      body: JSON.stringify(data)
+    });
+
+    if (res.ok) {
+      showToast('✓ Integrations saved!');
+    } else {
+      let msg = 'Save failed';
+      try { const errBody = await res.json(); if (errBody.error) msg = errBody.error; } catch {}
+      showToast(msg, 'error');
+    }
+  } catch(e) {
+    showToast('Save failed: ' + e.message, 'error');
+  }
 }
 
 // ── BACKGROUND SETTINGS (localStorage only) ──────────────

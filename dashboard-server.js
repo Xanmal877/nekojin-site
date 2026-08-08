@@ -20,6 +20,8 @@ const contentDB = require('./database.js');
 const backup = require('./backup.js');
 const meta = require('./generate-meta.js');
 const { subscribeToProvider } = require('./lib/newsletter-provider.js');
+const gumroad = require('./lib/gumroad.js');
+const youtube = require('./lib/youtube.js');
 
 // ── DEPLOYMENT / ENV CONFIG ────────────────────────────────
 // Only trust X-Forwarded-For / X-Real-IP when actually running behind a
@@ -45,6 +47,7 @@ const RATE_LIMIT_CONFIG = {
     '/register': { windowMs: 60 * 60 * 1000, max: 3, message: 'Too many registration attempts. Try again in 1 hour.' },
     '/newsletter': { windowMs: 60 * 60 * 1000, max: 10, message: 'Too many newsletter signups from this IP.' },
     '/api/users': { windowMs: 15 * 60 * 1000, max: 20, message: 'Too many user management requests.' },
+    '/webhook/gumroad': { windowMs: 60 * 1000, max: 10, message: 'Too many webhook requests.' },
     'default': { windowMs: 60 * 1000, max: 100, message: 'Too many requests. Please slow down.' }
 };
 
@@ -492,6 +495,40 @@ async function handleRequest(req, res) {
         }
     }
 
+    // Gumroad Webhook (PUBLIC, CSRF-exempt)
+    if (req.method === 'POST' && url === '/webhook/gumroad') {
+        const limit = checkRateLimit(req, '/webhook/gumroad');
+        if (!limit.allowed) {
+            res.writeHead(429);
+            return res.end(limit.message);
+        }
+
+        try {
+            const body = await readRawBody(req, 512 * 1024);
+            const ping = gumroad.parsePingBody(body);
+            
+            const settings = await contentDB.SelectXanreanSettings();
+            const sellerId = settings.gumroad_seller_id || process.env.GUMROAD_SELLER_ID;
+
+            if (sellerId && !gumroad.validateSellerId(ping, sellerId)) {
+                res.writeHead(403);
+                return res.end('Forbidden: Seller ID mismatch');
+            }
+
+            await contentDB.InsertSale({
+                ...ping,
+                purchased_at: ping.purchased_at || new Date().toISOString()
+            });
+
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ ok: true }));
+        } catch (err) {
+            console.error('[Gumroad Webhook] Error:', err);
+            res.writeHead(500);
+            return res.end('Internal Server Error');
+        }
+    }
+
     // Health check (public) — DB connectivity + uptime, for monitoring/alerts
     if (req.method === 'GET' && url === '/api/health') {
         try {
@@ -634,6 +671,58 @@ async function handleRequest(req, res) {
             console.error('Lore API error:', err);
             res.writeHead(500);
             return res.end(JSON.stringify({ error: err.message }));
+        }
+    }
+
+    // Integration APIs (public)
+    if (req.method === 'GET') {
+        if (url === '/api/youtube') {
+            try {
+                const settings = await contentDB.SelectXanreanSettings();
+                const channelId = settings.youtube_channel_id || process.env.YOUTUBE_CHANNEL_ID;
+                if (!channelId) {
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ videos: [] }));
+                }
+                const videos = await youtube.fetchLatestVideos(channelId);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ videos }));
+            } catch (e) {
+                res.writeHead(500);
+                return res.end(JSON.stringify({ error: e.message }));
+            }
+        }
+        if (url === '/api/discord') {
+            try {
+                const settings = await contentDB.SelectXanreanSettings();
+                const server_id = settings.discord_server_id || process.env.DISCORD_SERVER_ID || null;
+                const invite_code = settings.discord_invite_code || process.env.DISCORD_INVITE_CODE || null;
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({
+                    server_id,
+                    invite_code,
+                    invite_url: invite_code ? `https://discord.gg/${invite_code}` : null
+                }));
+            } catch (e) {
+                res.writeHead(500);
+                return res.end(JSON.stringify({ error: e.message }));
+            }
+        }
+        if (url === '/api/sales') {
+            try {
+                const sales = await contentDB.SelectRecentSales(25);
+                const mapped = sales.map(s => ({
+                    product_name: s.product_name,
+                    price_cents: s.price_cents,
+                    currency: s.currency,
+                    purchased_at: s.purchased_at
+                }));
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ sales: mapped }));
+            } catch (e) {
+                res.writeHead(500);
+                return res.end(JSON.stringify({ error: e.message }));
+            }
         }
     }
 
@@ -868,7 +957,7 @@ async function handleRequest(req, res) {
     // Double-submit cookie check for state-changing requests. The session
     // cookie is HttpOnly and SameSite=Strict, but this adds defense-in-depth
     // against CSRF from same-site subdomains / CORS misconfiguration.
-    if (req.method === 'POST' || req.method === 'DELETE' || req.method === 'PUT') {
+    if ((req.method === 'POST' || req.method === 'DELETE' || req.method === 'PUT') && url !== '/webhook/gumroad') {
         const sid = accounts.getSessionId(req);
         const csrfHeader = req.headers['x-csrf-token'];
         if (!accounts.isValidCsrfToken(sid, csrfHeader)) {
@@ -980,6 +1069,50 @@ async function handleRequest(req, res) {
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 return res.end('{"ok":true}');
             } catch (e) { res.writeHead(400); return res.end(e.message); }
+        }
+    }
+
+    // Admin Integrations Settings API
+    if (url === '/api/settings') {
+        if (!accounts.isAuthenticated(req)) {
+            res.writeHead(401);
+            return res.end('Unauthorized');
+        }
+        if (req.method === 'GET') {
+            try {
+                const settings = await contentDB.SelectXanreanSettings();
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({
+                    gumroad_seller_id: settings.gumroad_seller_id,
+                    gumroad_access_token: settings.gumroad_access_token,
+                    youtube_channel_id: settings.youtube_channel_id,
+                    discord_server_id: settings.discord_server_id,
+                    discord_invite_code: settings.discord_invite_code
+                }));
+            } catch (e) {
+                res.writeHead(500);
+                return res.end(JSON.stringify({ error: e.message }));
+            }
+        }
+        if (req.method === 'POST') {
+            try {
+                const body = await readRawBody(req, 16 * 1024);
+                const data = JSON.parse(body.toString());
+                const current = await contentDB.SelectXanreanSettings();
+                await contentDB.UpdateXanreanSettings({
+                    ...current,
+                    gumroad_seller_id: data.gumroad_seller_id,
+                    gumroad_access_token: data.gumroad_access_token,
+                    youtube_channel_id: data.youtube_channel_id,
+                    discord_server_id: data.discord_server_id,
+                    discord_invite_code: data.discord_invite_code
+                });
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ ok: true }));
+            } catch (e) {
+                res.writeHead(400);
+                return res.end(JSON.stringify({ error: e.message }));
+            }
         }
     }
 
