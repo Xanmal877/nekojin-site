@@ -262,9 +262,9 @@ class ContentDB {
         await this._run(`
             CREATE TABLE IF NOT EXISTS homepage_settings (
                 id INTEGER PRIMARY KEY CHECK (id = 1),
-                xanrean_bg TEXT DEFAULT '/covers/sb-cover.png',
-                standalone_bg TEXT DEFAULT '/covers/book-1776403239514-1778880332704.jpg',
-                community_bg TEXT DEFAULT '/images/tama-bg.png',
+                xanrean_bg TEXT DEFAULT '/covers/homepage-cover-xanrean.webp',
+                standalone_bg TEXT DEFAULT '/covers/homepage-cover-standalone.webp',
+                community_bg TEXT DEFAULT '/covers/homepage-cover-community.webp',
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         `);
@@ -273,22 +273,22 @@ class ContentDB {
         await this._run(`
             INSERT OR IGNORE INTO homepage_settings (id) VALUES (1)
         `);
-        
+
         // Add community_bg column if not exists (migration)
         try {
             await this._get('SELECT community_bg FROM homepage_settings');
         } catch (e) {
-            await this._run('ALTER TABLE homepage_settings ADD COLUMN community_bg TEXT DEFAULT \'/images/tama-bg.png\'');
+            await this._run('ALTER TABLE homepage_settings ADD COLUMN community_bg TEXT DEFAULT \'/covers/homepage-cover-community.webp\'');
         }
-        
+
         // Xanrean page settings table
         await this._run(`
             CREATE TABLE IF NOT EXISTS xanrean_settings (
                 id INTEGER PRIMARY KEY CHECK (id = 1),
-                books_bg TEXT DEFAULT '/covers/sb-cover.png',
-                characters_bg TEXT DEFAULT '/images/tama-bg.png',
-                lore_bg TEXT DEFAULT '/images/tama-bg.png',
-                game_bg TEXT DEFAULT '/images/tama-bg.png',
+                books_bg TEXT DEFAULT '/covers/xanrean-cover-books.webp',
+                characters_bg TEXT DEFAULT '/covers/xanrean-cover-characters.webp',
+                lore_bg TEXT DEFAULT '/covers/xanrean-cover-lore.webp',
+                game_bg TEXT DEFAULT '/covers/xanrean-cover-game.webp',
                 gumroad_seller_id TEXT,
                 gumroad_access_token TEXT,
                 youtube_channel_id TEXT,
@@ -791,9 +791,9 @@ class ContentDB {
     async SelectHomepageSettings() {
         const row = await this._get('SELECT * FROM homepage_settings WHERE id = 1');
         return row || {
-            xanrean_bg: '/covers/sb-cover.png',
-            standalone_bg: '/covers/book-1776403239514-1778880332704.jpg',
-            community_bg: '/images/tama-bg.png'
+            xanrean_bg: '/covers/homepage-cover-xanrean.webp',
+            standalone_bg: '/covers/homepage-cover-standalone.webp',
+            community_bg: '/covers/homepage-cover-community.webp'
         };
     }
 
@@ -808,9 +808,9 @@ class ContentDB {
                 updated_at = CURRENT_TIMESTAMP
         `;
         const params = [
-            data.xanrean_bg || '/covers/sb-cover.png',
-            data.standalone_bg || '/covers/book-1776403239514-1778880332704.jpg',
-            data.community_bg || '/images/tama-bg.png'
+            data.xanrean_bg || '/covers/homepage-cover-xanrean.webp',
+            data.standalone_bg || '/covers/homepage-cover-standalone.webp',
+            data.community_bg || '/covers/homepage-cover-community.webp'
         ];
         try {
             const result = await this._run(sql, params);
@@ -827,10 +827,10 @@ class ContentDB {
     async SelectXanreanSettings() {
         const row = await this._get('SELECT * FROM xanrean_settings WHERE id = 1');
         return row || {
-            books_bg: '/covers/sb-cover.png',
-            characters_bg: '/images/tama-bg.png',
-            lore_bg: '/images/tama-bg.png',
-            game_bg: '/images/tama-bg.png',
+            books_bg: '/covers/xanrean-cover-books.webp',
+            characters_bg: '/covers/xanrean-cover-characters.webp',
+            lore_bg: '/covers/xanrean-cover-lore.webp',
+            game_bg: '/covers/xanrean-cover-game.webp',
             gumroad_seller_id: null,
             gumroad_access_token: null,
             youtube_channel_id: null,
@@ -856,10 +856,10 @@ class ContentDB {
                 updated_at = CURRENT_TIMESTAMP
         `;
         const params = [
-            data.books_bg || '/covers/sb-cover.png',
-            data.characters_bg || '/images/tama-bg.png',
-            data.lore_bg || '/images/tama-bg.png',
-            data.game_bg || '/images/tama-bg.png',
+            data.books_bg || '/covers/xanrean-cover-books.webp',
+            data.characters_bg || '/covers/xanrean-cover-characters.webp',
+            data.lore_bg || '/covers/xanrean-cover-lore.webp',
+            data.game_bg || '/covers/xanrean-cover-game.webp',
             data.gumroad_seller_id || null,
             data.gumroad_access_token || null,
             data.youtube_channel_id || null,
