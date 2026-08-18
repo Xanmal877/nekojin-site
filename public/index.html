@@ -28,9 +28,9 @@
       --royal-light: #a78bfa;
       --font-display: 'Darumadrop One', cursive;
       --font-body: 'Zen Kaku Gothic New', sans-serif;
-      --xanrean-bg: url('/covers/sb-cover.png');
-      --standalone-bg: url('/covers/book-1776403239514-1778880332704.jpg');
-      --community-bg: url('/images/tama-bg.png');
+      --xanrean-bg: url('/covers/homepage-cover-xanrean.webp');
+      --standalone-bg: url('/covers/homepage-cover-standalone.webp');
+      --community-bg: url('/covers/homepage-cover-community.webp');
     }
     
     [data-theme="dark"] {
@@ -149,7 +149,7 @@
     
     .split-community {
       background: linear-gradient(180deg, rgba(180,83,9,0.15) 0%, rgba(10,6,20,0.9) 100%),
-                  var(--community-bg, url('/images/tama-bg.png')) center/contain no-repeat;
+                  var(--community-bg, url('/covers/homepage-cover-community.webp')) center/contain no-repeat;
       border-right: 1px solid rgba(180,83,9,0.3);
     }
     
@@ -500,7 +500,7 @@
     </div>
   </a>
   
-  <a href="/standalone" class="split-panel split-standalone">
+  <a href="/books#standalone" class="split-panel split-standalone">
     <div class="split-content">
       <h1 class="split-title split-title-standalone">Standalone<br>Works</h1>
       <p class="split-desc">Self-contained stories and games outside the main universe. Each complete on its own.</p>
