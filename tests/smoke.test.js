@@ -654,7 +654,7 @@ test('Integration APIs return correct shapes', async () => {
 
 test('Admin settings API is protected and persists', async () => {
     // Unauth'd
-    const unauthRes = await fetch(`${BASE}/api/settings`);
+    const unauthRes = await fetch(`${BASE}/api/settings`, { redirect: 'manual' });
     assert.strictEqual(unauthRes.status, 302);
 
     // Auth'd GET
