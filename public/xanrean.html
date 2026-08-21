@@ -528,7 +528,8 @@
       <span class="footer-text">Nekojin Interactive</span>
     </div>
     
-    <p class="footer-copy">© 2025 Nekojin Interactive LLC. All rights reserved.</p>
+    <p class="footer-copy">© <span id="footer-year"></span> Nekojin Interactive LLC. All rights reserved.</p>
+    <script>document.getElementById('footer-year').textContent = new Date().getFullYear();</script>
     
     <div class="footer-actions">
       <a href="/about" class="footer-link">About</a>

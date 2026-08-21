@@ -1809,7 +1809,8 @@
     <div class="footer-logo"><div class="tama-icon" aria-hidden="true"></div> Nekojin Interactive</div>
     <p class="footer-tagline" id="footer-tagline">Crafting worlds</p>
     <div class="footer-links"></div>
-    <p class="footer-copy">© 2026 Nekojin Interactive LLC. All rights reserved.</p>
+    <p class="footer-copy">© <span id="footer-year"></span> Nekojin Interactive LLC. All rights reserved.</p>
+    <script>document.getElementById('footer-year').textContent = new Date().getFullYear();</script>
   </div>
 </footer>
 
@@ -2470,6 +2471,7 @@ document.addEventListener('DOMContentLoaded', function() {
 })();
 
 loadGame();
+</script>
 
-// Register PWA service worker
-if ('serviceWorker' in navigator) {
+</body>
+</html>

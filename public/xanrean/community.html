@@ -17,6 +17,169 @@
       document.documentElement.setAttribute('data-theme', 'light');
     }
   </script>
+  <style>
+    /* Footer (page-specific: overrides the shared minimal footer in style.css) */
+    footer {
+      background: rgba(5,3,14,0.98);
+      border-top: 1px solid rgba(124,58,237,0.2);
+      padding: 1.5rem 2rem;
+    }
+
+    .footer-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .footer-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .footer-tama {
+      width: 32px;
+      height: 32px;
+      background: url('/images/tama-idle.png') 0 0 / 256px 32px;
+      animation: tama-foot 1.2s steps(8) infinite;
+    }
+
+    @keyframes tama-foot {
+      from { background-position: 0 0; }
+      to { background-position: -256px 0; }
+    }
+
+    .footer-text {
+      font-family: var(--font-display);
+      font-size: 1.3rem;
+      color: var(--royal-light);
+    }
+
+    .footer-copy {
+      font-size: 0.85rem;
+      color: rgba(212,200,240,0.6);
+    }
+
+    .footer-actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .footer-link {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: color 0.2s;
+      padding: 0.5rem;
+    }
+
+    .footer-link:hover {
+      color: var(--royal-light);
+    }
+
+    .footer-patreon {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.65rem 1.25rem;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #7c3aed, #6d28d9);
+      color: white;
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .footer-patreon:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(124,58,237,0.4);
+    }
+
+    .footer-newsletter {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .footer-newsletter input {
+      padding: 0.6rem 0.875rem;
+      border: 1px solid rgba(124,58,237,0.4);
+      border-radius: 8px;
+      background: rgba(255,255,255,0.05);
+      color: white;
+      font-size: 0.9rem;
+      width: 180px;
+    }
+
+    .footer-newsletter input::placeholder {
+      color: rgba(255,255,255,0.5);
+    }
+
+    .footer-newsletter button {
+      padding: 0.6rem 1rem;
+      border: none;
+      border-radius: 8px;
+      background: var(--royal-light);
+      color: #0a0614;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .footer-newsletter button:hover {
+      background: #c4b5fd;
+    }
+
+    .nl-message {
+      position: fixed;
+      bottom: 100px;
+      right: 2rem;
+      padding: 0.875rem 1.25rem;
+      border-radius: 10px;
+      background: #1e1540;
+      color: white;
+      font-size: 0.95rem;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.3s;
+      pointer-events: none;
+      z-index: 200;
+    }
+
+    .nl-message.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 768px) {
+      .footer-inner {
+        flex-direction: column;
+        text-align: center;
+        gap: 1.5rem;
+      }
+
+      .footer-actions {
+        flex-direction: column;
+        width: 100%;
+      }
+
+      .footer-newsletter {
+        width: 100%;
+      }
+
+      .footer-newsletter input {
+        flex: 1;
+      }
+    }
+  </style>
 </head>
 <body>
 
@@ -87,7 +250,8 @@
       <div class="footer-tama"></div>
       <span class="footer-text">Nekojin Interactive</span>
     </div>
-    <p class="footer-copy">© 2025 Nekojin Interactive LLC. All rights reserved.</p>
+    <p class="footer-copy">© <span id="footer-year"></span> Nekojin Interactive LLC. All rights reserved.</p>
+    <script>document.getElementById('footer-year').textContent = new Date().getFullYear();</script>
     <div class="footer-actions">
       <a href="/about" class="footer-link">About</a>
       <a href="https://www.patreon.com/purplexanmal" target="_blank" rel="noopener" class="footer-patreon">
