@@ -88,7 +88,7 @@ const events = [
         id: 'era-10-the-toybox',
         title: 'Era X: The Toybox',
         era: 'Outside the Normal Universe System',
-        description: 'Much later, the storyline reaches the era of The Toybox. The Toybox is not one of the Xanrea server\'s normal universes. It's a small simulation world created by Moderator Time. Anna constructs it using spare RAM left over from the server itself. Because the Toybox only has access to unused server resources, Anna is working under extremely restrictive memory limitations; her complaints about having very little RAM are therefore literal. The Toybox is effectively a small simulation running in whatever computational space the larger server can spare.',
+        description: 'Much later, the storyline reaches the era of The Toybox. The Toybox is not one of the Xanrea server\'s normal universes. It\'s a small simulation world created by Moderator Time. Anna constructs it using spare RAM left over from the server itself. Because the Toybox only has access to unused server resources, Anna is working under extremely restrictive memory limitations; her complaints about having very little RAM are therefore literal. The Toybox is effectively a small simulation running in whatever computational space the larger server can spare.',
         related_character_slugs: ['anna'],
         related_book_id: null,
         sort_order: 10
