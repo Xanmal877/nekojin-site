@@ -62,27 +62,23 @@
       color: white;
     }
 
-    /* ── DECK STRIP ── */
+    /* ── CAST GRID ── */
     .cast-deck-wrap {
       position: relative;
       padding: 0 2rem;
       margin-bottom: 4rem;
+      max-width: 1200px;
+      margin-left: auto;
+      margin-right: auto;
     }
     .cast-deck {
-      display: flex;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
       gap: 1.25rem;
-      overflow-x: auto;
-      scroll-snap-type: x proximity;
       padding: 0.5rem 0.25rem 1.5rem;
-      scrollbar-width: thin;
-      scrollbar-color: var(--border2) transparent;
     }
-    .cast-deck::-webkit-scrollbar { height: 8px; }
-    .cast-deck::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 8px; }
 
     .cast-card {
-      scroll-snap-align: start;
-      flex: 0 0 200px;
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 16px;
@@ -127,28 +123,6 @@
       color: var(--royal);
       font-weight: 600;
     }
-
-    .cast-deck-nav {
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: var(--surface);
-      border: 1px solid var(--border2);
-      color: var(--text);
-      font-size: 1.1rem;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 5;
-      box-shadow: var(--shadow-soft);
-    }
-    .cast-deck-nav:hover { border-color: var(--royal); color: var(--royal); }
-    .cast-deck-prev { left: 0.25rem; }
-    .cast-deck-next { right: 0.25rem; }
 
     /* ── EXPANDED READER ── */
     .cast-reader {
@@ -276,11 +250,9 @@
   <div class="cast-tabs" id="cast-tabs"></div>
 
   <div class="cast-deck-wrap">
-    <button class="cast-deck-nav cast-deck-prev" id="deck-prev" aria-label="Scroll left">←</button>
     <div class="cast-deck" id="cast-deck">
       <div class="cast-loading">Loading the cast…</div>
     </div>
-    <button class="cast-deck-nav cast-deck-next" id="deck-next" aria-label="Scroll right">→</button>
   </div>
 
   <div class="cast-reader" id="cast-reader">
@@ -447,13 +419,6 @@ document.getElementById('reader-prev').addEventListener('click', () => {
 });
 document.getElementById('reader-next').addEventListener('click', () => {
   if (readerIndex < filtered.length - 1) openReader(readerIndex + 1);
-});
-
-document.getElementById('deck-prev').addEventListener('click', () => {
-  document.getElementById('cast-deck').scrollBy({ left: -420, behavior: 'smooth' });
-});
-document.getElementById('deck-next').addEventListener('click', () => {
-  document.getElementById('cast-deck').scrollBy({ left: 420, behavior: 'smooth' });
 });
 
 document.addEventListener('keydown', (e) => {
