@@ -11,7 +11,7 @@ const db = require('../database.js');
     await db._run('DELETE FROM books WHERE id = ?', ['the-tyrant-s-rose']);
     await db._run(
         'UPDATE books SET cover_path = ?, status = ? WHERE id = ?',
-        ['/covers/the-tyrant-s-rose-1787031402510.webp', 'published', 'the-tyrants-rose']
+        ['/covers/book-the-tyrants-rose.webp', 'published', 'the-tyrants-rose']
     );
     await db._run(
         "UPDATE books SET status = 'published' WHERE id IN ('the-bedrock', 'the-godling-and-her-husband')"
