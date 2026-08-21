@@ -461,6 +461,10 @@ async function handleRequest(req, res) {
     if (req.method === 'GET' && PUBLIC_ROUTES[url])
         return serveFile(res, PUBLIC_ROUTES[url]);
 
+    // World lore topic detail pages — one shared template, slug read client-side
+    if (req.method === 'GET' && /^\/xanrean\/lore\/world\/[^\/]+$/.test(url))
+        return serveFile(res, path.join(PUBLIC_DIR, 'xanrean', 'lore', 'world-topic.html'));
+
     // Static assets with whitelist validation
     // Security: Only serve allowed file types from safe directories
     const ALLOWED_EXTENSIONS = new Set([
@@ -1085,12 +1089,8 @@ async function handleRequest(req, res) {
         }
     }
 
-    // Admin Integrations Settings API
+    // Admin Integrations Settings API (auth already enforced by the gate above)
     if (url === '/api/settings') {
-        if (!accounts.isAuthenticated(req)) {
-            res.writeHead(401);
-            return res.end('Unauthorized');
-        }
         if (req.method === 'GET') {
             try {
                 const settings = await contentDB.SelectXanreanSettings();
@@ -1249,18 +1249,17 @@ async function handleRequest(req, res) {
             // Use fixed filename for homepage and xanrean backgrounds (overwrite), timestamp for others
             const useFixedName = bookId.startsWith('homepage-cover-') || bookId.startsWith('xanrean-cover-');
             const fname = useFixedName ? `${bookId}.webp` : `${bookId}-${Date.now()}.webp`;
-            const thumbFname = useFixedName ? `${bookId}-thumb.webp` : `${bookId}-${Date.now()}-thumb.webp`;
-            
+
             // Process image with sharp
             const image = sharp(file.data);
             const metadata = await image.metadata();
-            
+
             // Panel backgrounds get portrait resize (800x1200), books get standard resize
             const isPanelBg = bookId.startsWith('homepage-cover-') || bookId.startsWith('xanrean-cover-');
-            
+
             if (isPanelBg) {
                 // Force portrait 800x1200 for panel backgrounds
-                image.resize(800, 1200, { 
+                image.resize(800, 1200, {
                     fit: 'cover',
                     position: 'center'
                 });
@@ -1268,35 +1267,21 @@ async function handleRequest(req, res) {
                 // Standard resize for book covers (max 1200px)
                 const maxDimension = 1200;
                 if (metadata.width > maxDimension || metadata.height > maxDimension) {
-                    image.resize(maxDimension, maxDimension, { 
-                        fit: 'inside', 
-                        withoutEnlargement: true 
+                    image.resize(maxDimension, maxDimension, {
+                        fit: 'inside',
+                        withoutEnlargement: true
                     });
                 }
             }
-            
+
             // Save optimized WebP
             await image
                 .webp({ quality: 85, effort: 4 })
                 .toFile(path.join(COVERS_DIR, fname));
-            
-            // Generate thumbnail - panels get portrait thumb, books get square
-            if (isPanelBg) {
-                await sharp(file.data)
-                    .resize(400, 600, { fit: 'cover', position: 'center' })
-                    .webp({ quality: 80, effort: 4 })
-                    .toFile(path.join(COVERS_DIR, thumbFname));
-            } else {
-                await sharp(file.data)
-                    .resize(400, 400, { fit: 'inside', withoutEnlargement: true })
-                    .webp({ quality: 80, effort: 4 })
-                    .toFile(path.join(COVERS_DIR, thumbFname));
-            }
-            
+
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({
                 path: `/covers/${fname}`,
-                thumbnail: `/covers/${thumbFname}`,
                 originalSize: file.data.length,
                 optimized: true
             }));
