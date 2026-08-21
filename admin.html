@@ -2546,7 +2546,9 @@ async function renderCharacters() {
 
     container.innerHTML = chars.map(c => `
       <div class="game-list-item">
-        <img class="game-list-thumb" src="${esc(c.image || '')}" onerror="this.src='/assets/default-char.webp'" style="border-radius:50%;">
+        ${c.image
+          ? `<img class="game-list-thumb" src="${esc(c.image)}" style="border-radius:50%;">`
+          : `<div class="game-list-thumb" style="display:flex;align-items:center;justify-content:center;background:var(--surface3);font-size:1.5rem;border-radius:50%;">${esc(c.emoji || '👤')}</div>`}
         <div class="game-list-info">
           <div class="game-list-title">${esc(c.emoji || '')} ${esc(c.name)} <small style="color:var(--muted);font-size:0.75rem;">(${esc(c.type)})</small></div>
           <div class="game-list-status">${esc(c.title || 'No title')} • ${c.visible ? 'Visible' : 'Hidden'}</div>
