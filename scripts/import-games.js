@@ -17,6 +17,7 @@ const games = [
         engine: 'Godot',
         players: 'Single-player',
         icon: '⚔️',
+        coverImage: '/covers/game-autumns-dungeoneering-cover.webp',
         description: `A tight, mostly-idle dungeon RPG. Pick Autumn or another Xanrean adventurer, send them into a dungeon, and watch them fight and explore on their own. You don't control them directly, they navigate, pick targets, and use abilities themselves. Your job is prep work: gear them up, watch the run play out, and step in with limited help when it actually matters.
 
 Loot and progression carry over between runs, and different adventurers behave differently, so runs stay varied even without direct control.
@@ -93,6 +94,20 @@ The scope here is the whole reason it's called the giant project. The right mile
     },
 ];
 
+// Real gameplay screenshots pulled from the Autumn's Dungeoneering repo's
+// own store-asset staging folder (asset-specs/.../screenshots/resized-images),
+// processed down to webp via a one-off sharp script. Skipped the debug
+// level-select menu shot and a couple of near-duplicate party poses to
+// keep this a curated set rather than a dump of everything in the folder.
+const screenshots = {
+    'autumns-dungeoneering': [
+        { path: '/covers/game-autumns-dungeoneering-shot-1.webp', caption: 'Exploring the Goblin Catacombs' },
+        { path: '/covers/game-autumns-dungeoneering-shot-2.webp', caption: 'Found a chest' },
+        { path: '/covers/game-autumns-dungeoneering-shot-3.webp', caption: 'Saki, mid-fight' },
+        { path: '/covers/game-autumns-dungeoneering-shot-4.webp', caption: 'Tama and Anna working a goblin over' },
+    ],
+};
+
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 (async () => {
@@ -104,6 +119,13 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
         await db.InsertGame(g);
         console.log('inserted', g.id);
         await sleep(1100);
+    }
+    for (const [gameId, shots] of Object.entries(screenshots)) {
+        await db.DeleteGameScreenshots(gameId);
+        for (let i = 0; i < shots.length; i++) {
+            await db.InsertGameScreenshot({ game_id: gameId, path: shots[i].path, caption: shots[i].caption, sort_order: i });
+        }
+        console.log('inserted screenshots for', gameId);
     }
     console.log('done');
     process.exit(0);
