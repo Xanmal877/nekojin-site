@@ -2,15 +2,18 @@
 // ~/Documents/xanrea_game_gdds/, four Xanrea game projects, none
 // released or with public store links yet. Status/scope text is pulled
 // straight from each project's GDD.md and README.md, not invented.
-// Echo World is inserted last (SelectGames orders by created_at DESC,
-// so the most recently inserted row is the "featured" one) since its
-// GDD is the only one marked as an actively active project; the other
-// three are legacy/paused concepts under consideration for revival.
+// sort_order 0 is the "featured" card (SelectGames sorts by it, and it's
+// also editable via the admin panel's drag-and-drop game list). Echo
+// World goes first since its GDD is the only one marked as an actively
+// active project; the other three are legacy/paused concepts under
+// consideration for revival.
 const db = require('../database.js');
 
 const games = [
     {
         id: 'autumns-dungeoneering',
+        sort_order: 1,
+        visible: true,
         title: "Autumn's Dungeoneering",
         tagline: 'Watch a Xanrean adventurer go dungeoneering. Help when it matters.',
         status: 'In Development',
@@ -32,6 +35,8 @@ This one's built deliberately small. It's not trying to simulate all of Xanrea, 
     },
     {
         id: 'purple-horizons-shadow-of-a-kingdom',
+        sort_order: 2,
+        visible: true,
         title: 'Purple Horizons: Shadow of a Kingdom',
         tagline: 'Build a kingdom in a dangerous generated world, then convince autonomous heroes to save it.',
         status: 'Concept',
@@ -52,6 +57,8 @@ Special Xanrean units show up too, Tama and Saki among them. The scope is bigger
     },
     {
         id: 'purple-shadows',
+        sort_order: 3,
+        visible: true,
         title: 'Purple Shadows',
         tagline: 'Tama has an apprentice. Someone has been marked.',
         status: 'Concept',
@@ -72,6 +79,8 @@ The first real milestone isn't a full campaign, it's one complete mission that p
     },
     {
         id: 'echo-world-the-adventurers-terrarium',
+        sort_order: 0,
+        visible: true,
         title: "Echo World: The Adventurer's Terrarium",
         tagline: "Log out. Xanrea doesn't.",
         status: 'In Development',
@@ -108,17 +117,11 @@ const screenshots = {
     ],
 };
 
-const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-
 (async () => {
     await db.Open();
-    // created_at determines SelectGames' order (most recent first = the
-    // featured card), so space inserts out past SQLite's 1s timestamp
-    // resolution rather than relying on tie-break behavior.
     for (const g of games) {
         await db.InsertGame(g);
         console.log('inserted', g.id);
-        await sleep(1100);
     }
     for (const [gameId, shots] of Object.entries(screenshots)) {
         await db.DeleteGameScreenshots(gameId);

@@ -654,6 +654,8 @@ class ContentDB {
             // Ensure fields are present
             gameData.id = row.id;
             gameData.title = gameData.title || row.title;
+            if (typeof gameData.sort_order !== 'number') gameData.sort_order = 0;
+            if (typeof gameData.visible !== 'boolean') gameData.visible = true;
 
             // Load related data for this game
             gameData.screenshots = await this.SelectGameScreenshots(row.id);
@@ -662,7 +664,36 @@ class ContentDB {
             games.push(gameData);
         }
 
+        // sort_order (set via ReorderGames / the admin drag-and-drop UI)
+        // decides display and "featured" order, not insertion time.
+        games.sort((a, b) => a.sort_order - b.sort_order);
+
         return games;
+    }
+
+    async ReorderGames(gameIds) {
+        if (!gameIds || !Array.isArray(gameIds)) return { success: false, error: 'Invalid game IDs' };
+
+        const rows = await this._all('SELECT * FROM game');
+        const byId = new Map(rows.map(r => [r.id, r]));
+
+        try {
+            await this._run('BEGIN TRANSACTION');
+            for (let i = 0; i < gameIds.length; i++) {
+                const row = byId.get(gameIds[i]);
+                if (!row) continue;
+                let gameData = {};
+                try { gameData = JSON.parse(row.data) || {}; } catch { gameData = {}; }
+                gameData.sort_order = i;
+                await this._run('UPDATE game SET data = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [JSON.stringify(gameData), row.id]);
+            }
+            await this._run('COMMIT');
+            return { success: true, changes: gameIds.length };
+        } catch (err) {
+            await this._run('ROLLBACK').catch(() => {});
+            console.error('ReorderGames error:', err);
+            throw err;
+        }
     }
 
     // ============================================================
@@ -715,10 +746,14 @@ class ContentDB {
     }
 
     async SelectDevlog(gameId = 'main', visibleOnly = true) {
-        let sql = 'SELECT * FROM devlog WHERE game_id = ? ORDER BY date DESC';
+        // Also alias content AS body: admin.html's devlog editor and
+        // games.html's public renderer both read/write `.body`, only the
+        // DB column is `content`. Without the alias, re-opening a saved
+        // entry in the admin panel shows an empty textarea.
+        let sql = 'SELECT *, content AS body FROM devlog WHERE game_id = ? ORDER BY date DESC';
         const params = [gameId];
         if (visibleOnly) {
-            sql = 'SELECT * FROM devlog WHERE game_id = ? AND visible = 1 ORDER BY date DESC';
+            sql = 'SELECT *, content AS body FROM devlog WHERE game_id = ? AND visible = 1 ORDER BY date DESC';
         }
         return await this._all(sql, params);
     }
@@ -1331,7 +1366,12 @@ class ContentDB {
                         await this.InsertDevlog({
                             game_id: gameId,
                             title: d.title,
-                            content: d.content || '',
+                            // admin.html's editor and games.html's public
+                            // renderer both use `body`; only the DB column
+                            // itself is named `content`. Reading d.content
+                            // here silently discarded every devlog entry's
+                            // text on save.
+                            content: d.body || '',
                             date: d.date || d.created_at,
                             visible: d.visible !== false
                         });

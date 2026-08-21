@@ -336,6 +336,9 @@
     .game-list-actions { display: flex; gap: 0.5rem; }
     .game-list-item .btn-sm { opacity: 0; transition: opacity 0.2s; }
     .game-list-item:hover .btn-sm { opacity: 1; }
+    .game-list-item.dragging { opacity: 0.4; }
+    .game-list-item.drag-over { border-color: var(--royal) !important; background: rgba(139,68,232,0.08) !important; box-shadow: 0 0 0 2px rgba(139,68,232,0.2); }
+    .game-list-item.hidden-item { opacity: 0.55; }
 
     /* ── MODAL ── */
     .modal {
@@ -1798,14 +1801,19 @@ function renderGamesPanel() {
     document.getElementById('games-list').innerHTML = `
       <div class="games-grid">
         ${games.map((g, i) => `
-          <div class="game-list-item" onclick="editGame(${i})" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();editGame(${i})}">
+          <div class="game-list-item${g.visible === false ? ' hidden-item' : ''}" id="game-item-${i}" draggable="true"
+            ondragstart="gameDragStart(event,${i})" ondragover="gameDragOver(event)"
+            ondragenter="gameDragEnter(event)" ondragleave="gameDragLeave(event)" ondrop="gameDragDrop(event,${i})"
+            onclick="editGame(${i})" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();editGame(${i})}">
+            <span class="drag-handle" title="Drag to reorder" onclick="event.stopPropagation()">⋮⋮</span>
             <img class="game-list-thumb" src="${esc(g.coverImage || '')}" alt="${esc(g.title || 'Game')} cover"
               onerror="this.style.display='none'">
             <div class="game-list-info">
               <div class="game-list-title">${esc(g.title || 'Untitled Game')}</div>
-              <div class="game-list-status">${esc(g.status || 'In Development')}</div>
+              <div class="game-list-status">${esc(g.status || 'In Development')} • ${g.visible === false ? 'Hidden' : 'Visible'}</div>
             </div>
             <div class="game-list-actions" onclick="event.stopPropagation()">
+              <button class="btn btn-ghost btn-sm" onclick="toggleGameVisibility(${i})" title="${g.visible === false ? 'Show' : 'Hide'}">${g.visible === false ? '🙈' : '👁️'}</button>
               <button class="btn btn-ghost btn-sm" onclick="editGame(${i})" title="Edit">✏️</button>
               <button class="btn btn-danger btn-sm" onclick="deleteGame(${i})" title="Delete">🗑️</button>
             </div>
@@ -1838,7 +1846,12 @@ function renderGameEditor() {
   document.getElementById('game-editor').innerHTML = `
     <div class="card-title">🎮 ${esc(g.title || 'Edit Game')}</div>
     <input type="hidden" id="game-index" value="${currentEditingGameIndex}">
-    
+
+    <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
+      <input type="checkbox" ${g.visible === false ? '' : 'checked'} onchange="updateGameField('visible', this.checked)">
+      Visible on public games page
+    </label>
+
     <label>Game ID / Slug</label>
     <input type="text" id="game-slug" value="${esc(g.slug || g.id || '')}" 
       oninput="updateGameField('slug', this.value)" placeholder="autumns-dungeoneering">
@@ -2114,12 +2127,74 @@ function createNewGame() {
 
 function deleteGame(index) {
   if (!confirm('Are you sure you want to delete this game? This cannot be undone.')) return;
-  
+
   ensureGamesArray();
   siteContent.game.splice(index, 1);
   markDirty();
   renderGamesPanel();
   showToast('Game deleted');
+}
+
+function toggleGameVisibility(index) {
+  ensureGamesArray();
+  const g = siteContent.game[index];
+  if (!g) return;
+  g.visible = g.visible === false ? true : false;
+  markDirty();
+  renderGamesPanel();
+}
+
+// ── GAMES DRAG AND DROP ─────────────────────────────────────
+let _gameDragIndex = null;
+
+function gameDragStart(e, index) {
+  _gameDragIndex = index;
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(() => document.getElementById(`game-item-${index}`)?.classList.add('dragging'), 0);
+}
+
+function gameDragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }
+
+function gameDragEnter(e) {
+  e.preventDefault();
+  const el = e.currentTarget;
+  if (el.classList.contains('game-list-item')) el.classList.add('drag-over');
+}
+
+function gameDragLeave(e) {
+  const el = e.currentTarget;
+  if (!el.contains(e.relatedTarget)) el.classList.remove('drag-over');
+}
+
+async function saveGameOrder(gameIds) {
+  try {
+    const res = await fetch('/api/games/reorder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
+      body: JSON.stringify({ gameIds })
+    });
+    if (!res.ok) throw new Error('Failed to save order');
+    showToast('Order saved');
+  } catch (e) {
+    showToast('Order save failed: ' + e.message, 'error');
+  }
+}
+
+function gameDragDrop(e, targetIndex) {
+  e.preventDefault();
+  document.querySelectorAll('.game-list-item').forEach(el => {
+    el.classList.remove('drag-over', 'dragging');
+  });
+  if (_gameDragIndex === null || _gameDragIndex === targetIndex) return;
+
+  ensureGamesArray();
+  const arr = siteContent.game;
+  const [moved] = arr.splice(_gameDragIndex, 1);
+  arr.splice(targetIndex, 0, moved);
+  _gameDragIndex = null;
+  markDirty();
+  renderGamesPanel();
+  saveGameOrder(arr.map(g => g.id));
 }
 
 function deleteCurrentGame() {
