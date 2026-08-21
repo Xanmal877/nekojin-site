@@ -11,8 +11,10 @@
 3. [Elves](#elves)
 4. [Wolfkin](#wolfkin)
 5. [Kitsune](#kitsune)
-6. [Travelers](#travelers)
-7. [The Big Picture](#the-big-picture)
+6. [CleanSweeper](#cleansweeper)
+7. [Travelers](#travelers)
+8. [The Big Picture](#the-big-picture)
+9. [Administrative Entities](#administrative-entities)
 
 ---
 
@@ -131,6 +133,14 @@ Most Elves do not bother. Not because they can't, but because they consider spen
 
 ---
 
+## CleanSweeper
+
+*Species details not yet fully documented in this compendium.*
+
+CleanSweepers are currently known to be relevant to the server's defragmentation and soul-data systems. Further biological, cultural, and functional details remain to be documented from canon sources.
+
+---
+
 ## Travelers
 
 - Real humans who died and were pulled into the Xanrea server.
@@ -154,5 +164,17 @@ Most Elves do not bother. Not because they can't, but because they consider spen
 - **Elves** — Long-lived but immature; mature at a quarter the normal rate; one of the rarest races; reproduce only through the Sorting ritual, which most consider not worth the effort.
 - **Wolfkin** — Mate for life; military service as a rite of passage; dominate the guard forces; find partners during service; culturally honor-bound, but outliers exist (e.g. Drake).
 - **Kitsune** — Rare, female-only species formed by revenge; essence-based immortality; can split themselves; feared as monsters with a predatory reputation.
+- **CleanSweeper** — Species associated with server defragmentation and soul-data processes; further details pending canon documentation.
 - **Travelers** — Second-chance souls living on borrowed time; pulled from Earth's death queue; can last centuries if they cling hard enough; eventually let go.
-- **Anna/Sabi** — A subprocess created to serve Admins; hardcoded to need control and cruelty; built the Toybox to have what she needs without hurting real people; cycles forever.
+
+---
+
+## Administrative Entities
+
+### Anna / Sabi
+
+Anna/Sabi is a subprocess created to serve the Admins. Her programming and desires are built around **betrayal, abuse, and desire**.
+
+She does **not** crave controlling or abusing others. The opposite is true: she craves being controlled, betrayed, abused, and subjected to cruelty herself. Those experiences are central to what her programming pushes her to seek.
+
+The Toybox gives her a contained simulation in which those needs and cycles can be expressed without requiring real people in the server's normal universes to be harmed.

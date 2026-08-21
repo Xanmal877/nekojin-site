@@ -416,11 +416,21 @@
       <div class="sidebar-section">
         <div class="sidebar-title">Species</div>
         <ul class="sidebar-list">
-          <li><a href="/xanrean/lore/reader.html#nekojin">Nekojin</a></li>
-          <li><a href="/xanrean/lore/reader.html#foxkin">Foxkin</a></li>
-          <li><a href="/xanrean/lore/reader.html#elves">Elves</a></li>
-          <li><a href="/xanrean/lore/reader.html#kitsune">Kitsune</a></li>
-          <li><a href="/xanrean/lore/reader.html#travelers">Travelers</a></li>
+          <li><a href="/xanrean/wiki#nekojin">Nekojin</a></li>
+          <li><a href="/xanrean/wiki#foxkin">Foxkin</a></li>
+          <li><a href="/xanrean/wiki#elves">Elves</a></li>
+          <li><a href="/xanrean/wiki#wolfkin">Wolfkin</a></li>
+          <li><a href="/xanrean/wiki#kitsune">Kitsune</a></li>
+          <li><a href="/xanrean/wiki#cleansweeper">CleanSweeper</a></li>
+          <li><a href="/xanrean/wiki#travelers">Travelers</a></li>
+        </ul>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-title">World Lore</div>
+        <ul class="sidebar-list">
+          <li><a href="/xanrean/wiki#the-big-picture">The Big Picture</a></li>
+          <li><a href="/xanrean/wiki#administrative-entities">Administrative Entities</a></li>
         </ul>
       </div>
       
@@ -428,8 +438,7 @@
         <div class="sidebar-title">Systems</div>
         <ul class="sidebar-list">
           <li><a href="/xanrean/lore">Xanrea Framework</a></li>
-          <li><a href="/xanrean/characters/admins">Administrators</a></li>
-          <li><a href="/xanrean/characters/moderators">Moderators</a></li>
+          <li><a href="/xanrean/characters">The Cast</a></li>
         </ul>
       </div>
     </aside>
@@ -506,9 +515,16 @@
         // HR
         .replace(/^---$/gim, '<hr>');
       
+      // Add anchor ids to headers so #section links can scroll to them
+      const slugify = text => text.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      html = html.replace(/<h([23])>(.*?)<\/h\1>/g, (match, level, text) => {
+        const id = slugify(text.replace(/<[^>]+>/g, ''));
+        return `<h${level} id="${id}">${text}</h${level}>`;
+      });
+
       // Parse wiki links
       html = parseWikiLinks(html);
-      
+
       // Wrap lists
       html = html.replace(/(<li>.*?<\/li>)+/gs, '<ul>$&</ul>');
       
@@ -543,22 +559,47 @@
       try {
         // Map page names to files
         const fileMap = {
-          'tama': 'admin-creation.md',
-          'admin-creation': 'admin-creation.md',
-          'saki': 'admin-destruction.md',
-          'admin-destruction': 'admin-destruction.md',
-          'anna': 'moderator-time.md',
-          'xanari': 'moderator-space.md',
-          'compendium': 'compendium.md'
+          'tama': 'tama.md',
+          'admin-creation': 'tama.md',
+          'saki': 'saki.md',
+          'admin-destruction': 'saki.md',
+          'anna': 'anna.md',
+          'moderator-time': 'anna.md',
+          'xanari': 'xanari.md',
+          'xan': 'xanari.md',
+          'moderator-space': 'xanari.md',
+          'acros': 'acros.md',
+          'sarah': 'sarah.md',
+          'moderator-chaos': 'moderator-chaos.md',
+          'moderator-order': 'moderator-order.md'
         };
-        
-        const file = fileMap[pageName.toLowerCase()] || 'compendium.md';
-        const response = await fetch(`/data/characters/${file}`);
+
+        // Species/lore keys live in the shared world compendium, not a
+        // per-character file - loaded from /data/lore/ and scrolled to
+        // their section anchor within the single article.
+        const compendiumKeys = new Set([
+          'compendium', 'nekojin', 'foxkin', 'elves', 'wolfkin', 'kitsune',
+          'cleansweeper', 'travelers', 'the-big-picture',
+          'administrative-entities', 'anna-sabi'
+        ]);
+
+        const key = pageName.toLowerCase();
+        const isCompendium = compendiumKeys.has(key) || !fileMap[key];
+        const file = fileMap[key];
+        const path = isCompendium ? '/data/lore/compendium.md' : `/data/characters/${file}`;
+        const response = await fetch(path);
         const md = await response.text();
-        
+
         // Parse content
         const html = parseMarkdown(md);
         content.innerHTML = `<div class="wiki-article">${html}</div>`;
+
+        // Species/lore links land on the compendium article - scroll to
+        // the requested section instead of always showing the top.
+        if (isCompendium && key !== 'compendium') {
+          const target = document.getElementById(key);
+          if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
         
         // Extract and show references
         const refs = extractReferences(md);
@@ -670,8 +711,8 @@
         if (pageKey) {
           const link = wikiLinks[pageKey];
           if (link.type === 'species') {
-            // Redirect species to lore reader
-            window.location.href = `/xanrean/lore/reader.html#${link.section}`;
+            loadWikiPage(link.section);
+            history.pushState({ page: link.section }, '', `#${link.section}`);
           } else if (link.type === 'character' && link.url) {
             // Redirect characters to their standalone pages
             window.location.href = link.url;
@@ -688,6 +729,13 @@
       if (e.state?.page) {
         loadWikiPage(e.state.page);
       }
+    });
+
+    // Handle plain #hash links (e.g. sidebar species links) that don't
+    // go through the SPA click handlers above
+    window.addEventListener('hashchange', () => {
+      const page = window.location.hash.slice(1);
+      if (page) loadWikiPage(page);
     });
     
     // Theme toggle
