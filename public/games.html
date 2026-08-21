@@ -2120,10 +2120,6 @@ async function loadGame() {
           
           const platformsHtml = platformButtons.join('');
           
-          const learnMoreBtn = isFeatured 
-            ? `<a href="/game?id=${esc(game.id || game.slug || 'main')}" class="btn-game-secondary">Learn More →</a>`
-            : '';
-          
           return `
             <article class="game-card ${cardClass}" data-game-id="${esc(game.id || game.slug || 'main')}">
               <div class="game-card-info">
@@ -2138,7 +2134,6 @@ async function loadGame() {
                   <div class="platform-buttons">
                     ${platformsHtml}
                   </div>
-                  ${learnMoreBtn}
                 </div>
               </div>
               <div class="game-card-art">${artHtml}</div>
