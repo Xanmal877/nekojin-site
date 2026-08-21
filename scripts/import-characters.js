@@ -19,7 +19,7 @@ const characters = [
     { slug: 'moderator-chaos', file: 'moderator-chaos.md', name: 'Moderator Chaos', title: 'Moderator of Chaos', char_type: 'Moderator', species: 'System Entity', emoji: '🔥', sort_order: 7 },
     { slug: 'moderator-order', file: 'moderator-order.md', name: 'Moderator Order', title: 'Moderator of Order', char_type: 'Moderator', species: 'System Entity', emoji: '⚖️', sort_order: 8 },
     { slug: 'moderator-space', file: 'moderator-space.md', name: 'Moderator Space', title: 'Moderator of Space', char_type: 'Moderator', species: 'System Entity', emoji: '🌌', sort_order: 9 },
-    // Content is still just bracketed placeholder text on disk — import it
+    // Content is still just bracketed placeholder text on disk, so import it
     // (so the row exists once it's written) but keep it hidden from the
     // public site until someone actually writes it.
     { slug: 'moderator-devotion', file: 'moderator-devotion.md', name: 'Moderator Devotion', title: 'Moderator of Devotion', char_type: 'Moderator', species: 'System Entity', emoji: '💜', sort_order: 10, visible: false }

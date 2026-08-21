@@ -445,7 +445,7 @@ async function handleRequest(req, res) {
     const url = req.url.split('?')[0];
     const query = new URL(req.url, `http://${req.headers.host}`).searchParams;
 
-    // CORS / preflight — only reflect an Origin that's on the allow-list.
+    // CORS / preflight: only reflect an Origin that's on the allow-list.
     // Reflecting *any* Origin while allowing credentials would let any
     // website make authenticated cross-origin requests against admin APIs.
     const origin = req.headers.origin;
@@ -461,7 +461,7 @@ async function handleRequest(req, res) {
     if (req.method === 'GET' && PUBLIC_ROUTES[url])
         return serveFile(res, PUBLIC_ROUTES[url]);
 
-    // World lore topic detail pages — one shared template, slug read client-side
+    // World lore topic detail pages, one shared template, slug read client-side
     if (req.method === 'GET' && /^\/xanrean\/lore\/world\/[^\/]+$/.test(url))
         return serveFile(res, path.join(PUBLIC_DIR, 'xanrean', 'lore', 'world-topic.html'));
 
@@ -534,7 +534,7 @@ async function handleRequest(req, res) {
         }
     }
 
-    // Health check (public) — DB connectivity + uptime, for monitoring/alerts
+    // Health check (public): DB connectivity + uptime, for monitoring/alerts
     if (req.method === 'GET' && url === '/api/health') {
         try {
             await contentDB.SelectHomepageSettings();
@@ -1243,7 +1243,7 @@ async function handleRequest(req, res) {
             if (file.data.length === 0) { res.writeHead(400); return res.end('Image file is empty'); }
             if (file.data.length > 20 * 1024 * 1024) { res.writeHead(413); return res.end('Image too large (max 20MB)'); }
 
-            // bookId ends up in a filename written under COVERS_DIR — strip
+            // bookId ends up in a filename written under COVERS_DIR, so strip
             // anything that isn't safe for a path segment to prevent traversal.
             const bookId = (parts['bookId'] || 'cover').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 100) || 'cover';
             // Use fixed filename for homepage and xanrean backgrounds (overwrite), timestamp for others

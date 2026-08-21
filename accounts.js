@@ -199,7 +199,7 @@ function ensureAdminUser() {
             console.log('='.repeat(64));
             console.log(`No users found. Created initial admin user: ${bootstrapUser}`);
             console.log(`Generated password: ${bootstrapPassword}`);
-            console.log('Save this now — it will not be shown again. Log in and change it,');
+            console.log('Save this now. It will not be shown again. Log in and change it,');
             console.log('or set ADMIN_BOOTSTRAP_USER / ADMIN_BOOTSTRAP_PASSWORD env vars before');
             console.log('first boot to control the initial credentials.');
             console.log('='.repeat(64));
@@ -244,7 +244,7 @@ function setUserRole(username, role) {
 }
 
 // True if `username` is an admin and removing/demoting them would leave
-// zero admin accounts — used to block deletes/role-changes that would lock
+// zero admin accounts, used to block deletes/role-changes that would lock
 // everyone out of the admin panel with no recovery path.
 function isLastAdmin(username) {
     const db = loadUsers();

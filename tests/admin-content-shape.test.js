@@ -1,7 +1,7 @@
 // Unit test for the admin.html <-> database.js content-shape boundary.
 //
 // database.js stores books flat with a `series_id` FK (see SelectBooks/
-// GetAllContent in database.js) — series rows never carry a `.books` array.
+// GetAllContent in database.js), series rows never carry a `.books` array.
 // admin.html's editor UI predates that and still treats every series as
 // owning a nested `books` array (renderBooksPanel/getBook/getBooks all index
 // through `series[si].books`). nestBooksIntoSeries() and flattenSeriesBooks()
@@ -11,8 +11,8 @@
 // series exists (reproduced live against a running server before this fix),
 // and any book living inside a series is silently dropped on save (since
 // SaveAllContent only reads the top-level `books` array). This test extracts
-// those two functions directly from admin.html — no DOM/server needed, they
-// are pure data transforms — so a future edit that breaks the shape contract
+// those two functions directly from admin.html (no DOM/server needed), they
+// are pure data transforms, so a future edit that breaks the shape contract
 // fails fast here instead of only in a live admin panel.
 const { test } = require('node:test');
 const assert = require('node:assert');
@@ -25,7 +25,7 @@ const ADMIN_HTML = fs.readFileSync(path.join(__dirname, '..', 'admin.html'), 'ut
 function extractFunction(name) {
     // Matches "function NAME(...) { ... }" up to the matching top-level
     // brace close, by tracking brace depth char-by-char from the opening
-    // "{" — regex alone can't balance nested braces reliably.
+    // "{", and regex alone can't balance nested braces reliably.
     const startMatch = ADMIN_HTML.match(new RegExp(`function ${name}\\([^)]*\\)\\s*\\{`));
     if (!startMatch) throw new Error(`Could not find function ${name} in admin.html`);
     const start = startMatch.index;

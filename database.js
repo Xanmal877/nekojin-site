@@ -429,7 +429,7 @@ class ContentDB {
             // *and* as the UI-facing `universe`/`universeDesc` aliases (see
             // below). admin.html only ever edits `universe`/`universeDesc`,
             // so when a caller round-trips a loaded series back through here
-            // those must win — otherwise the stale `name`/`description`
+            // those must win. Otherwise the stale `name`/`description`
             // riding along in the object silently overwrites every edit.
             data.universe || data.name || data.title || '',
             data.universeDesc || data.description || '',
@@ -1213,7 +1213,7 @@ class ContentDB {
         // book, series, game, and about record with no warning. If the incoming
         // payload is completely empty but the DB currently has real content,
         // this is almost certainly a broken client state, not an intentional
-        // full wipe — refuse it instead of committing the loss.
+        // full wipe, so refuse it instead of committing the loss.
         const incomingHasContent =
             series.length > 0 || books.length > 0 ||
             (Array.isArray(game) ? game.length > 0 : !!(game && Object.keys(game).length > 0)) ||
@@ -1235,7 +1235,7 @@ class ContentDB {
                 const err = new Error(
                     'Refusing to save: incoming content has no series, books, game, or ' +
                     'about data, but the database currently has content. This looks like ' +
-                    'a failed page load rather than an intentional full wipe — reload the ' +
+                    'a failed page load rather than an intentional full wipe. Reload the ' +
                     'admin panel and try again.'
                 );
                 err.code = 'EMPTY_CONTENT_GUARD';
@@ -1258,7 +1258,7 @@ class ContentDB {
             for (let i = 0; i < series.length; i++) {
                 const s = series[i];
                 // Pass both the raw DB field names and the UI-facing aliases
-                // through unresolved — InsertSeries owns the precedence
+                // through unresolved. InsertSeries owns the precedence
                 // between them (universe/universeDesc wins) so there's one
                 // place, not two, that has to get the fallback order right.
                 await this.InsertSeries({
