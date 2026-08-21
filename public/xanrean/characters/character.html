@@ -230,7 +230,7 @@
   </style>
 </head>
 <body>
-  <a href="/xanrean/characters/admins" class="back-link" id="back-link">← Back to The Admins</a>
+  <a href="/xanrean/characters" class="back-link" id="back-link">← Back to The Cast</a>
 
   <div class="char-layout">
     <aside class="char-sidebar">
@@ -248,92 +248,6 @@
   </div>
 
   <script>
-    // Character config - maps URL to file
-    const CHARACTERS = {
-      // Admins - Entities
-      'admin-creation': { 
-        file: 'admin-creation.md', 
-        emoji: '👑',
-        backLink: '/xanrean/characters/admins',
-        type: 'Admin'
-      },
-      'admin-destruction': { 
-        file: 'admin-destruction.md', 
-        emoji: '🔥',
-        backLink: '/xanrean/characters/admins',
-        type: 'Admin'
-      },
-      // Admins - Incarnations  
-      'tama': { 
-        file: 'tama.md', 
-        emoji: '🐱',
-        backLink: '/xanrean/characters/admins',
-        type: 'Incarnation'
-      },
-      'saki': { 
-        file: 'saki.md', 
-        emoji: '🔥',
-        backLink: '/xanrean/characters/admins',
-        type: 'Incarnation'
-      },
-      // Other Characters
-      'sarah': { 
-        file: 'sarah.md', 
-        emoji: '⚔️',
-        backLink: '/xanrean/characters',
-        type: 'Character'
-      },
-      // Moderators - Entities
-      'moderator-time': { 
-        file: 'moderator-time.md', 
-        emoji: '⏰',
-        backLink: '/xanrean/characters/moderators',
-        type: 'Moderator'
-      },
-      'moderator-space': { 
-        file: 'moderator-space.md', 
-        emoji: '🌌',
-        backLink: '/xanrean/characters/moderators',
-        type: 'Moderator'
-      },
-      'moderator-chaos': { 
-        file: 'moderator-chaos.md', 
-        emoji: '⚡',
-        backLink: '/xanrean/characters/moderators',
-        type: 'Moderator'
-      },
-      'moderator-order': { 
-        file: 'moderator-order.md', 
-        emoji: '⚖️',
-        backLink: '/xanrean/characters/moderators',
-        type: 'Moderator'
-        },
-      'moderator-devotion': { 
-        file: 'moderator-devotion.md', 
-        emoji: '💜',
-        backLink: '/xanrean/characters/moderators',
-        type: 'Moderator'
-      }
-      'anna': { 
-        file: 'anna.md', 
-        emoji: '💧',
-        backLink: '/xanrean/characters/moderators',
-        type: 'Incarnation'
-      },
-      'xanari': { 
-        file: 'xanari.md', 
-        emoji: '⚡',
-        backLink: '/xanrean/characters/moderators',
-        type: 'Incarnation'
-      },
-      'acros': { 
-        file: 'acros.md', 
-        emoji: '🌹',
-        backLink: '/xanrean/characters/moderators',
-        type: 'Incarnation'
-      }
-    };
-
     function getCharName() {
       const path = window.location.pathname;
       const match = path.match(/\/characters\/([^\/]+)/);
@@ -423,10 +337,18 @@
       return html;
     }
 
+    // Entity slugs that share their content with an incarnation's DB record
+    const CHARACTER_ALIASES = {
+      'admin-creation': 'tama',
+      'admin-destruction': 'saki',
+      'moderator-time': 'anna'
+    };
+
     async function loadCharacter() {
-      const charKey = getCharName();
+      const urlKey = getCharName();
+      const charKey = CHARACTER_ALIASES[urlKey] || urlKey;
       console.log('Loading character:', charKey);
-      
+
       try {
         console.log('Fetching:', `/api/characters/${charKey}`);
         const response = await fetch(`/api/characters/${charKey}`);
@@ -445,7 +367,16 @@
         console.log('Extracted info:', info);
         
         // Update sidebar
-        document.getElementById('char-avatar').textContent = char.emoji;
+        const avatarEl = document.getElementById('char-avatar');
+        avatarEl.textContent = '';
+        if (char.image) {
+          const img = document.createElement('img');
+          img.src = char.image;
+          img.alt = name;
+          avatarEl.appendChild(img);
+        } else {
+          avatarEl.textContent = char.emoji;
+        }
         document.getElementById('card-name').textContent = name;
         
         // Set role/type
@@ -457,6 +388,11 @@
         }
         document.getElementById('card-role').textContent = roleText;
         document.title = `${name} - Xanrean Chronicles`;
+
+        // Back-link now always returns to the unified cast page
+        const backLink = document.getElementById('back-link');
+        backLink.href = '/xanrean/characters';
+        backLink.textContent = '← Back to The Cast';
         
         // Build stats
         const stats = [];
