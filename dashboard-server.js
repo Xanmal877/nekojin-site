@@ -396,19 +396,6 @@ const PUBLIC_ROUTES = {
     '/xanrean/books': path.join(PUBLIC_DIR, 'xanrean', 'books.html'),
     '/xanrean/characters': path.join(PUBLIC_DIR, 'xanrean', 'characters.html'),
     '/xanrean/characters/admins': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'admins', 'admins.html'),
-    '/xanrean/characters/saki': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'character.html'),
-    '/xanrean/characters/admin-destruction': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'character.html'),
-    '/xanrean/characters/tama': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'character.html'),
-    '/xanrean/characters/admin-creation': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'character.html'),
-    '/xanrean/characters/moderator-chaos': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'character.html'),
-    '/xanrean/characters/moderator-order': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'character.html'),
-    '/xanrean/characters/moderator-time': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'character.html'),
-    '/xanrean/characters/moderator-space': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'character.html'),
-    '/xanrean/characters/moderator-devotion': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'character.html'),
-    '/xanrean/characters/acros': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'character.html'),
-    '/xanrean/characters/sarah': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'character.html'),
-    '/xanrean/characters/anna': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'character.html'),
-    '/xanrean/characters/xanari': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'character.html'),
     '/xanrean/wiki': path.join(PUBLIC_DIR, 'xanrean', 'wiki.html'),
     '/xanrean/community': path.join(PUBLIC_DIR, 'xanrean', 'community.html'),
     '/xanrean/characters/moderators': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'moderators', 'moderators.html'),
@@ -464,6 +451,16 @@ async function handleRequest(req, res) {
     // World lore topic detail pages, one shared template, slug read client-side
     if (req.method === 'GET' && /^\/xanrean\/lore\/world\/[^\/]+$/.test(url))
         return serveFile(res, path.join(PUBLIC_DIR, 'xanrean', 'lore', 'world-topic.html'));
+
+    // Individual character detail pages, one shared template, slug read
+    // client-side. Excludes /admins and /moderators, which are legacy
+    // redirect stubs handled by the exact-match PUBLIC_ROUTES above.
+    if (req.method === 'GET' && /^\/xanrean\/characters\/(?!admins$|moderators$)[^\/]+$/.test(url))
+        return serveFile(res, path.join(PUBLIC_DIR, 'xanrean', 'characters', 'character.html'));
+
+    // Per-series cast pages, one shared template, series id read client-side
+    if (req.method === 'GET' && /^\/xanrean\/series\/[^\/]+\/cast$/.test(url))
+        return serveFile(res, path.join(PUBLIC_DIR, 'xanrean', 'series', 'cast.html'));
 
     // Static assets with whitelist validation
     // Security: Only serve allowed file types from safe directories
@@ -989,6 +986,14 @@ async function handleRequest(req, res) {
     // Admin Character API
     if (url.startsWith('/api/characters')) {
         try {
+            if (req.method === 'POST' && url.match(/^\/api\/characters\/([^\/]+)\/appearances$/)) {
+                const id = url.split('/')[3];
+                const body = await readRawBody(req, 64 * 1024);
+                const { appearances } = JSON.parse(body.toString());
+                const result = await contentDB.ReplaceCharacterAppearances(id, appearances || []);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify(result));
+            }
             if (req.method === 'POST' || req.method === 'PUT') {
                 const body = await readRawBody(req, 10 * 1024 * 1024);
                 const data = JSON.parse(body.toString());

@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>The Cast - Xanrean Chronicles</title>
-  <meta name="description" content="Meet the Admins, Moderators, and other souls of the Xanrean Server Clusters.">
+  <title>Series Cast - Xanrean Chronicles</title>
+  <meta name="description" content="Meet the cast of this series.">
   <link rel="stylesheet" href="/style.css">
   <script>
     const savedTheme = localStorage.getItem('theme');
@@ -35,47 +35,23 @@
       margin: 0 auto;
     }
 
-    /* ── FILTER TABS ── */
-    .cast-tabs {
-      display: flex;
-      justify-content: center;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-      padding: 0 2rem 2.5rem;
-    }
-    .cast-tab {
-      font-family: var(--font-body);
-      font-weight: 600;
-      font-size: 0.9rem;
-      padding: 0.6rem 1.4rem;
-      border-radius: 999px;
-      border: 1px solid var(--border2);
-      background: var(--surface);
-      color: var(--text);
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    .cast-tab:hover { border-color: var(--royal); color: var(--royal); }
-    .cast-tab.active {
-      background: var(--royal);
-      border-color: var(--royal);
-      color: white;
-    }
-
-    /* ── CAST GRID ── */
-    .cast-deck-wrap {
-      position: relative;
-      padding: 0 2rem;
-      margin-bottom: 4rem;
+    .cast-group-section {
       max-width: 1200px;
-      margin-left: auto;
-      margin-right: auto;
+      margin: 0 auto 3rem;
+      padding: 0 2rem;
+    }
+    .cast-group-title {
+      font-family: var(--font-display);
+      font-size: 1.3rem;
+      color: var(--ink);
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
     }
     .cast-deck {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
       gap: 1.25rem;
-      padding: 0.5rem 0.25rem 1.5rem;
     }
 
     .cast-card {
@@ -123,6 +99,25 @@
       color: var(--royal);
       font-weight: 600;
     }
+
+    /* ── MINOR CAST LIST ── */
+    .cast-minor-list {
+      max-width: 1200px;
+      margin: 0 auto 4rem;
+      padding: 0 2rem;
+    }
+    .cast-minor-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 0.75rem 1.5rem;
+    }
+    .cast-minor-item {
+      font-size: 0.9rem;
+      color: var(--text);
+      padding: 0.4rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .cast-minor-item strong { color: var(--ink); }
 
     /* ── EXPANDED READER ── */
     .cast-reader {
@@ -243,18 +238,15 @@
 
 <main>
   <section class="cast-hero">
-    <h1 class="cast-hero-title">The <span class="accent">Cast</span></h1>
-    <p class="cast-hero-sub">Admins, Moderators, and the other souls who inhabit the Xanrean Server Clusters. Tap anyone to read their profile.</p>
+    <h1 class="cast-hero-title" id="cast-hero-title">Series <span class="accent">Cast</span></h1>
+    <p class="cast-hero-sub" id="cast-hero-sub">Tap anyone to read their profile.</p>
   </section>
 
-  <div class="cast-tabs" id="cast-tabs"></div>
-  <div class="cast-tabs" id="cast-series-filter"></div>
-
-  <div class="cast-deck-wrap">
-    <div class="cast-deck" id="cast-deck">
-      <div class="cast-loading">Loading the cast…</div>
-    </div>
+  <div id="cast-groups">
+    <div class="cast-loading">Loading the cast…</div>
   </div>
+
+  <div class="cast-minor-list" id="cast-minor-list"></div>
 
   <div class="cast-reader" id="cast-reader">
     <div class="cast-reader-card">
@@ -280,7 +272,7 @@
     <div class="footer-logo"><div class="tama-icon" aria-hidden="true"></div> Nekojin Interactive</div>
     <p class="footer-tagline">Crafting worlds</p>
     <div class="footer-links">
-      <a href="/xanrean">← Back to Xanrean Chronicles</a>
+      <a href="/xanrean/books">← Back to Books</a>
     </div>
     <p class="footer-copy">© <span id="footer-year"></span> Nekojin Interactive LLC. All rights reserved.</p>
     <script>document.getElementById('footer-year').textContent = new Date().getFullYear();</script>
@@ -320,71 +312,8 @@ function parseMarkdown(md) {
   return html;
 }
 
-const TAB_GROUPS = [
-  { key: 'all', label: 'Everyone' },
-  { key: 'Admin', label: 'The Admins' },
-  { key: 'Moderator', label: 'The Moderators' },
-  { key: 'other', label: 'Other Souls' }
-];
-
-let allChars = [];
-let allSeries = [];
-let filtered = [];
-let activeTab = 'all';
-let activeSeries = 'all';
-let readerIndex = -1;
-
-function bucketFor(charType) {
-  if (charType === 'Admin' || charType === 'Moderator') return charType;
-  return 'other';
-}
-
-function homeSeriesId(c) {
-  const home = (c.appearances || []).find(a => a.is_home);
-  return home ? home.series_id : null;
-}
-
-function applyFilter() {
-  filtered = activeTab === 'all'
-    ? allChars
-    : allChars.filter(c => bucketFor(c.char_type) === activeTab);
-  if (activeSeries !== 'all') {
-    filtered = activeSeries === 'universe'
-      ? filtered.filter(c => !homeSeriesId(c))
-      : filtered.filter(c => homeSeriesId(c) === activeSeries);
-  }
-  renderDeck();
-}
-
-function renderTabs() {
-  const wrap = document.getElementById('cast-tabs');
-  wrap.innerHTML = TAB_GROUPS.map(t =>
-    `<button class="cast-tab${t.key === activeTab ? ' active' : ''}" data-tab="${t.key}">${t.label}</button>`
-  ).join('');
-  wrap.querySelectorAll('.cast-tab').forEach(btn => {
-    btn.addEventListener('click', () => {
-      activeTab = btn.dataset.tab;
-      renderTabs();
-      applyFilter();
-      closeReader();
-    });
-  });
-}
-
-function renderSeriesFilter() {
-  const wrap = document.getElementById('cast-series-filter');
-  if (!allSeries.length) { wrap.innerHTML = ''; return; }
-  const options = [
-    `<option value="all">All series</option>`,
-    ...allSeries.map(s => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.universe)}</option>`),
-    `<option value="universe">Universe-wide</option>`
-  ];
-  wrap.innerHTML = `<select id="cast-series-select">${options.join('')}</select>`;
-  document.getElementById('cast-series-select').addEventListener('change', (e) => {
-    activeSeries = e.target.value;
-    applyFilter();
-    closeReader();
-  });
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
 
 function cardAvatar(c) {
@@ -393,26 +322,111 @@ function cardAvatar(c) {
     : (c.emoji || '👤');
 }
 
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+// Optional per-series "also mentioned" minor cast, not backed by full
+// character records. Keyed by series id.
+const MINOR_CAST = {
+  'the-godling-and-her-husband': [
+    { name: 'Serpentina', role: 'SS-rank superhero suspected during the Godling briefing' },
+    { name: 'TransferSpar', role: 'Field expert on Godlings' },
+    { name: 'Marissa', role: "Doctor from Arissa's past" },
+    { name: 'Dr. Rasar', role: 'Golem specialist imprisoned by the HGO' },
+    { name: 'Razor', role: 'B-rank hero involved in a rescue mission' },
+    { name: 'Trix', role: "Arissa's favorite cereal, and a recurring comic fixation" },
+    { name: 'Tobotnik', role: 'Eccentric figure with wildlife-powered robots' },
+    { name: 'Targuss', role: 'Named supporting figure in the wider setting' },
+    { name: 'Timothy', role: 'Named supporting figure in the wider cast' },
+  ],
+  'her-majesty-tamaneko': [
+    { name: 'Reedril', role: "Ancient, city-destroying-level being referenced in Saki's past" },
+    { name: 'Grik', role: 'Goblin involved in a later negotiation, distinct from Grok' },
+    { name: 'Kikat', role: 'Goblin involved in a dispute over slavery and goblin pride' },
+    { name: 'Becka', role: 'Minor figure involved in a lost recording-pen incident' },
+    { name: 'Emberly', role: 'Named supporting figure in the wider cast' },
+    { name: 'Rex', role: 'Named supporting figure in the wider cast' },
+    { name: 'Jabrome', role: 'Lich, central early-series undead antagonist' },
+    { name: 'Sarah Liturgis', role: 'Demon Queen referenced in the early undead conflict' },
+    { name: 'Crivar', role: 'Extremely fast/powerful combatant known to Tama' },
+    { name: 'Corsis', role: 'Green dragon involved in conflicts around Crivar' },
+    { name: 'Archduke Persip "Parsnip"', role: 'Trissaile noble and political critic' },
+    { name: 'Trixua', role: 'Goblin city manager / City Keeper' },
+    { name: 'Paige', role: "Part of Tama's early confrontation with slavery and consent" },
+    { name: 'Dramun', role: 'Figure/artifact tied to the Serenity and Dramun arc' },
+  ],
+};
+
+// Group display order follows the two source docs' own recommended
+// structure. Any cast_group not listed here (a future series with its own
+// groups) just sorts after these, in first-encounter order.
+const GROUP_ORDER = [
+  'Main Cast', 'Inner Circle', 'Household / Wife Games',
+  'Golems / Cosmic Agents', 'Royal / Political', 'Powerful Allies / Wildcards',
+  'HGO / Heroes', 'Fixers / Mission Contacts', 'Antagonists / Opposition',
+  'Companions / Sentient Artifacts', 'Alien / Later-arc Cast',
+];
+
+let seriesId = '';
+let allChars = [];
+let filtered = [];
+let groups = [];
+let readerIndex = -1;
+
+function appearanceFor(c) {
+  return (c.appearances || []).find(a => a.series_id === seriesId);
 }
 
-function renderDeck() {
-  const deck = document.getElementById('cast-deck');
+function buildGroups() {
+  const order = [];
+  const byGroup = {};
+  filtered.forEach(c => {
+    const label = (appearanceFor(c) || {}).cast_group || 'Cast';
+    if (!byGroup[label]) { byGroup[label] = []; order.push(label); }
+    byGroup[label].push(c);
+  });
+  order.sort((a, b) => {
+    const ai = GROUP_ORDER.indexOf(a), bi = GROUP_ORDER.indexOf(b);
+    if (ai === -1 && bi === -1) return 0;
+    if (ai === -1) return 1;
+    if (bi === -1) return -1;
+    return ai - bi;
+  });
+  groups = order.map(label => ({ label, members: byGroup[label] }));
+}
+
+function renderGroups() {
+  const container = document.getElementById('cast-groups');
   if (!filtered.length) {
-    deck.innerHTML = '<div class="cast-loading">No one here yet.</div>';
+    container.innerHTML = '<div class="cast-loading">No cast added for this series yet.</div>';
     return;
   }
-  deck.innerHTML = filtered.map((c, i) => `
-    <div class="cast-card" data-index="${i}">
-      <div class="cast-avatar">${cardAvatar(c)}</div>
-      <h3>${escapeHtml(c.name)}</h3>
-      <div class="cast-role">${escapeHtml(c.title || c.char_type || '')}</div>
-    </div>
+  container.innerHTML = groups.map(g => `
+    <section class="cast-group-section">
+      <h2 class="cast-group-title">${escapeHtml(g.label)}</h2>
+      <div class="cast-deck">
+        ${g.members.map(c => `
+          <div class="cast-card" data-index="${filtered.indexOf(c)}">
+            <div class="cast-avatar">${cardAvatar(c)}</div>
+            <h3>${escapeHtml(c.name)}</h3>
+            <div class="cast-role">${escapeHtml(c.title || c.char_type || '')}</div>
+          </div>
+        `).join('')}
+      </div>
+    </section>
   `).join('');
-  deck.querySelectorAll('.cast-card').forEach(card => {
+  container.querySelectorAll('.cast-card').forEach(card => {
     card.addEventListener('click', () => openReader(parseInt(card.dataset.index, 10)));
   });
+}
+
+function renderMinorList() {
+  const list = MINOR_CAST[seriesId];
+  const wrap = document.getElementById('cast-minor-list');
+  if (!list || !list.length) { wrap.innerHTML = ''; return; }
+  wrap.innerHTML = `
+    <h2 class="cast-group-title">Also mentioned</h2>
+    <div class="cast-minor-grid">
+      ${list.map(m => `<div class="cast-minor-item"><strong>${escapeHtml(m.name)}</strong> — ${escapeHtml(m.role)}</div>`).join('')}
+    </div>
+  `;
 }
 
 function openReader(index) {
@@ -458,18 +472,29 @@ document.addEventListener('keydown', (e) => {
 });
 
 async function loadCast() {
+  const parts = window.location.pathname.split('/');
+  seriesId = parts[parts.length - 2];
+
   try {
     const [charsRes, contentRes] = await Promise.all([fetch('/api/characters'), fetch('/content')]);
     allChars = await charsRes.json();
-    allChars.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
     const content = await contentRes.json();
-    allSeries = content.series || [];
-    renderTabs();
-    renderSeriesFilter();
-    applyFilter();
+    const series = (content.series || []).find(s => s.id === seriesId);
+
+    document.getElementById('cast-hero-title').innerHTML =
+      `${series ? escapeHtml(series.universe) : 'Series'} <span class="accent">Cast</span>`;
+    document.title = `${series ? series.universe : 'Series'} Cast - Xanrean Chronicles`;
+
+    filtered = allChars
+      .filter(c => (c.appearances || []).some(a => a.series_id === seriesId))
+      .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+
+    buildGroups();
+    renderGroups();
+    renderMinorList();
   } catch (err) {
     console.error('Failed to load cast', err);
-    document.getElementById('cast-deck').innerHTML = '<div class="cast-loading">Failed to load the cast. Please refresh.</div>';
+    document.getElementById('cast-groups').innerHTML = '<div class="cast-loading">Failed to load the cast. Please refresh.</div>';
   }
 }
 loadCast();
