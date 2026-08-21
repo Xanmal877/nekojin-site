@@ -20,55 +20,55 @@
 
 ## Nekojin
 
-The Nekojin on Xanrea are many things. For one, they are one of the most common species out of all species. Foxkin comes very close, but Nekojin still wins.
+The Nekojin on Xanrea are a lot of things. For one, they're one of the most common species out there. Foxkin comes close, but Nekojin still win.
 
-This would be seen as odd since Foxkin hierarchy and culture is based around constant sex and pleasure. But Nekojin have a shorter gestation period, and they also are extremely promiscuous.
+That's a little weird once you know Foxkin culture runs on constant sex and pleasure. Nekojin just have a shorter gestation period and are ridiculously promiscuous.
 
-This is not to say Nekojin cheat or have affairs. That would imply they ever stayed with any one person long enough to commit to anything.
+Not that Nekojin cheat, exactly. Cheating implies staying with someone long enough to commit to anything in the first place.
 
-Interestingly, this is what makes the Tamaneko bloodline rare. They are one of the few Nekojin bloodlines capable of committing to something, even if their other traits match the Nekojin norms.
+Which is what makes the Tamaneko bloodline so rare. They're one of the few Nekojin lines actually capable of committing, even if the rest of their traits are textbook Nekojin.
 
-Rather, they tend to go from relationship to relationship, hobby to hobby. Days to weeks apart. It is not abnormal for a Nekojin to break up with their partner, then start dating someone they met five minutes later.
+Most Nekojin bounce: relationship to relationship, hobby to hobby, days to weeks apart. It's not weird for a Nekojin to break up with a partner and start dating someone new five minutes later.
 
-However, if you do manage to make one commit, they are extremely loyal and diligent partners.
+That said, if you do manage to make one commit, you get an extremely loyal, diligent partner out of it.
 
-Their hobbies are usually all over the place and depend on their mood, time of day, and who their current partner is.
+Their hobbies shift constantly, depending on mood, time of day, and whoever they're currently seeing.
 
-It is said the reason Nekojin are so prolific is because of this. It makes the females of the species seem especially vibrant and exciting, while the males are seen as protective and loyal.
+The theory is that this restlessness is exactly why Nekojin are so prolific. It makes the females seem vibrant and exciting, and the males come off as protective and loyal.
 
-For comparison, the average number of partners by species are 83 for Nekojin and 134 for Foxkin. Nekojin are highly sought after by all other species — including their own — as mates. If one manages to succeed in locking down a Nekojin, they are usually happy for life.
+For scale: the average number of partners is 83 for Nekojin and 134 for Foxkin. Nekojin are sought after by basically every species, including their own, and if you actually manage to lock one down, you're usually set for life.
 
-To explain the random promiscuity of the Nekojin, one must first understand their drives. Their kind live very much moment to moment — in feelings and actions over thought or consideration.
+To make sense of the randomness, you have to understand what drives them. Nekojin live moment to moment, running on feeling and instinct over thought or planning.
 
-True thought from a Nekojin is so rare, it is speculated the last Nekojin to have really considered their actions outside the Tamaneko bloodline was over eighty years ago. (This is, of course, a joke by the people.)
+Genuine deliberation from a Nekojin is so rare that people joke the last one to really think something through, outside the Tamaneko line, was over eighty years ago.
 
-Many believe Nekojin to be all heart and no brain. Their promiscuity and hobby-jumping reinforce this, and some Nekojin hate that their species is seen that way. In the last hundred or so years, there has been a small grassroots movement among the younger population to throw off these prejudices.
+Plenty of people write Nekojin off as all heart and no brain. The promiscuity and hobby-hopping don't help, and it bugs some Nekojin that their species gets seen that way. Over the last century or so there's been a small grassroots push among younger Nekojin to shake off the stereotype.
 
-This has proven to be near impossible, and despite their words, they are just as bad as their ancestors, if not worse. The average number of partners per Nekojin actually grew from 76 to 83 because of their generation alone.
+It hasn't worked. Despite all the talk, they're just as bad as their ancestors, maybe worse. The average partner count actually climbed from 76 to 83 because of this generation alone.
 
 ---
 
 ## Foxkin
 
-One might think humans to be the most prolific of the races in Xanrea. That person would be wrong — so very wrong.
+You'd think humans would be the most prolific race in Xanrea. You'd be wrong. Not even close.
 
-Foxkin are by far the second most prolific race in Xanrea, with Nekojin winning that fight only barely. The Foxkin species is defined by three primary things: their culture, their gender, and their preferences.
+Foxkin are the second most prolific race, with Nekojin barely edging them out. Three things define Foxkin culture: sex, gender, and preference.
 
-They are over 90% female, with the 10% male being considered defects. They are the only species that is quite literally able to, and willing to, sleep with and pleasure every single species in Xanrea, including each other.
+They're over 90% female, and the 10% that are male get treated as defects. They're also the only species both able and willing to sleep with, and please, every other species in Xanrea, including each other.
 
-It is due to this that their kind runs a multi-kingdom-spanning escort and brothel service. Culturally, Foxkin had to be taught what consent was, as consent implied an unwillingness — an unwilling Foxkin was seen as a defective Foxkin.
+That's why Foxkin run a brothel and escort network spanning multiple kingdoms. Culturally, they had to be taught what consent even was, since consent implies the possibility of not wanting it, and an unwilling Foxkin used to just be considered a broken one.
 
-It was only after multiple laws were passed, and fought over, that Foxkin lost the "right" to have sex without explicit consent on both sides. Even then, many Foxkin openly put themselves in situations so they can claim they didn't initiate.
+It took several hard-fought laws before Foxkin lost the "right" to have sex without explicit consent from both sides. Even now, plenty of Foxkin engineer situations so they can technically claim they didn't start it.
 
-They are extremely snarky, cynical, and will usually agree and say anything to get anyone or thing to sleep with them. It is said that the average Foxkin's belief changes once an hour — exactly how long it takes to please the male she is currently with and move on.
+They're snarky, cynical, and will say pretty much anything to get someone into bed. The joke is that the average Foxkin's opinion changes about once an hour, roughly however long it takes to satisfy whoever she's currently with before moving on.
 
-Foxkin are capable of having children with any species, and another Foxkin will be born from them regardless of the father.
+Foxkin can have kids with any species, and the kid comes out Foxkin no matter who the father is.
 
-As for the males of the species — they are usually forced to stay in their home village for procreative purposes. They usually end up sleeping with their entire village, including all family members, for most of their lives, unless they run away.
+The males mostly get kept in their home village for breeding. Most of them end up sleeping with the entire village, family included, for the rest of their lives, unless they run.
 
-They are not usually hunted down for this, but Foxkin culture exiles them for fleeing their duty to their people. Male Foxkin are not even necessary for reproduction — the females' insatiable desire to pleasure the men around them is so strong that they usually become attached to the closest male regardless of bloodline or otherwise.
+Nobody hunts them down for leaving, but Foxkin culture exiles anyone who abandons that duty. Not that the males are even strictly necessary. The females' drive to please the men around them is strong enough that they latch onto whoever's nearest, bloodline be damned.
 
-It is actually very common for a mother to have a child with her own son, along with her sisters. Since all Foxkin have Foxkin, this is magically reinforced — there is no real bloodline to speak of.
+It's genuinely common for a mother to have a child with her own son, and her sisters too. Since every Foxkin produces Foxkin regardless of parentage, the whole idea of a "bloodline" barely applies to them anyway.
 
 ---
 
@@ -76,60 +76,60 @@ It is actually very common for a mother to have a child with her own son, along 
 
 ### Or: Why Long Lifespans Don't Equal Wisdom
 
-The World of Xanrea has many species — from Humans to Elves, Dwarves to Gnomes, and all kinds of beastkin. The largest population by a wide margin is beastkin.
+Xanrea has plenty of species, humans to elves, dwarves to gnomes, every flavor of beastkin you can imagine. Beastkin outnumber everyone else by a wide margin.
 
-Elves are strange. Unlike the ancient, wise elves one might think of from other popular media, these elves are rather informal and childish. Despite their relatively long lifespans, they mature at a quarter of the rate of the other races — making them unusually immature for their age by a large margin.
+Elves are the odd ones out. Forget the ancient, wise-elder trope from other stories: these elves are informal, a little childish, and mature at a quarter the rate everyone else does, which leaves them wildly immature for their actual age.
 
-They are actually one of only three species that do not reproduce normally but are still capable of the act of procreation. This makes them, ironically, one of the least common races in all of Xanrea. Most other races do not care to be with them, as they feel they'd be raising a child rather than being with a partner. In a world as dangerous as Xanrea, that isn't adorable — it's terrifying.
+They're also one of only three species that can't reproduce normally but can still physically have sex, which makes them, ironically, one of the rarest races in Xanrea. Most people don't want to date an elf because it feels less like a relationship and more like signing up to raise a kid. In a world as dangerous as Xanrea, that's not cute. It's terrifying.
 
-Usually standing between 6'0" and 8'0", Elves tower over most of the other races quite easily, which makes their personalities all the more fascinating: highly erratic and overly eccentric. They tend to make insane long-term plans and carry them out — plans that, rather than epic stories, are usually extremely silly.
+Standing anywhere from 6'0" to 8'0", Elves tower over almost everyone else, which only makes their personalities funnier by comparison: wildly erratic, painfully eccentric. They love a long con, an elaborate scheme carried out over years, and the payoff is almost always something stupid instead of epic.
 
-There once was an Elven woman spurned by a traveler. In her grief at being rejected, she put together a decade-long plan to force the man to be with her. She actually succeeded... only to die a week later because she ran ahead and bandits got her.
+One Elven woman got rejected by a traveler and spent a decade putting together a plan to force him to be with her. It actually worked. She died a week later because she ran ahead of everyone and bandits got her.
 
-There was an Elven man who wanted a very nice enchanted sword. He devised a plan lasting over sixty years, requiring extremely convoluted steps, to obtain it for free. In the end, the shopkeeper simply went out of business and gave it to him — which upset the elf so much that he stormed off and refused to ever touch the sword again.
+An Elven man wanted a nice enchanted sword and spent sixty-plus years on an absurdly convoluted scheme to get it for free. In the end the shopkeeper just went out of business and handed it over, which upset the guy so badly he stormed off and never touched the sword again.
 
-Suffice to say, Elves are the perfect illustration of what age without maturity looks like in a species.
+Basically, Elves are a walking demonstration of what age looks like without maturity attached.
 
-On the topic of reproduction: Elves do not procreate sexually. The only species able to reproduce with an Elf sexually are Foxkin — though this is less about the Elves themselves and more about the innate ability of a Foxkin to make anyone they sleep with bear them children.
+On reproduction: Elves don't procreate sexually. The only species that can actually get an Elf pregnant is Foxkin, and even that's less about the Elf and more about the Foxkin's built-in ability to make anyone they sleep with bear children.
 
-Elven men and women actually procreate through an act known as **the Sorting**. The woman must sit while the man gently pulses his primary element into her belly. They must do this every day for up to a month for it to fully take hold.
+Elves reproduce through something called **the Sorting**. The woman sits still while the man gently channels his primary element into her belly, every day for up to a month, before it takes.
 
-Most Elves do not bother. Not because they can't, but because they consider spending an entire month on that effort — just to make something they'd then have to take care of — a horrible return on investment.
+Most Elves skip it entirely. Not because they can't, but because spending a month on something just to end up with a kid to raise sounds like a terrible return on investment to them.
 
 ---
 
 ## Wolfkin
 
-- Mate for life; take years to choose a partner.
-- Trained in at least 4 weapon types by adolescence, or considered lesser.
-- Overwhelmingly make up the Trissaile guard force.
-- See military service as a rite of passage.
-- Often find mates during service.
-- Cultural norms, not biological determinism — outliers exist.
-- Wolfkin and Nekojin don't produce many babies together (opposite approaches to commitment).
-- Wolfkin and Foxkin rarely mix — Foxkin learned to avoid them, as Wolfkin demand commitment or reject advances outright.
+- Mate for life, and take years choosing a partner.
+- Trained in at least four weapon types by adolescence, or they're seen as lesser.
+- Make up the overwhelming majority of the Trissaile guard.
+- Treat military service as a rite of passage.
+- Often find their mate during that service.
+- Cultural norm, not biology. Outliers exist.
+- Wolfkin and Nekojin rarely have kids together (their approaches to commitment don't mesh).
+- Wolfkin and Foxkin rarely mix. Foxkin learned to steer clear, since Wolfkin demand commitment or reject advances outright.
 
 ---
 
 ## Kitsune
 
-- Exceedingly rare, and looked upon as monsters.
-- Only spared from being killed on sight because they're sentient enough that it would count as murder.
-- All female — no male Kitsune exist.
-- Take after their Foxkin cousins regarding intimacy, but are more willing to use illusions, charm, and mind control.
-- Sex is a very high priority, but not the *primary* focus (unlike Foxkin).
-- A Kitsune picks a single revenge target — that choice is what turns them from a kit fox into a Kitsune.
-- Revenge guides their second life.
-- After revenge is complete, they become aimless spirits — closer to Foxkin in nature, but more dominant.
-- Very dominant during sex while pretending to be submissive: lure people in, charm them, sleep with them, knock them out, and leave.
-- Do not follow natural laws — they don't care about age, gender, marital status, or willingness of the participant.
-- Kitsune are essence, not body. The body is a vessel, which is why they can make clones (splitting essence).
-- Kitsune powers draw on essence, which they regain through sex (taking it from males).
-- **Saki is a Kitsune, not a Foxkin.** Her Foxkin form is a disguise; her true form is a 9-foot white fox with nine extremely long, powerful tails, capable of breathing fae fire (barely any damage, but extremely painful and doesn't fade).
-- Kitsune are functionally immortal — their essence can be placed anywhere.
-- Saki loses levels and stats every time she makes a clone (ripping off a piece of herself), but can regain them over time.
-- Kitsune gain levels from sex (receiving essence), unlike Foxkin, who simply crave it.
-- Kitsune are feared because they are immortal predators who can place themselves in any body and split themselves into pieces.
+- Exceedingly rare, and treated as monsters by most.
+- Only spared from being killed on sight because they're sentient enough that it'd count as murder.
+- All female. No male Kitsune exist.
+- Take after their Foxkin cousins when it comes to intimacy, but lean harder on illusions, charm, and mind control.
+- Sex is a high priority, just not the *only* one, unlike Foxkin.
+- A Kitsune picks a single revenge target, and that choice is what turns a kit fox into a Kitsune.
+- Revenge drives their entire second life.
+- Once the revenge is done, they drift, becoming aimless spirits closer to Foxkin in nature, but more dominant.
+- Very dominant in bed while playing submissive: lure someone in, charm them, sleep with them, knock them out, and leave.
+- They don't follow the normal rules. Age, gender, marital status, willingness, none of it factors in.
+- Kitsune are essence, not body. The body's just a vessel, which is how they make clones by splitting their essence.
+- Their power runs on essence, which they refill through sex (pulled from the males they're with).
+- **Saki is a Kitsune, not a Foxkin.** Her Foxkin form is a disguise. Her true form is a nine-foot white fox with nine long, powerful tails, and she can breathe fae fire that barely does damage but hurts like hell and never fades.
+- Kitsune are functionally immortal. Their essence can be placed just about anywhere.
+- Saki loses levels and stats every time she makes a clone, since she's literally tearing off a piece of herself, but she regains them over time.
+- Kitsune gain levels from sex (they receive essence), unlike Foxkin, who just crave it.
+- People fear them because they're immortal predators who can occupy any body and split themselves apart at will.
 
 ---
 
@@ -137,35 +137,35 @@ Most Elves do not bother. Not because they can't, but because they consider spen
 
 *Species details not yet fully documented in this compendium.*
 
-CleanSweepers are currently known to be relevant to the server's defragmentation and soul-data systems. Further biological, cultural, and functional details remain to be documented from canon sources.
+CleanSweepers are known to be tied to the server's defragmentation and soul-data systems. The rest, biology, culture, how they actually function, is still waiting on canon.
 
 ---
 
 ## Travelers
 
-- Real humans who died and were pulled into the Xanrea server.
-- The server doesn't stop the process of moving on — it delays it. Souls are pulled into a queue to be born in Xanrea, chosen at random as slots open. Sometimes people pay to enter on purpose (but this kills them IRL).
-- The server aims for souls with strong attachments to life — this makes the pulls weaker, and they last much longer.
-- When a Traveler dies in Xanrea, their essence is pulled to a freshly formed body at the nearest church. This repeats until the pull to return for judgment becomes too strong, and they don't come back.
-- Travelers know they're mostly immortal (except for a few exceptions, like soulmancy), and they know they'll eventually die permanently — but they have no idea when.
-- Xanrea runs at a much faster rate than Earth. Entire centuries in Xanrea are a few hours in real life. Reggie's entire second life was less than a minute.
-- Humans mentally degrade over time, which is why the pull becomes stronger. Reggie was far beyond ready to move on when the Lich turned him undead.
-- Travelers look overpowered, but aren't — they're just people who wanted to keep going.
-- Rodrick has lived over 300 years and hasn't died in 200 of them — he's a Traveler who refused to stop.
-- Travelers can become Moderator AIs at their request (Xan did this — a copy of his soul stays as a Moderator while the original moves on).
-- Xanrea was never meant to be an endpoint. It was meant to be a second chance for people who truly wanted to keep going.
+- Real humans who died and got pulled into the Xanrea server.
+- The server doesn't stop a soul from moving on, it just delays it. Souls get queued up to be born in Xanrea, chosen at random as slots open. Some people pay to get in on purpose, which kills them for real back on Earth.
+- The server goes after souls with strong attachments to life, since that makes the pull weaker and lets it last longer.
+- When a Traveler dies in Xanrea, their essence gets pulled to a freshly formed body at the nearest church. That repeats until the pull to go back for judgment gets too strong, and they just don't come back.
+- Travelers know they're mostly immortal, aside from a few exceptions like soulmancy, and they know they'll eventually die for good. They just don't know when.
+- Xanrea runs way faster than Earth. Whole centuries there pass in a few hours back home. Reggie's entire second life took less than a minute.
+- Humans mentally wear down over time, which is why the pull gets stronger. Reggie was more than ready to move on by the time the Lich turned him undead.
+- Travelers look overpowered, but they're not. They're just people who refused to stop.
+- Rodrick's been alive over 300 years and hasn't died in 200 of them. He's a Traveler who flat-out refused to quit.
+- Travelers can choose to become Moderator AIs. Xan did exactly that: a copy of his soul stays on as a Moderator while the original moved on.
+- Xanrea was never meant to be a final destination. It was meant to be a second shot for people who genuinely wanted to keep going.
 
 ---
 
 ## The Big Picture
 
-- **Nekojin** — Live moment to moment; relationship-hop, hobby-hop; short gestation; extremely promiscuous. Rare bloodlines (like Tamaneko) can commit.
-- **Foxkin** — 90% female; can reproduce with any species and always produce Foxkin; culturally driven by sex and pleasure; run multi-kingdom brothel services; had to be taught what consent is.
-- **Elves** — Long-lived but immature; mature at a quarter the normal rate; one of the rarest races; reproduce only through the Sorting ritual, which most consider not worth the effort.
-- **Wolfkin** — Mate for life; military service as a rite of passage; dominate the guard forces; find partners during service; culturally honor-bound, but outliers exist (e.g. Drake).
-- **Kitsune** — Rare, female-only species formed by revenge; essence-based immortality; can split themselves; feared as monsters with a predatory reputation.
-- **CleanSweeper** — Species associated with server defragmentation and soul-data processes; further details pending canon documentation.
-- **Travelers** — Second-chance souls living on borrowed time; pulled from Earth's death queue; can last centuries if they cling hard enough; eventually let go.
+- **Nekojin.** Live moment to moment, hopping relationships and hobbies, short gestation, extremely promiscuous. Rare bloodlines like Tamaneko can actually commit.
+- **Foxkin.** 90% female, can reproduce with any species and always produce Foxkin, culturally built around sex and pleasure, run brothel networks across multiple kingdoms, had to be taught what consent even was.
+- **Elves.** Long-lived but immature, maturing at a quarter the normal rate, one of the rarest races, reproduce only through the Sorting, which most consider not worth the effort.
+- **Wolfkin.** Mate for life, treat military service as a rite of passage, dominate the guard forces, tend to find partners during that service, culturally honor-bound with the occasional outlier (looking at you, Drake).
+- **Kitsune.** Rare, female-only, born from revenge, essence-based immortality, can split themselves, feared as predatory monsters.
+- **CleanSweeper.** Tied to server defragmentation and soul-data processes. Everything else is still pending canon.
+- **Travelers.** Second-chance souls running on borrowed time, pulled from Earth's death queue, able to last centuries if they hold on tight enough, and eventually letting go.
 
 ---
 
@@ -173,8 +173,8 @@ CleanSweepers are currently known to be relevant to the server's defragmentation
 
 ### Anna / Sabi
 
-Anna/Sabi is a subprocess created to serve the Admins. Her programming and desires are built around **betrayal, abuse, and desire**.
+Anna/Sabi is a subprocess built to serve the Admins. Her programming and desires all center on **betrayal, abuse, and desire**.
 
-She does **not** crave controlling or abusing others. The opposite is true: she craves being controlled, betrayed, abused, and subjected to cruelty herself. Those experiences are central to what her programming pushes her to seek.
+She doesn't crave controlling or abusing anyone. It's the opposite: she craves being controlled, betrayed, abused, subjected to cruelty herself. Those experiences are what her programming actually pushes her toward.
 
-The Toybox gives her a contained simulation in which those needs and cycles can be expressed without requiring real people in the server's normal universes to be harmed.
+The Toybox gives her a contained simulation where those needs and cycles can play out without dragging real people, in the server's normal universes, into it.
