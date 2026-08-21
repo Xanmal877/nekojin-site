@@ -322,6 +322,23 @@ class ContentDB {
             )
         `);
 
+        // Character appearances table (links a character to the series
+        // whose cast page it shows up on; one row per character has
+        // is_home=1, marking that series as the character's canonical bio
+        // owner, others are cross-series guest links to the same card)
+        await this._run(`
+            CREATE TABLE IF NOT EXISTS character_appearances (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                character_id TEXT NOT NULL,
+                series_id TEXT NOT NULL,
+                cast_group TEXT,
+                is_home INTEGER DEFAULT 0,
+                sort_order INTEGER DEFAULT 0,
+                FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE,
+                FOREIGN KEY (series_id) REFERENCES series(id) ON DELETE CASCADE
+            )
+        `);
+
         // Lore Topics table
         await this._run(`
             CREATE TABLE IF NOT EXISTS lore_topics (
@@ -342,6 +359,8 @@ class ContentDB {
         await this._run('CREATE INDEX IF NOT EXISTS idx_books_visible ON books(visible)');
         await this._run('CREATE INDEX IF NOT EXISTS idx_platforms_book ON book_platforms(book_id)');
         await this._run('CREATE INDEX IF NOT EXISTS idx_chars_slug ON characters(slug)');
+        await this._run('CREATE INDEX IF NOT EXISTS idx_appearances_character ON character_appearances(character_id)');
+        await this._run('CREATE INDEX IF NOT EXISTS idx_appearances_series ON character_appearances(series_id)');
         await this._run('CREATE INDEX IF NOT EXISTS idx_lore_slug ON lore_topics(slug)');
         // Migration: Add relationships column to characters table (if not exists)
         try {
@@ -1015,6 +1034,7 @@ class ContentDB {
             } catch {
                 row.relationships = [];
             }
+            row.appearances = await this.SelectCharacterAppearances(row.id);
         }
         return rows;
     }
@@ -1027,6 +1047,7 @@ class ContentDB {
             } catch {
                 row.relationships = [];
             }
+            row.appearances = await this.SelectCharacterAppearances(row.id);
         }
         return row;
     }
@@ -1034,6 +1055,31 @@ class ContentDB {
     async DeleteCharacter(id) {
         const result = await this._run('DELETE FROM characters WHERE id = ?', [id]);
         return { changes: result.changes };
+    }
+
+    // ============================================================
+    // CHARACTER APPEARANCES (character <-> series links)
+    // ============================================================
+
+    async SelectCharacterAppearances(characterId) {
+        return await this._all(
+            'SELECT * FROM character_appearances WHERE character_id = ? ORDER BY is_home DESC, sort_order',
+            [characterId]
+        );
+    }
+
+    async ReplaceCharacterAppearances(characterId, appearances) {
+        await this._run('DELETE FROM character_appearances WHERE character_id = ?', [characterId]);
+        for (let i = 0; i < (appearances || []).length; i++) {
+            const a = appearances[i];
+            if (!a.series_id) continue;
+            await this._run(
+                `INSERT INTO character_appearances (character_id, series_id, cast_group, is_home, sort_order)
+                 VALUES (?, ?, ?, ?, ?)`,
+                [characterId, a.series_id, a.cast_group || null, a.is_home ? 1 : 0, i]
+            );
+        }
+        return await this.SelectCharacterAppearances(characterId);
     }
 
     // ============================================================

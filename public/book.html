@@ -460,6 +460,7 @@ async function loadBook() {
         ${tags ? `<div class="book-hero-tags">${tags}</div>` : ''}
         <p class="book-hero-desc">${esc(book.description)}</p>
         <div class="book-hero-cta">${ctas}</div>
+        ${book.series_id ? `<a href="/xanrean/series/${esc(book.series_id)}/cast" class="back-link" style="display:inline-block;margin-top:1rem;">Meet the Cast →</a>` : ''}
       </div>
     </div>
   `;
