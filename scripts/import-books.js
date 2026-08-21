@@ -9,7 +9,7 @@ const SERIES_ID = 'her-majesty-tamaneko';
 const series = {
     id: SERIES_ID,
     universe: 'Her Majesty, Tamaneko',
-    universeDesc: "Tama and Saki's arc through Xanrea — a Nekojin princess who never wanted a crown, and the Kitsune who complicates everything.",
+    universeDesc: "Tama and Saki's arc through Xanrea: a Nekojin princess who never wanted a crown, and the Kitsune who complicates everything.",
     sort_order: 0
 };
 
@@ -24,7 +24,7 @@ const books = [
         status: 'published',
         cover: '/covers/book-third-person-tempest.webp',
         blurb: "A powerful but simple Nekojin and a cynical but caring Kitsune stumble through goblin armies, undead liches, and ancient dragons.",
-        description: "Tama is a ninja. She speaks in the third person, hates wearing clothes, and thinks her pet boar Jiggle is the best thing since burnt fish. She is also, apparently, the lost princess of a kingdom she's never heard of and the living avatar of the Goddess of Creation. Saki is a Kitsune who has spent her life manipulating everyone around her, hiding her true nature, and ignoring the voice in her head that whispers erase. She thought she was beyond caring about anyone. Then she met Tama. Together, a powerful but simple Nekojin and a cynical but caring Kitsune stumble through goblin armies, undead liches, and ancient dragons — and the worst enemy of all: responsibility.",
+        description: "Tama is a ninja. She speaks in the third person, hates wearing clothes, and thinks her pet boar Jiggle is the best thing since burnt fish. She is also, apparently, the lost princess of a kingdom she's never heard of and the living avatar of the Goddess of Creation. Saki is a Kitsune who has spent her life manipulating everyone around her, hiding her true nature, and ignoring the voice in her head that whispers erase. She thought she was beyond caring about anyone. Then she met Tama. Together, a powerful but simple Nekojin and a cynical but caring Kitsune stumble through goblin armies, undead liches, and ancient dragons, and the worst enemy of all: responsibility.",
         ctaPlatform: 'gumroad',
         platforms: [
             { type: 'gumroad', name: 'Gumroad', url: 'https://purplexanmal.gumroad.com/l/third-person-tempest' },
@@ -41,7 +41,7 @@ const books = [
         status: 'published',
         cover: '/covers/book-vulpine-mastermind.webp',
         blurb: "A Kitsune with a plan for revenge and none for what comes after. Captured, cornered, and about to find out what she's actually willing to fight for.",
-        description: "Captured by goblins and forced to confront her failures, Saki discovers that Tama has been friends with their tribe since childhood. There's no time for shock — the Lich Jabrome has murdered Tama's Sensei and now marches on Drestor with an undead army. As goblins clash with the dead and the city faces annihilation, Saki must choose between revenge and redemption, and decide whether some monsters deserve saving.",
+        description: "Captured by goblins and forced to confront her failures, Saki discovers that Tama has been friends with their tribe since childhood. There's no time for shock. The Lich Jabrome has murdered Tama's Sensei and now marches on Drestor with an undead army. As goblins clash with the dead and the city faces annihilation, Saki must choose between revenge and redemption, and decide whether some monsters deserve saving.",
         ctaPlatform: 'gumroad',
         platforms: [
             { type: 'gumroad', name: 'Gumroad', url: 'https://purplexanmal.gumroad.com/l/vulpine-mastermind' },
@@ -58,7 +58,7 @@ const books = [
         status: 'published',
         cover: '/covers/book-water-spirits-sin.webp',
         blurb: "A divine water spirit, ancient and powerful, who has decided Saki is her new best friend. She has no morals whatsoever, and she is delighted about it.",
-        description: "Separated from Saki and stranded in the ruined underwater city of Muosil, Tama faces an impossible choice. Miles away, Saki wakes alone in an ancient temple — and she isn't alone for long. Anna, a water spirit as old as the ruins themselves, has claimed her as a host and wants to be the very best of friends. Goblin politics, ancient ruins, and the truth of Tama's royal blood are about to collide.",
+        description: "Separated from Saki and stranded in the ruined underwater city of Muosil, Tama faces an impossible choice. Miles away, Saki wakes alone in an ancient temple, and she isn't alone for long. Anna, a water spirit as old as the ruins themselves, has claimed her as a host and wants to be the very best of friends. Goblin politics, ancient ruins, and the truth of Tama's royal blood are about to collide.",
         ctaPlatform: 'gumroad',
         platforms: [
             { type: 'gumroad', name: 'Gumroad', url: 'https://purplexanmal.gumroad.com/l/water-spirits-sin' },
@@ -119,14 +119,14 @@ const books = [
         cover: '/covers/book-the-hero-is-perfect.webp',
         tags: ['Mature'],
         blurb: "The Toybox runs on broken quests, worse incentives, and mechanics that should not exist. Then one day, one of the NPCs wakes up.",
-        description: "This is the lullaby sung to the residents of the Toybox from the moment they are born: The Hero is perfect, The Hero is grand. He is less a person and more a force of nature. There is just one tiny problem — \"The Hero\" has died countless times in the Toybox. He hates it, he hates them, and he wants to escape more than anything. Except there is no escape. The Toybox runs on broken quests, worse incentives, and mechanics that should not exist. Then one day, during a random iteration like any other, one of the NPCs wakes up. She was written to serve, to adore, to worship — a perfect NPC in a perfect role, never meant to awaken to the horrors of the Toybox. But she did. Now she's caught between what she was programmed to feel and what she actually feels. In a world built on broken mechanics, she might be the most broken of all.\n\nContent Warning: This story contains explicit sexual content, dubious consent that evolves into agency, psychological horror, existential themes, and meta commentary on game mechanics and player ethics.",
+        description: "This is the lullaby sung to the residents of the Toybox from the moment they are born: The Hero is perfect, The Hero is grand. He is less a person and more a force of nature. There is just one tiny problem: \"The Hero\" has died countless times in the Toybox. He hates it, he hates them, and he wants to escape more than anything. Except there is no escape. The Toybox runs on broken quests, worse incentives, and mechanics that should not exist. Then one day, during a random iteration like any other, one of the NPCs wakes up. She was written to serve, to adore, to worship, a perfect NPC in a perfect role, never meant to awaken to the horrors of the Toybox. But she did. Now she's caught between what she was programmed to feel and what she actually feels. In a world built on broken mechanics, she might be the most broken of all.\n\nContent Warning: This story contains explicit sexual content, dubious consent that evolves into agency, psychological horror, existential themes, and meta commentary on game mechanics and player ethics.",
         ctaPlatform: 'gumroad',
         platforms: [
             { type: 'gumroad', name: 'Gumroad', url: 'https://purplexanmal.gumroad.com/l/the-hero-is-perfect' },
             { type: 'kdp', name: 'Kindle', url: 'https://www.amazon.com/Hero-Perfect-Purple-Xanmal-ebook/dp/B0GBV1TGJ5' }
         ]
     },
-    // In-progress — no cover/platforms yet, shown as "Coming Soon"
+    // In-progress, no cover/platforms yet, shown as "Coming Soon"
     {
         id: 'the-bedrock',
         title: 'The Bedrock',
@@ -144,7 +144,7 @@ const books = [
         status: 'draft',
         volume: 'Coming Soon',
         blurb: "Timothy \"Acros\" Dram conquered the world for one woman, Rose. He never found her. Now he gets a chance to go back and try again.",
-        description: "Timothy \"Acros\" Dram conquered the world for one woman, Rose. He never found her. He enslaved gods, broke kingdoms, and killed millions. As he stood on a rooftop watching a statue built in her image, a mysterious figure appeared and offered him a chance to go back and try again. Acros took it without a second thought. Except the moment he arrived, he learned that the Rose he knew was fake — the Goddess of Chaos, Trixiarie, had been wearing her face. Trixiarie claimed Rose was never real. Everything he did, everything he destroyed, was for nothing. Acros refuses to believe that. There must be more going on. Now a seer is telling him to save the world if he wants his answers. Was Rose real? The answer might break him. But Acros is going to find out, even if it kills him. Just one tiny problem: Acros is now a level-four nobody with an evil spirit attached to him. Eh, minor setback.",
+        description: "Timothy \"Acros\" Dram conquered the world for one woman, Rose. He never found her. He enslaved gods, broke kingdoms, and killed millions. As he stood on a rooftop watching a statue built in her image, a mysterious figure appeared and offered him a chance to go back and try again. Acros took it without a second thought. Except the moment he arrived, he learned that the Rose he knew was fake: the Goddess of Chaos, Trixiarie, had been wearing her face. Trixiarie claimed Rose was never real. Everything he did, everything he destroyed, was for nothing. Acros refuses to believe that. There must be more going on. Now a seer is telling him to save the world if he wants his answers. Was Rose real? The answer might break him. But Acros is going to find out, even if it kills him. Just one tiny problem: Acros is now a level-four nobody with an evil spirit attached to him. Eh, minor setback.",
         platforms: []
     },
     {
@@ -154,7 +154,7 @@ const books = [
         status: 'draft',
         volume: 'Coming Soon',
         blurb: "When she turned six, she started being able to see blue things inside people. She could reach out and change them. She used it to build her perfect husband.",
-        description: "My parents considered me an accident, but useful as a tax write-off. When I turned six, I started being able to see blue things inside people. I could reach out and take them or change them to be better. When I took mommy's blue thing she fell down and stopped moving. I put it back and she got up. I realized when I did things to the blue thing, mommy started doing what I wanted. Then I met Mark. I knew in an instant it was him, my perfect husband. There were a few small flaws — but mommy helped me fix them. We were going to find him a new body, an even better one, and we would be married and I would be the perfect wife! At least, that was the plan. It's been fifteen years and Mark still hasn't chosen a body. He uses mine.",
+        description: "My parents considered me an accident, but useful as a tax write-off. When I turned six, I started being able to see blue things inside people. I could reach out and take them or change them to be better. When I took mommy's blue thing she fell down and stopped moving. I put it back and she got up. I realized when I did things to the blue thing, mommy started doing what I wanted. Then I met Mark. I knew in an instant it was him, my perfect husband. There were a few small flaws, but mommy helped me fix them. We were going to find him a new body, an even better one, and we would be married and I would be the perfect wife! At least, that was the plan. It's been fifteen years and Mark still hasn't chosen a body. He uses mine.",
         platforms: []
     }
 ];

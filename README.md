@@ -6,7 +6,7 @@
 [![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=flat-square&logo=node.js)](https://nodejs.org)
 [![SQLite](https://img.shields.io/badge/SQLite-3-003B57?style=flat-square&logo=sqlite)](https://sqlite.org)
 
-Official website for **Nekojin Interactive** — a solo indie studio building the Xanrea universe. One system, one story at a time.
+Official website for **Nekojin Interactive**, a solo indie studio building the Xanrea universe. One system, one story at a time.
 
 ---
 
@@ -99,7 +99,7 @@ nekojin-site/
 
 | Document | Description |
 |----------|-------------|
-| [TASKS.md](./TASKS.md) | Roadmap, known issues, layout reference & changelog — all in one file |
+| [TASKS.md](./TASKS.md) | Roadmap, known issues, layout reference & changelog, all in one file |
 
 ---
 
@@ -123,7 +123,7 @@ pm2 restart nekojin-site
 | `PORT` | `7771` | HTTP port |
 | `ADMIN_BOOTSTRAP_USER` | `admin` | Username created on a fresh install (empty `users.json`) |
 | `ADMIN_BOOTSTRAP_PASSWORD` | *(random, printed once)* | Password for that first admin account. Set this explicitly for a controlled deploy, or read the generated password from the server's stdout on first boot and change it via the admin panel. |
-| `ALLOW_PUBLIC_REGISTRATION` | `false` | Set `true` to re-enable the public `/register` page. Off by default — this is a single-author site, not a multi-tenant app. |
+| `ALLOW_PUBLIC_REGISTRATION` | `false` | Set `true` to re-enable the public `/register` page. Off by default, since this is a single-author site, not a multi-tenant app. |
 | `TRUST_PROXY` | `false` | Set `true` only if the server sits behind a reverse proxy (nginx, etc.) that sets `X-Forwarded-For`/`X-Real-IP`. Otherwise those headers are client-controlled and must not be trusted for rate limiting. |
 | `ALLOWED_ORIGINS` | `https://worldofxanrea.com` | Comma-separated list of origins allowed to make credentialed cross-origin requests. Same-origin browser requests (the normal case) don't need this at all. |
 | `NEWSLETTER_PROVIDER` | `none` | External provider to use: `none` (default), `buttondown`, `mailerlite`, `convertkit`, or `generic_webhook`. |
@@ -133,13 +133,13 @@ pm2 restart nekojin-site
 | `CONVERTKIT_FORM_ID` | `null` | Form ID for ConvertKit subscriptions. |
 | `NEWSLETTER_WEBHOOK_URL` | `null` | URL for `generic_webhook` provider (e.g., Zapier/Make/n8n). |
 
-**Important:** there are no hardcoded credentials in the codebase anymore. If your existing `users.json` still has the old default `xanmal` / `nekojin2026` account, log in and change that password immediately — it was previously committed in source.
+**Important:** there are no hardcoded credentials in the codebase anymore. If your existing `users.json` still has the old default `xanmal` / `nekojin2026` account, log in and change that password immediately: it was previously committed in source.
 
 ---
 
 ## 🧪 Development
 
-> The one-time `migrate-to-sqlite.js` / `migrate-newsletter.js` scripts have been removed —
+> The one-time `migrate-to-sqlite.js` / `migrate-newsletter.js` scripts have been removed:
 > the site has run entirely on SQLite (`data/nekojin.db`) since the July 2026 migration.
 > They're still in git history if a fresh JSON→SQLite migration is ever needed again.
 
@@ -159,7 +159,7 @@ open http://localhost:7771
 
 ## 📄 License
 
-ISC — Solo creator project.
+ISC. Solo creator project.
 
 ---
 

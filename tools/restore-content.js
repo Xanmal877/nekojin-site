@@ -84,7 +84,7 @@ async function restore() {
     const series = {
         id: seriesId,
         universe: 'Xanrean Chronicles',
-        universeDesc: 'Tama and Saki\'s arc through the Xanrea simulation — a digital consciousness preservation system where billions of uploaded souls believe they\'ve reincarnated into a fantasy world.',
+        universeDesc: 'Tama and Saki\'s arc through the Xanrea simulation: a digital consciousness preservation system where billions of uploaded souls believe they\'ve reincarnated into a fantasy world.',
         sort_order: 0,
     };
 
@@ -110,7 +110,7 @@ async function restore() {
         {
             title: 'The Guardian',
             volume_number: 4,
-            description: 'The Guardian rises — not because the world needs a hero, but because someone finally chose to stay.',
+            description: 'The Guardian rises, not because the world needs a hero, but because someone finally chose to stay.',
             tags: ['progression fantasy', 'guardian', 'divine avatar'],
         },
     ];
@@ -234,9 +234,9 @@ async function restore() {
     const about = {
         studio_name: 'Nekojin Interactive',
         tagline: 'Crafting worlds, one upload at a time.',
-        description: 'Purple Xanmal is the solo indie studio behind Nekojin Interactive — crafting interconnected fiction inside a single universe where the "publisher" is also the in-universe administrator, and the characters don\'t know they\'re being watched.',
-        description2: 'Xanrea is a digital consciousness preservation system running billions of uploaded lives who believe they\'ve reincarnated into a fantasy world. The stories are told from the inside — administrators Tama and Saki have suppressed their own memories to experience mortality alongside the souls they protect.',
-        description3: 'Current projects include the Xanrean Chronicles series, the standalone comedies Lucas the Grand Strategist and The Hero is Perfect, and Autumn\'s Dungeoneering — a Godot 4 tactical RPG with emergent AI.',
+        description: 'Purple Xanmal is the solo indie studio behind Nekojin Interactive, crafting interconnected fiction inside a single universe where the "publisher" is also the in-universe administrator, and the characters don\'t know they\'re being watched.',
+        description2: 'Xanrea is a digital consciousness preservation system running billions of uploaded lives who believe they\'ve reincarnated into a fantasy world. The stories are told from the inside: administrators Tama and Saki have suppressed their own memories to experience mortality alongside the souls they protect.',
+        description3: 'Current projects include the Xanrean Chronicles series, the standalone comedies Lucas the Grand Strategist and The Hero is Perfect, and Autumn\'s Dungeoneering, a Godot 4 tactical RPG with emergent AI.',
         email: '',
         social_links: JSON.stringify([
             { name: 'Twitter / X', url: 'https://twitter.com/TamaAndSaki' },

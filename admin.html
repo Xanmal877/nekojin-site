@@ -961,7 +961,7 @@ async function init() {
 }
 
 // The database stores books flat with a `series_id` foreign key (see
-// database.js SelectBooks/GetAllContent) — series rows never carry a
+// database.js SelectBooks/GetAllContent), series rows never carry a
 // `.books` array. The rest of this file predates that schema and still
 // treats each series as owning a nested `books` array (getBook/getBooks/
 // renderBooksPanel all index through `series[si].books`). nestBooksIntoSeries
@@ -988,7 +988,7 @@ function flattenSeriesBooks(content) {
       ...b,
       seriesId: s.id,
       // Order within a series is purely the array position the admin UI
-      // maintains (there's no direct volume-number editor) — persist that
+      // maintains (there's no direct volume-number editor), so persist that
       // position so the public site's ORDER BY volume_number reflects it.
       volumeNumber: i + 1,
     }))
@@ -1469,7 +1469,7 @@ function renderBookEditor(si, bi, book, totalBooks) {
         <div>
           <label>Xanrean Tier</label>
           <select onchange="getBook(${si},${bi}).tier=this.value; markDirty()">
-            <option value="" ${!book.tier ? 'selected' : ''}>— None —</option>
+            <option value="" ${!book.tier ? 'selected' : ''}>None</option>
             <option value="admins" ${book.tier==='admins' ? 'selected' : ''}>👑 The Admins</option>
             <option value="moderators" ${book.tier==='moderators' ? 'selected' : ''}>🛡️ The Moderators</option>
           </select>
@@ -1487,7 +1487,7 @@ function renderBookEditor(si, bi, book, totalBooks) {
           </select>
         </div>
         <div style="flex:2">
-          <label>Publish At <span style="font-size:0.7rem;color:var(--muted);font-weight:400;">— leave blank for immediate</span></label>
+          <label>Publish At <span style="font-size:0.7rem;color:var(--muted);font-weight:400;">(leave blank for immediate)</span></label>
           <input type="datetime-local" value="${esc(toDatetimeLocal(book.publishAt || book.publish_at))}"
             onchange="getBook(${si},${bi}).publishAt = this.value ? new Date(this.value).toISOString() : null; markDirty()">
         </div>
@@ -1495,19 +1495,19 @@ function renderBookEditor(si, bi, book, totalBooks) {
 
       <div class="form-row">
         <div style="flex:2">
-          <label>Slug <span style="font-size:0.7rem;color:var(--muted);font-weight:400;">— short ID for URLs &amp; manuscript filename</span></label>
+          <label>Slug <span style="font-size:0.7rem;color:var(--muted);font-weight:400;">short ID for URLs &amp; manuscript filename</span></label>
           <input type="text" value="${esc(book.slug||book.id||'')}"
             oninput="getBook(${si},${bi}).slug=this.value; markDirty()"
             placeholder="nekojin, her-majesty, lucas...">
         </div>
         <div style="flex:1">
-          <label>Book ID <span style="font-size:0.7rem;color:var(--muted);font-weight:400;">— read-only</span></label>
+          <label>Book ID <span style="font-size:0.7rem;color:var(--muted);font-weight:400;">read-only</span></label>
           <input type="text" value="${esc(book.id||'')}" readonly style="opacity:0.6;cursor:not-allowed;"
             title="Auto-generated. The slug is what you use for filenames.">
         </div>
       </div>
 
-      <label>Blurb <span style="font-size:0.7rem;color:var(--muted);font-weight:400;">— short hook for cards</span></label>
+      <label>Blurb <span style="font-size:0.7rem;color:var(--muted);font-weight:400;">short hook for cards</span></label>
       <textarea oninput="getBook(${si},${bi}).blurb=this.value; markDirty()" rows="2">${esc(book.blurb || '')}</textarea>
 
       <label>Description</label>
@@ -1770,7 +1770,7 @@ function ensureGamesArray() {
   // is null on purpose (see loadContent/showContentLoadError) so that saving
   // stays a no-op instead of silently overwriting real data with an empty
   // payload. Bail out rather than inventing a fake empty state.
-  if (!siteContent) { showToast('Content failed to load — reload the page before editing.', 'error'); return; }
+  if (!siteContent) { showToast('Content failed to load. Reload the page before editing.', 'error'); return; }
   if (!siteContent.game) siteContent.game = [];
   if (!Array.isArray(siteContent.game)) {
     // Convert single game object to array
@@ -2406,7 +2406,7 @@ async function saveContent() {
   if (!siteContent) { showToast('Nothing to save.', 'error'); return; }
   try {
     // /save-content -> SaveAllContent only reads the top-level `books` array
-    // (books belong to a series via `series_id`, not by nesting) — flatten
+    // (books belong to a series via `series_id`, not by nesting), so flatten
     // series[i].books back out here or every book living inside a series
     // would silently vanish on save. See nestBooksIntoSeries for the
     // corresponding un-flatten on load.

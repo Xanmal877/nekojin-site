@@ -469,7 +469,7 @@ async function loadBooks() {
 
 function renderBookCard(book) {
   // A book with status "published" but no purchase/read links attached
-  // isn't actually out yet — badge it as upcoming rather than claiming
+  // isn't actually out yet, so badge it as upcoming rather than claiming
   // it's published when there's nowhere to get it.
   const hasLinks = (book.platforms || []).some(p => p.url);
   const statusClass = !hasLinks ? 'draft' : (book.status || 'draft');

@@ -27,7 +27,7 @@ const CONTENT_FILE = path.join(__dirname, '..', 'site-content.json');
 //
 // Platform types recognised:
 //   'rr'  -> Royal Road  (extracts numeric fiction ID from URL)
-//   'sh'  -> ScribbleHub (uses full URL as-is — bare IDs are unreliable)
+//   'sh'  -> ScribbleHub (uses full URL as-is: bare IDs are unreliable)
 ////////////////////////////////////////////////////////////
 
 function loadStoryConfig() {
@@ -78,7 +78,7 @@ async function scrapeRoyalRoad(page, fictionId) {
     const url = `https://www.royalroad.com/fiction/${fictionId}`;
 
     try {
-        // Bumped to 60s — networkidle2 on RR can be slow with stealth headers
+        // Bumped to 60s: networkidle2 on RR can be slow with stealth headers
         await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
         await page.waitForSelector('.fiction-stats', { timeout: 15000 }).catch(() => {});
 
@@ -108,7 +108,7 @@ async function scrapeRoyalRoad(page, fictionId) {
 
 ////////////////////////////////////////////////////////////
 // SCRIBBLEHUB
-// FIX: Receives full URL — bare /series/<id>/ redirects are unreliable
+// FIX: Receives full URL. Bare /series/<id>/ redirects are unreliable
 // FIX: Stat label is "Reading" (active list), NOT "Favorites" (bookmarks)
 ////////////////////////////////////////////////////////////
 
@@ -139,7 +139,7 @@ async function scrapeScribblehub(page, url) {
                                 text.includes('Just a moment') ||
                                 text.includes('Cloudflare');
 
-            // Anchor to word boundary — must NOT match "Plan to Read"
+            // Anchor to word boundary, must NOT match "Plan to Read"
             const readers  = text.match(/([\d,.]+[kKmM]?)\s+Reading\b/i);
             const viewsRaw = text.match(/([\d,.]+[kKmM]?)\s+Views?/i);
             const chapters = text.match(/(\d+)\s+Chapters?/i);
@@ -212,7 +212,7 @@ function updateHistory(metricsData, key, scraped, meta) {
         views:     scraped.views,
     };
 
-    // Deduplicate by calendar date — replace same-day entry if re-run
+    // Deduplicate by calendar date, replace same-day entry if re-run
     const idx = story.history.findIndex(e => e.date === today);
     if (idx === -1) story.history.push(entry);
     else            story.history[idx] = entry;

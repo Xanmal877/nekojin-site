@@ -152,7 +152,7 @@ test('editing a series universe/description after a round-trip through GET /cont
     // admin.html actually edits). InsertSeries used to prefer the stale
     // `name`/`description` over `universe`/`universeDesc` when both were
     // present, so re-saving an object fetched from /content silently
-    // discarded any edit to the series name or description — reproduced
+    // discarded any edit to the series name or description, reproduced
     // live in the admin panel before this fix.
     const seedRes = await fetch(`${BASE}/save-content`, {
         method: 'POST',
@@ -226,7 +226,7 @@ test('cannot delete or demote the last remaining admin, but can once a second ad
     });
     assert.strictEqual(demoteBlocked.status, 400);
 
-    // A second admin makes "admin" no longer the last one — both should now succeed.
+    // A second admin makes "admin" no longer the last one, so both should now succeed.
     const createRes = await fetch(`${BASE}/api/users`, {
         method: 'POST', headers: sharedAuth.headers,
         body: JSON.stringify({ username: 'guardtest', password: 'GuardTestPass1234', role: 'admin' }),

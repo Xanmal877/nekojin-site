@@ -296,7 +296,7 @@
         <h1 class="chapter-title-display">${escapeHtml(data.title || ('Chapter ' + data.num))}</h1>
         <div class="chapter-body">${data.content}</div>`;
 
-      // Navigation — use array index for reliable prev/next
+      // Navigation: use array index for reliable prev/next
       const idx = chapters.findIndex(c => c.num === num);
       const prev = idx > 0 ? chapters[idx - 1] : null;
       const next = idx >= 0 && idx < chapters.length - 1 ? chapters[idx + 1] : null;
