@@ -218,6 +218,7 @@
     .plat-btn.sh  { color: #a78bfa; border-color: rgba(167,139,250,0.4); }
     .plat-btn.wp  { color: #fb923c; border-color: rgba(251,146,60,0.4); }
     .plat-btn.kdp { color: #FF9900; border-color: rgba(255,153,0,0.4); }
+    .plat-btn.gumroad { color: #FF90E8; border-color: rgba(255,144,232,0.4); }
     .plat-btn.other { color: var(--muted); border-color: var(--border); }
     .plat-btn:hover { opacity: 0.72; transform: scale(1.05); }
     .no-platforms {
@@ -337,7 +338,8 @@
     <div class="footer-logo"><div class="tama-icon" aria-hidden="true"></div> Nekojin Interactive</div>
     <p class="footer-tagline" id="footer-tagline">Crafting worlds</p>
     <div class="footer-links"></div>
-    <p class="footer-copy">© 2026 Nekojin Interactive LLC. All rights reserved.</p>
+    <p class="footer-copy">© <span id="footer-year"></span> Nekojin Interactive LLC. All rights reserved.</p>
+    <script>document.getElementById('footer-year').textContent = new Date().getFullYear();</script>
   </div>
 </footer>
 
@@ -353,7 +355,7 @@ fetch('/content')
   })
   .catch(() => {});
 
-const PLAT_LABEL = { rr: 'Royal Road', sh: 'ScribbleHub', wp: 'Wattpad', kdp: 'Kindle' };
+const PLAT_LABEL = { rr: 'Royal Road', sh: 'ScribbleHub', wp: 'Wattpad', kdp: 'Kindle', gumroad: 'Gumroad' };
 
 function platLabel(p) {
   return PLAT_LABEL[p.type] || p.name || p.type || 'Read';
@@ -406,11 +408,14 @@ async function loadBooks() {
     const res = await fetch('/content');
     const data = await res.json();
 
-    const series = (data.series || []).filter(s => s.visible !== false)
-      .map(s => ({ ...s, _books: (s.books || []).filter(b => b.visible !== false) }))
-      .filter(s => s._books.length > 0);
+    const allBooks = (data.books || []).filter(b => b.visible !== false);
 
-    const standalone = (data.books || []).filter(b => b.visible !== false);
+    const series = (data.series || []).filter(s => s.visible !== false)
+      .map(s => ({ ...s, _books: allBooks.filter(b => b.series_id === s.id || b.id === s.id) }))
+      .filter(s => s._books.length > 0);
+    const seriesIds = new Set(series.map(s => s.id));
+
+    const standalone = allBooks.filter(b => !b.series_id && !seriesIds.has(b.id));
 
     if (!series.length && !standalone.length) {
       container.innerHTML = '<p style="text-align:center;color:var(--muted);padding:4rem 0;">No books available yet.</p>';
@@ -510,10 +515,7 @@ document.addEventListener('DOMContentLoaded', function() {
   try {
     const res = await fetch('/content');
     const data = await res.json();
-    // Index standalone books + series books
-    const standalone = (data.books || []).filter(b => b.visible !== false);
-    const seriesBooks = (data.series || []).filter(s => s.visible !== false).flatMap(s => (s.books || []).filter(b => b.visible !== false));
-    searchIndex = [...standalone, ...seriesBooks].map(b => ({
+    searchIndex = (data.books || []).filter(b => b.visible !== false).map(b => ({
       id: b.id,
       title: b.title,
       volume: b.volume || '',
@@ -573,6 +575,7 @@ document.addEventListener('DOMContentLoaded', function() {
 })();
 
 loadBooks();
+</script>
 
-// Register PWA service worker
-if ('serviceWorker' in navigator) {
+</body>
+</html>
