@@ -397,12 +397,12 @@ const PUBLIC_ROUTES = {
     '/xanrean/characters': path.join(PUBLIC_DIR, 'xanrean', 'characters.html'),
     '/xanrean/characters/admins': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'admins', 'admins.html'),
     '/xanrean/characters/saki': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'character.html'),
-    '/xanrean/characters/admin-destruction': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'admins', 'admin-destruction.html'),
+    '/xanrean/characters/admin-destruction': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'character.html'),
     '/xanrean/characters/tama': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'character.html'),
-    '/xanrean/characters/admin-creation': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'admins', 'admin-creation.html'),
+    '/xanrean/characters/admin-creation': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'character.html'),
     '/xanrean/characters/moderator-chaos': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'character.html'),
     '/xanrean/characters/moderator-order': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'character.html'),
-    '/xanrean/characters/moderator-time': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'moderators', 'moderator-time.html'),
+    '/xanrean/characters/moderator-time': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'character.html'),
     '/xanrean/characters/moderator-space': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'character.html'),
     '/xanrean/characters/moderator-devotion': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'character.html'),
     '/xanrean/characters/acros': path.join(PUBLIC_DIR, 'xanrean', 'characters', 'character.html'),
@@ -944,6 +944,18 @@ async function handleRequest(req, res) {
         }
     }
 
+    // Get Xanrean panel settings (public, no auth required)
+    if (req.method === 'GET' && url === '/api/xanrean') {
+        try {
+            const settings = await contentDB.SelectXanreanSettings();
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify(settings));
+        } catch (e) {
+            res.writeHead(500);
+            return res.end(JSON.stringify({ error: e.message }));
+        }
+    }
+
     // ── AUTH GATE ─────────────────────────────────────────
     if (!accounts.isAuthenticated(req)) {
         if (req.method === 'GET') {
@@ -1384,31 +1396,6 @@ async function handleRequest(req, res) {
 
     // ── XANREAN SETTINGS API ──────────────────────────────
     // Get xanrean settings (public)
-    // Get world lore topics (public)
-    if (req.method === 'GET' && url === '/api/lore/world-topics') {
-        try {
-            const worldDir = path.join(PUBLIC_DIR, 'data', 'lore', 'world');
-            const topics = fs.readdirSync(worldDir).filter(f => 
-                fs.statSync(path.join(worldDir, f)).isDirectory()
-            );
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ topics }));
-        } catch (e) {
-            res.writeHead(500);
-            return res.end(JSON.stringify({ error: e.message }));
-        }
-    }
-
-    if (req.method === 'GET' && url === '/api/xanrean') {
-        try {
-            const settings = await contentDB.SelectXanreanSettings();
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify(settings));
-        } catch (e) {
-            res.writeHead(500);
-            return res.end(JSON.stringify({ error: e.message }));
-        }
-    }
 
     // Update xanrean settings (admin only)
     if (req.method === 'POST' && url === '/api/xanrean') {
