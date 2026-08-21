@@ -2235,8 +2235,8 @@ async function loadGame() {
       if (screenshotsGrid) {
         if (Array.isArray(firstGame.screenshots) && firstGame.screenshots.length) {
           screenshotsGrid.innerHTML = firstGame.screenshots.map((s,i) => `
-            <button class="screenshot-card reveal reveal-d${Math.min(i+1,4)}" data-lightbox="${esc(s.url)}" data-caption="${esc(s.caption || '')}" aria-label="View screenshot: ${esc(s.caption || 'Screenshot ' + (i+1))}" type="button">
-              <img src="${esc(s.url)}" alt="${esc(s.caption || '')}" loading="lazy">
+            <button class="screenshot-card reveal reveal-d${Math.min(i+1,4)}" data-lightbox="${esc(s.path)}" data-caption="${esc(s.caption || '')}" aria-label="View screenshot: ${esc(s.caption || 'Screenshot ' + (i+1))}" type="button">
+              <img src="${esc(s.path)}" alt="${esc(s.caption || '')}" loading="lazy">
               ${s.caption ? `<div class="screenshot-caption">${esc(s.caption)}</div>` : ''}
             </button>
           `).join('');

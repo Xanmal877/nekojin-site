@@ -2206,8 +2206,8 @@ function renderScreenshotRows(screenshots) {
   return screenshots.map((s, i) => `
     <div class="form-row" style="margin-bottom:0.5rem;align-items:center;">
       <div style="flex:2">
-        <input type="url" value="${esc(s.url || '')}" placeholder="https://..."
-          oninput="updateGameArrayField('screenshots', ${i}, 'url', this.value)">
+        <input type="text" value="${esc(s.path || '')}" placeholder="/covers/..."
+          oninput="updateGameArrayField('screenshots', ${i}, 'path', this.value)">
       </div>
       <div style="flex:1">
         <input type="text" value="${esc(s.caption || '')}" placeholder="Caption"
@@ -2222,7 +2222,7 @@ function addScreenshot() {
   ensureGamesArray();
   const game = siteContent.game[currentEditingGameIndex];
   if (!Array.isArray(game.screenshots)) game.screenshots = [];
-  game.screenshots.push({ url: '', caption: '' });
+  game.screenshots.push({ path: '', caption: '' });
   markDirty();
   document.getElementById('game-screenshots-editor').innerHTML = renderScreenshotRows(game.screenshots);
 }
