@@ -13,7 +13,7 @@ const games = [
         id: 'autumns-dungeoneering',
         title: "Autumn's Dungeoneering",
         tagline: 'Watch a Xanrean adventurer go dungeoneering. Help when it matters.',
-        status: 'Concept',
+        status: 'In Development',
         engine: 'Godot',
         players: 'Single-player',
         icon: '⚔️',
