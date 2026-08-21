@@ -1544,6 +1544,7 @@ function renderBookEditor(si, bi, book, totalBooks) {
         <select style="width:100%;padding:0.5rem 0.7rem;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:0.85rem;margin-top:0.4rem;"
           onchange="getBook(${si},${bi}).ctaPlatform=this.value; markDirty()">
           <option value="kdp" ${(book.ctaPlatform||'kdp')==='kdp'?'selected':''}>Kindle (KDP)</option>
+          <option value="gumroad" ${book.ctaPlatform==='gumroad'?'selected':''}>Gumroad</option>
           <option value="rr"  ${book.ctaPlatform==='rr'?'selected':''}>Royal Road</option>
           <option value="sh"  ${book.ctaPlatform==='sh'?'selected':''}>ScribbleHub</option>
           <option value="other" ${book.ctaPlatform==='other'?'selected':''}>Other</option>
@@ -1588,6 +1589,7 @@ function renderPlatformRows(platforms, si, bi) {
         <option value="rr"    ${p.type==='rr'   ?'selected':''}>Royal Road</option>
         <option value="sh"    ${p.type==='sh'   ?'selected':''}>ScribbleHub</option>
         <option value="kdp"   ${p.type==='kdp'  ?'selected':''}>Kindle (KDP)</option>
+        <option value="gumroad" ${p.type==='gumroad'?'selected':''}>Gumroad</option>
         <option value="other" ${p.type==='other'?'selected':''}>Other</option>
       </select>
       <input type="url" value="${esc(p.url)}" placeholder="https://..."

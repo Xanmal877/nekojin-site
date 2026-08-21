@@ -117,6 +117,8 @@
     .cta-kdp:hover { background: rgba(255,153,0,0.18); border-color: rgba(255,153,0,0.5); }
     .cta-wp  { background: rgba(251,146,60,0.1); border: 1px solid rgba(251,146,60,0.3); color: #fb923c; }
     .cta-wp:hover  { background: rgba(251,146,60,0.18); border-color: rgba(251,146,60,0.5); }
+    .cta-gumroad { background: rgba(255,144,232,0.1); border: 1px solid rgba(255,144,232,0.3); color: #FF90E8; }
+    .cta-gumroad:hover { background: rgba(255,144,232,0.18); border-color: rgba(255,144,232,0.5); }
     .cta-other { background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--text2); }
     .cta-other:hover { background: rgba(255,255,255,0.08); }
     .cta-read { background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.4); color: #c4b5fd; font-weight: 600; }
@@ -260,7 +262,8 @@
     <div class="footer-logo"><div class="tama-icon" aria-hidden="true"></div> Nekojin Interactive</div>
     <p class="footer-tagline" id="footer-tagline">Crafting worlds</p>
     <div class="footer-links"></div>
-    <p class="footer-copy">© 2026 Nekojin Interactive LLC. All rights reserved.</p>
+    <p class="footer-copy">© <span id="footer-year"></span> Nekojin Interactive LLC. All rights reserved.</p>
+    <script>document.getElementById('footer-year').textContent = new Date().getFullYear();</script>
   </div>
 </footer>
 
@@ -369,8 +372,8 @@ document.addEventListener('DOMContentLoaded', function() {
   setupSearch('drawer-search', 'drawer-search-results');
 })();
 
-const PLAT_CTA_CLASS = { rr: 'cta-rr', sh: 'cta-sh', kdp: 'cta-kdp', wp: 'cta-wp' };
-const PLAT_CTA_LABEL = { rr: '📖 Royal Road', sh: '📖 ScribbleHub', kdp: '📚 Kindle', wp: '📖 Wattpad' };
+const PLAT_CTA_CLASS = { rr: 'cta-rr', sh: 'cta-sh', kdp: 'cta-kdp', wp: 'cta-wp', gumroad: 'cta-gumroad' };
+const PLAT_CTA_LABEL = { rr: '📖 Royal Road', sh: '📖 ScribbleHub', kdp: '📚 Kindle', wp: '📖 Wattpad', gumroad: '🛒 Gumroad' };
 
 async function loadBook() {
   const params = new URLSearchParams(location.search);
@@ -422,7 +425,7 @@ async function loadBook() {
   }
 
   // Update page title & meta
-  document.title = esc(book.title) + ' - Nekojin Interactive';
+  document.title = book.title + ' - Nekojin Interactive';
   const ogTitle = document.querySelector('meta[property="og:title"]');
   if (ogTitle) ogTitle.content = esc(book.title) + ' - Nekojin Interactive';
   const ogDesc = document.querySelector('meta[property="og:description"]');
@@ -451,7 +454,7 @@ async function loadBook() {
         }
       </div>
       <div class="book-hero-info">
-        <a href="/books" class="back-link">← All Books</a>
+        <a href="${params.get('from') === 'xanrean' ? '/xanrean/books' : '/books'}" class="back-link">← ${params.get('from') === 'xanrean' ? 'Back to Xanrean Chronicles' : 'All Books'}</a>
         ${book.volume ? `<div class="book-hero-vol">${esc(book.volume)}</div>` : ''}
         <h1 class="book-hero-title">${esc(book.title)}</h1>
         ${tags ? `<div class="book-hero-tags">${tags}</div>` : ''}
@@ -485,9 +488,11 @@ async function loadBook() {
     `).join('');
     moreSection.style.display = '';
   }
+  }
 }
 
 loadBook();
+</script>
 
-// Register PWA service worker
-if ('serviceWorker' in navigator) {
+</body>
+</html>
