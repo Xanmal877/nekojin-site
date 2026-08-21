@@ -201,7 +201,124 @@ git commit -am "docs: mark feature complete"
 
 ## Known Issues — Nekojin Interactive Website
 
-> Last updated: 2026-08-06
+> Last updated: 2026-08-20
+
+---
+
+### ✅ 2026-08-20 Session — Broken pages, dead routes, and stale character wiring
+
+Site-wide audit and fix pass. Ten real bugs found and fixed, plus content gaps identified
+and partially filled in.
+
+**Fixed:**
+- `/books` series grouping was completely broken — the client expected `series[].books`
+  nested from the server, but `/content` only ever returned a flat `books` array. Every
+  book, including the four real *Her Majesty, Tamaneko* volumes, was falling into "Books
+  Outside Series." Rebuilt the grouping client-side from `series_id`; the complete-series
+  bundle product now shows as a card inside its own series instead of listed as unrelated.
+- Homepage (`index.html`) had a phantom empty-scroll bug: `body { height: 100%; }` clamped
+  the page to exactly the viewport while real content (hero + footer) was ~30px taller,
+  producing a scrollbar that led to blank space below the footer. Fixed, then iterated
+  through two follow-up regressions from `min-height: 100%` (silently fails without an
+  explicit `html` height) and a zero-floor flex layout (squished panel text illegibly on
+  short windows) before landing on: `body { display:flex; flex-direction:column;
+  min-height:100vh }`, `.split-panel { flex:1; min-height:480px }`. Result: fits one
+  screen exactly on normal/tall windows, scrolls normally (not squished, not phantom) only
+  on genuinely short ones. Footer moved off the homepage per request — its markup already
+  existed on `/xanrean/community` but was silently unstyled (see below).
+- `/xanrean/community`'s footer (About/Patreon/newsletter) has existed in the HTML for a
+  while but every class it needs (`.footer-brand`, `.footer-actions`, `.footer-patreon`,
+  `.footer-newsletter`, `.footer-link`) only ever existed in `index.html`'s own inline
+  `<style>`, not in the shared `style.css` — so it rendered completely unstyled. Added a
+  page-scoped `<style>` block with the missing rules (not merged into `style.css`, which
+  already has a different, incompatible `footer`/`.footer-inner`/`.footer-copy` used by
+  every other page).
+- `/api/xanrean` (fetched by the public `/xanrean` page for panel background images) sat
+  below the server's global auth gate, so anonymous visitors got redirected to `/login`.
+  Since `fetch()` follows redirects, the page silently got login-page HTML back instead of
+  JSON — any admin-set custom background images never showed for logged-out visitors.
+  Moved above the gate alongside `/api/homepage`, which was already correctly public.
+- `/xanrean/characters/admin-creation`, `/admin-destruction`, and `/moderator-time` served
+  unfinished draft pages with visible dev placeholder text ("Replace
+  images/admin-creation.webp with the final portrait") instead of the real character
+  content. Deleted the orphaned drafts and routed all three to the shared character
+  template — they're aliases of Tama, Saki, and Anna (confirmed via the entity/incarnation
+  split in the lore compendium). That surfaced a second bug: the template's actual
+  data-fetch (`/api/characters/:slug`) never matched the alias-to-file mapping I first
+  tried editing — it hits the DB by slug directly, which 404'd. Added client-side alias
+  resolution instead, and deleted a ~90-line `CHARACTERS` config object in
+  `character.html` that turned out to be entirely dead code, never referenced anywhere.
+- Character detail pages (`character.html`) had a hardcoded, static "← Back to The Admins"
+  link — every character, including moderators and other characters, showed this same
+  wrong label/link. Now set dynamically from the character's `char_type`.
+- `timeline_events` table was completely empty — `/xanrean/lore/timeline` showed nothing.
+  Populated all 11 eras from `Xanrea_Lore_Compendium.md` (Reggie & Tulip through The Hero
+  is Perfect) using the source text directly, cross-linked to existing character and book
+  records where they exist.
+- `/xanrean/wiki`'s species/lore links were broken two ways: the `compendium` fallback
+  fetched a file that has never existed (`/data/characters/compendium.md` — the real file
+  lives at `/data/lore/compendium.md`), and in-content `[[Species]]` links redirected
+  visitors away to a separate page (`reader.html`) instead of showing content in the wiki.
+  Wired the wiki to load the real shared compendium, added heading-anchor IDs (never
+  existed, so `#nekojin`-style links never actually scrolled anywhere) and a `hashchange`
+  listener so sidebar links work without a full reload. Added the missing CleanSweeper
+  species stub and full Administrative Entities section to the shared compendium file
+  (both existed in the source doc but not yet on the site).
+- Wired real portrait art (from `My Characters/Created Characters/`) into the DB for Tama,
+  Saki, and Anna — `character.html`'s avatar code previously always overwrote the avatar
+  element with an emoji even when an image existed, so this needed a small template fix
+  too, not just a DB update.
+- Published missing/inconsistent Gumroad custom landing pages (Guardian, Lucas the Grand
+  Strategist, The Hero is Perfect) to match the existing red/gold template family used by
+  the other four products.
+
+**Still open / not addressed this session:**
+- **Character portraits** — only Tama, Saki, and Anna have real art wired in. Xanari,
+  Acros, Sarah, and the four Moderator entities still fall back to emoji avatars. No
+  dedicated portrait files were found for them under `My Characters/`; ask before sourcing/
+  generating anything for these.
+- **Copyright year duplicated and already inconsistent across pages** — hardcoded
+  `© 2025` in `xanrean.html`, `about.html`, `xanrean/community.html` vs `© 2026` in
+  `book.html`, `books.html`, `games.html`. Same string copy-pasted per page instead of
+  computed once; will silently go stale again next year in whichever copies don't get
+  hand-edited. Worth centralizing (e.g. render `new Date().getFullYear()` or pull from a
+  single shared partial/include) rather than re-fixing by hand each time it's noticed.
+- **`/api/lore/world-topics`** (`dashboard-server.js`) is a real, working endpoint with no
+  caller anywhere on the site — dead code, low-priority cleanup.
+- **Moderator Devotion** — still placeholder bracketed text in
+  `public/data/characters/moderator-devotion.md`, unchanged since the last audit; still
+  awaiting real source material (see Character Pages status below).
+- **`/xanrean/lore/world`** — still genuinely placeholder, 0 rows in `lore_topics` for the
+  `world` section. Unchanged since the last audit; needs real worldbuilding source
+  material, not invented content.
+- Corrected a factual error further down this file: the "not under git" note in the
+  passoff section was wrong — this directory is a git repo (`main`/`dev` branches).
+- **Copyright year** was hardcoded per-page and already inconsistent (fixed, see above) —
+  now computed via `new Date().getFullYear()` on all 6 pages that had it.
+- **`/api/lore/world-topics`** dead endpoint removed from `dashboard-server.js`.
+- **Rebuilt character browsing as a single swipeable card deck.** Reading one character's
+  bio used to take 3 full-page splash-screen clicks (`/xanrean/lore/characters` → Admins-
+  or-Moderators picker → individual bio page), and "entity" characters (Admin Creation,
+  Moderator Time) had separate near-duplicate routes from their "incarnation" selves (Tama,
+  Anna) despite being the same person. Replaced with `/xanrean/characters` — one page, one
+  deck sourced directly from the `characters` table (naturally collapses entity/incarnation
+  duplicates since there's only one DB row per character), with All/Admins/Moderators/Other
+  filter tabs and click-to-expand inline reading (Prev/Next between characters without
+  leaving the page). The old three pages (`/xanrean/lore/characters`,
+  `/xanrean/characters/admins`, `/xanrean/characters/moderators`) now redirect there for any
+  existing bookmarks/links; `character.html`'s back-link and the wiki sidebar were updated
+  to point at the new page instead.
+- **Corrected Admin/Moderator categorization** per author direction: only Tama (Admin
+  Creation), Saki (Admin Destruction), Anna (Moderator Time), and Xanari (Moderator Space)
+  are confirmed to hold those identities. The standalone Moderator Chaos/Order/Space/
+  Devotion entity rows in the `characters` table were tagged `char_type = 'Moderator'`,
+  which duplicated/asserted that same claim for characters whose moderator status isn't
+  settled yet — recategorized to plain `Character`. Acros's and Sarah's titles ("First
+  Incarnation of Moderator Order"/"...Chaos") baked in the same unconfirmed claim —
+  simplified to their species/role ("Traveler"/"Spirit"). The `/xanrean/characters` cast
+  deck's tab filter reads `char_type` live, so the Admins/Moderators tabs now correctly
+  show only those four; everyone else falls under Other Souls until the author updates
+  their canon.
 
 ---
 
@@ -297,18 +414,25 @@ introduced.
 **Impact:** Medium
 
 Dynamic Markdown-based character pages now exist for:
-- ✅ Moderator Time
+- ✅ Moderator Time (entity alias of Anna, `/xanrean/characters/moderator-time`)
 - ✅ Moderator Space
 - ✅ Moderator Chaos
 - ✅ Moderator Order
 - ❌ Moderator Devotion (awaiting source material)
-- ✅ Tama (incarnation)
-- ✅ Saki (incarnation)
-- ✅ Acros (incarnation)
-- ✅ Sarah (character)
-- ✅ Anna (incarnation)
+- ✅ Tama (incarnation) — real portrait art, was emoji-only
+- ✅ Saki (incarnation) — real portrait art, was emoji-only
+- ✅ Admin Creation (entity alias of Tama, `/xanrean/characters/admin-creation`)
+- ✅ Admin Destruction (entity alias of Saki, `/xanrean/characters/admin-destruction`)
+- ✅ Acros (incarnation) — emoji fallback, no portrait art yet
+- ✅ Sarah (character) — emoji fallback, no portrait art yet
+- ✅ Anna (incarnation) — real portrait art, was emoji-only
+- ✅ Xanari — emoji fallback, no portrait art yet
 
-**Action:** Dedicated standalone HTML pages remain a future polish item; current dynamic pages are content-complete.
+**2026-08-20:** The three "entity" alias routes (`admin-creation`, `admin-destruction`,
+`moderator-time`) were previously serving unfinished draft pages with dev placeholder text
+visible to real visitors. Fixed — see the 2026-08-20 session entry above for details.
+
+**Action:** Dedicated standalone HTML pages remain a future polish item; current dynamic pages are content-complete except Moderator Devotion. Portrait art still needed for Xanari, Acros, Sarah, and the four Moderator entities (Chaos/Order/Space/Devotion).
 
 ---
 
@@ -341,6 +465,15 @@ Needs actual worldbuilding content: Server Clusters, magic systems, etc.
 | **Pre-import/pre-save backups** | 2026-08-06 | `createRestorePoint()` in `backup.js` |
 | **Games page polish** | 2026-08-06 | Tabs, lightbox, video, sysreq, progress bar |
 | **Book status workflow** | 2026-08-06 | `draft/preview/published/archived` + preview endpoint |
+| **`/books` series grouping totally broken** | 2026-08-20 | Client-side rebuild from `series_id` |
+| **Homepage phantom-scroll + footer relocation** | 2026-08-20 | `min-height:100vh` flex layout |
+| **`/xanrean/community` footer unstyled** | 2026-08-20 | Added missing page-scoped CSS |
+| **`/api/xanrean` gated behind login** | 2026-08-20 | Moved above auth gate, public like `/api/homepage` |
+| **Entity character pages (admin-creation/-destruction, moderator-time) served dev placeholders** | 2026-08-20 | Deleted drafts, aliased to real template |
+| **`character.html` back-link hardcoded to "The Admins" for every character** | 2026-08-20 | Set dynamically from `char_type` |
+| **Timeline page empty (0 rows)** | 2026-08-20 | Imported 11 eras from lore compendium |
+| **Wiki species/lore links broken + redirected away from wiki** | 2026-08-20 | Fixed fetch path, added anchor IDs + hashchange |
+| **Tama/Saki/Anna missing portrait art** | 2026-08-20 | Wired in real character art |
 
 ---
 
@@ -369,7 +502,7 @@ Description here...
 2. Run tests: `npm test`. Expected: **16/16 passing**.
 3. Key files: `database.js`, `dashboard-server.js`, `accounts.js`, `admin.html`, `public/*.html`.
 4. `/login` is rate-limited to 5 attempts per 15 minutes per IP. Re-use the shared login pattern in `tests/smoke.test.js`.
-5. This directory is not under git. Back up manually if rollback safety is needed.
+5. This directory is a git repo (`main`/`dev` branches). Commit/back up as normal.
 6. Do not invent fictional worldbuilding text for moderator/world pages; ask the user for source material.
 
 
