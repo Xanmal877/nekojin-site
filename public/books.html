@@ -471,6 +471,14 @@ async function loadBooks() {
     // Trigger reveal observers on new elements
     container.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
 
+    // The browser's native #hash scroll fires before this content exists
+    // (it's rendered async after fetch), so it silently no-ops on load.
+    // Do it ourselves once the target is actually in the DOM.
+    if (location.hash) {
+      const target = document.getElementById(location.hash.slice(1));
+      if (target) target.scrollIntoView({ behavior: 'auto', block: 'start' });
+    }
+
   } catch(e) {
     container.innerHTML = '<p style="text-align:center;color:var(--muted);padding:4rem 0;">Could not load books.</p>';
     console.error(e);
