@@ -1154,6 +1154,25 @@ async function handleRequest(req, res) {
         }
     }
 
+    // Update game sequence (admin only)
+    if (req.method === 'POST' && url === '/api/games/reorder') {
+        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        try {
+            const body = await readRawBody(req, 64 * 1024);
+            const { gameIds } = JSON.parse(body.toString());
+            if (!Array.isArray(gameIds)) {
+                res.writeHead(400);
+                return res.end(JSON.stringify({ error: 'gameIds must be an array' }));
+            }
+            const result = await contentDB.ReorderGames(gameIds);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify(result));
+        } catch (e) {
+            res.writeHead(500);
+            return res.end(JSON.stringify({ error: e.message }));
+        }
+    }
+
     // Save site content (admin only) - now to database
     if (req.method === 'POST' && url === '/save-content') {
         if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }

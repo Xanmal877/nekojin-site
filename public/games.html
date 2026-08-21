@@ -1983,16 +1983,20 @@ async function loadGame() {
     const g = data.game;
     if (!g) return;
 
+    // Support multiple games array or single game object, and respect the
+    // admin-panel visibility toggle (hidden games are still sent in /content,
+    // same pattern as books, filtered client-side).
+    const allGames = (Array.isArray(g) ? g : [g]).filter(Boolean);
+    const games = allGames.filter(gm => gm.visible !== false);
+
     // Hero: keep the studio branding (don't override with game data)
     // The hero now shows Nekojin Interactive LLC with your bio
-    const firstGame = Array.isArray(g) ? g[0] : g;
+    const firstGame = games[0];
 
     // ── RENDER GAMES LIST (supports multiple games) ─────────
     const gamesContainer = document.getElementById('games-container');
     if (gamesContainer && g) {
-      // Support multiple games array or single game object
-      const games = Array.isArray(g) ? g : [g];
-      
+
       if (games.length === 0) {
         gamesContainer.innerHTML = `
           <div class="game-card-placeholder">
