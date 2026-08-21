@@ -201,7 +201,95 @@ git commit -am "docs: mark feature complete"
 
 ## Known Issues — Nekojin Interactive Website
 
-> Last updated: 2026-08-20
+> Last updated: 2026-08-21
+
+---
+
+### ✅ 2026-08-21 Session — Deep audit: dead links, duplicate lore renderer, orphaned assets
+
+Full site-wide audit (every route cross-referenced against every href/fetch/form target,
+every image file cross-referenced against HTML/JS/DB, DB tables checked for row counts,
+markdown content checked against what actually gets served). Real bugs found and fixed:
+
+- **`/game?id=...`** — the featured game's "Learn More →" button (`games.html`) linked to
+  a route that has never existed (only `/games`, plural, is a real page — no game-detail
+  template was ever built). Dormant today because the `game` table is empty, but would
+  have redirected to `/login` the moment a featured game was added. Removed the dead
+  button; a real game-detail page can be built later if/when there's a game to feature.
+- **`/xanrean/lore/world/:slug` was completely unroutable** — `world.html` links every
+  world-topic card to `/xanrean/lore/world/${slug}`, but no route ever served that path
+  (404). Compounding this, `lore_topics` (the table `world.html` reads from) was totally
+  empty despite three finished, real overview files existing at
+  `public/data/lore/world/{magic-systems,server-clusters,xanrea-a0}/overview.md` — never
+  migrated in, same class of gap as last session's empty `timeline_events` table. Fixed
+  both: added a `/xanrean/lore/world/:slug` route + a new `world-topic.html` detail
+  template (modeled on the existing `world.html`/`wiki.html` markdown-render pattern), and
+  wrote `scripts/import-world-topics.js` to load the three existing files into
+  `lore_topics` (section='world'). `/xanrean/lore/world` now shows real, working cards.
+- **Duplicate/buggy lore-reading system.** `/xanrean/lore/species` (a real hub page with
+  species blurb cards) linked to six per-species stub pages
+  (nekojin/foxkin/elves/wolfkin/kitsune/travelers.html), each of which redirected to
+  `/xanrean/lore/reader.html#slug` — a second, older, mostly-duplicate implementation of
+  what `wiki.html` already does properly since last session's fix. `reader.html` had its
+  own markdown parser with a real bug (`.replace(/^## (.*$)/gim, '<h2 id="$1.toLowerCase()...`
+  — that's a literal string being inserted as the id attribute, not executed JS, so anchor
+  navigation inside it never worked), and its sidebar TOC was stale (missing the
+  CleanSweeper and Administrative Entities sections added to the compendium last session).
+  Repointed `species.html`'s six panel links straight to `/xanrean/wiki#slug`; the six
+  species stub pages and `reader.html` now redirect to the wiki instead (kept as
+  redirects, not deleted, so old bookmarks/links still land somewhere real) —
+  `reader.html` forwards its hash via JS so any `#slug` deep link still resolves correctly.
+- **Admin character list showed a broken image icon for 7 of 10 characters.**
+  `admin.html`'s character-list `<img onerror="this.src='/assets/default-char.webp'">`
+  fallback pointed at a file in a `public/assets/` directory that has never existed — so
+  characters with no portrait art (everyone except Tama/Saki/Anna) showed a broken-image
+  icon instead of a fallback. Switched to the same emoji-placeholder pattern already used
+  for lore topics on the same page — no new art asset needed.
+- **Decorative `/images/tama-bg.png` background** was referenced by `lore.html` and
+  `species.html` (9 CSS `background:` declarations total) but the file has never existed
+  in the repo. Not a hard failure (the gradient layer in the same `background:` shorthand
+  still rendered), but a dead request on every page load for art that was never delivered.
+  Removed the dead `url(...)` layer from all nine declarations rather than invent
+  replacement art without direction.
+- **Book-cover upload silently generated a `-thumb.webp` no page ever used.**
+  `/upload-cover` (`dashboard-server.js`) has always generated a resized thumbnail
+  alongside every full cover and returned its path in the API JSON response, but no DB
+  column ever stored it and no frontend page ever requested a `-thumb.webp` file —
+  confirmed via grep across every book/character listing page. Removed the dead
+  thumbnail-generation code; future uploads no longer create files nothing reads. (If
+  actual thumbnail-based grid performance is wanted later, that's a real feature to build
+  — a DB column plus wiring into the book/character list renders — not a redundancy fix.)
+- **Trivial**: removed a redundant re-`isAuthenticated` check inside `/api/settings` —
+  the server's global auth gate already rejects unauthenticated requests before that
+  handler is ever reached, so the inner check could never fire.
+
+**Removed 49 orphaned files from `public/covers/`** (confirmed via grep across every
+HTML/JS/MD file plus a full `data/nekojin.db` dump, and MD5-deduped against the live
+covers to catch renamed copies): stale timestamped upload artifacts from early testing,
+old `.jpg`/`.png` covers superseded by the current `.webp` versions, two
+`homepage-cover-about*` files with no matching DB column to ever load them, and 18
+auto-generated `-thumb.webp` files orphaned by the upload-thumbnail fix above. All
+removed via `git rm`, recoverable from git history if ever needed.
+
+**Confirmed clean (audited, no action needed):**
+- The character-page consolidation from the previous session left no dead code —
+  `dashboard-server.js` routing, the redirect stubs, and the alias-resolution maps in
+  `character.html`/`wiki.html` were all checked and are exactly as intended.
+- `MANUSCRIPTS_ENABLED = false` and the `/read` page: this is a real, working,
+  deliberately-disabled feature (not a bug) — `read.html` degrades gracefully when the
+  manuscripts API 503s, and its only live entry point is a hidden admin-panel button that
+  only appears once a manuscript is actually uploaded.
+- `public/data/characters/*.md` ↔ `characters` DB table: exact 1:1 match, no orphans
+  either direction.
+- `public/sprites/{saki,tama}-sheet.png` and `public/images/{saki-blink,saki-icon,
+  saki-idle,saki_idle_down,tama-blink}.png` are genuinely unused anywhere in the
+  codebase — flagged but **not deleted**, since Tama already has a matching idle/blink
+  pair wired into the community-page footer animation and these look like a
+  half-finished Saki equivalent rather than pure cruft. Worth asking the author before
+  touching.
+
+**Still open (unchanged from last session):** Moderator Devotion still placeholder
+content; Xanari/Acros/Sarah/the Moderator entities still have no portrait art.
 
 ---
 
