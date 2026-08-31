@@ -239,6 +239,9 @@ test('cannot delete or demote the last remaining admin, but can once a second ad
     // Deleting your own account revokes your own session's admin rights immediately,
     // so restoring the bootstrap admin has to happen as the still-valid "guardtest" admin.
     const guardAuth = await loginAs('guardtest', 'GuardTestPass1234');
+    // The original bootstrap admin session was intentionally revoked when its
+    // account was deleted; use the surviving admin session for later tests.
+    sharedAuth = guardAuth;
 
     const recreateRes = await fetch(`${BASE}/api/users`, {
         method: 'POST',
@@ -618,6 +621,14 @@ test('authenticated POST /api/timeline WITH CSRF persists and can be deleted', a
 
 test('Gumroad webhook persists sales and handles duplicates', async () => {
     const ping = 'product_name=Test+Product&price=1000&currency=USD&sale_id=sale_123&seller_id=test_seller&test=false';
+
+    // Webhooks require an explicit seller configuration; establish it here so
+    // this test does not depend on another test's execution order.
+    const settingsRes = await fetch(`${BASE}/api/settings`, {
+        method: 'POST', headers: sharedAuth.headers,
+        body: JSON.stringify({ gumroad_seller_id: 'test_seller' }),
+    });
+    assert.strictEqual(settingsRes.status, 200);
     
     // First ping
     const res1 = await fetch(`${BASE}/webhook/gumroad`, {

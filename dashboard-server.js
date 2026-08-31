@@ -48,6 +48,9 @@ const RATE_LIMIT_CONFIG = {
     '/newsletter': { windowMs: 60 * 60 * 1000, max: 10, message: 'Too many newsletter signups from this IP.' },
     '/api/users': { windowMs: 15 * 60 * 1000, max: 20, message: 'Too many user management requests.' },
     '/webhook/gumroad': { windowMs: 60 * 1000, max: 10, message: 'Too many webhook requests.' },
+    '/api/youtube': { windowMs: 60 * 1000, max: 30, message: 'Too many YouTube API requests.' },
+    '/api/discord': { windowMs: 60 * 1000, max: 30, message: 'Too many Discord API requests.' },
+    '/api/sales': { windowMs: 60 * 1000, max: 20, message: 'Too many sales requests.' },
     'default': { windowMs: 60 * 1000, max: 100, message: 'Too many requests. Please slow down.' }
 };
 
@@ -66,21 +69,21 @@ function checkRateLimit(req, endpoint) {
     const config = RATE_LIMIT_CONFIG[endpoint] || RATE_LIMIT_CONFIG['default'];
     const key = `${ip}:${endpoint}`;
     const now = Date.now();
-    
+
     if (!rateLimits.has(key)) {
         rateLimits.set(key, { count: 1, resetTime: now + config.windowMs });
         return { allowed: true };
     }
-    
+
     const record = rateLimits.get(key);
-    
+
     // Reset if window expired
     if (now > record.resetTime) {
         record.count = 1;
         record.resetTime = now + config.windowMs;
         return { allowed: true };
     }
-    
+
     // Check limit
     if (record.count >= config.max) {
         const retryAfter = Math.ceil((record.resetTime - now) / 1000);
@@ -91,7 +94,7 @@ function checkRateLimit(req, endpoint) {
             retryAfter 
         };
     }
-    
+
     record.count++;
     return { allowed: true };
 }
@@ -444,6 +447,39 @@ async function handleRequest(req, res) {
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Cookie, X-CSRF-Token');
     if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
 
+    // Security Headers: Defense in depth against common web vulnerabilities
+    // X-Content-Type-Options: Prevent MIME-type sniffing (IE/Edge vulnerability)
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+
+    // X-Frame-Options: Prevent clickjacking by disallowing framing
+    res.setHeader('X-Frame-Options', 'DENY');
+
+    // X-XSS-Protection: Legacy XSS filter directive (for older browsers)
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+
+    // Referrer-Policy: Limit referrer leakage across origins
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+
+    // Permissions-Policy: Disable potentially dangerous APIs
+    res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=(), payment=()');
+
+    // Cache-Control: Public routes cache reasonably; admin/API routes don't
+    const isPublic = req.method === 'GET' && (
+        url === '/' ||
+        url.startsWith('/assets/') ||
+        url.startsWith('/covers/') ||
+        url.startsWith('/images/') ||
+        url.startsWith('/xanrean/') ||
+        url.startsWith('/data/')
+    );
+    if (isPublic) {
+        res.setHeader('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400');
+    } else {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, private');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+    }
+
     // Public HTML pages
     if (req.method === 'GET' && PUBLIC_ROUTES[url])
         return serveFile(res, PUBLIC_ROUTES[url]);
@@ -512,13 +548,23 @@ async function handleRequest(req, res) {
             const settings = await contentDB.SelectXanreanSettings();
             const sellerId = settings.gumroad_seller_id || process.env.GUMROAD_SELLER_ID;
 
-            if (sellerId && !gumroad.validateSellerId(ping, sellerId)) {
+            const pingErrors = gumroad.validatePing(ping);
+            if (!sellerId || pingErrors.length || !gumroad.validateSellerId(ping, sellerId)) {
                 res.writeHead(403);
-                return res.end('Forbidden: Seller ID mismatch');
+                return res.end('Forbidden: Invalid webhook');
+            }
+
+            // Convert and validate price strictly as integer (cents)
+            const priceCents = gumroad.parsePriceInCents(ping.price);
+            if (priceCents === null) {
+                console.warn('[Gumroad Webhook] Price validation failed:', ping.price);
+                res.writeHead(400);
+                return res.end('Invalid price format');
             }
 
             await contentDB.InsertSale({
                 ...ping,
+                price: priceCents,
                 purchased_at: ping.purchased_at || new Date().toISOString()
             });
 
@@ -603,7 +649,7 @@ async function handleRequest(req, res) {
             if (req.method === 'GET' && url.match(/\/api\/characters\/([^\/]+)$/)) {
                 const slug = url.split('/').pop();
                 const char = await contentDB.SelectCharacterBySlug(slug);
-                if (!char) {
+                if (!char || (char.visible !== 1 && !accounts.isAdmin(req))) {
                     res.writeHead(404);
                     return res.end(JSON.stringify({ error: 'Character not found' }));
                 }
@@ -631,7 +677,7 @@ async function handleRequest(req, res) {
             if (req.method === 'GET' && url.match(/\/api\/timeline\/([^\/]+)$/)) {
                 const id = url.split('/').pop();
                 const event = await contentDB.SelectTimelineEventById(id);
-                if (!event) {
+                if (!event || (event.visible !== 1 && !accounts.isAdmin(req))) {
                     res.writeHead(404);
                     return res.end(JSON.stringify({ error: 'Timeline event not found' }));
                 }
@@ -662,7 +708,7 @@ async function handleRequest(req, res) {
             if (req.method === 'GET' && url.match(/\/api\/lore-topics\/([^\/]+)$/)) {
                 const slug = url.split('/').pop();
                 const topic = await contentDB.SelectLoreTopicBySlug(slug);
-                if (!topic) {
+                if (!topic || (topic.visible !== 1 && !accounts.isAdmin(req))) {
                     res.writeHead(404);
                     return res.end(JSON.stringify({ error: 'Lore topic not found' }));
                 }
@@ -679,6 +725,11 @@ async function handleRequest(req, res) {
     // Integration APIs (public)
     if (req.method === 'GET') {
         if (url === '/api/youtube') {
+            const limit = checkRateLimit(req, '/api/youtube');
+            if (!limit.allowed) {
+                res.writeHead(429);
+                return res.end(JSON.stringify({ error: limit.message }));
+            }
             try {
                 const settings = await contentDB.SelectXanreanSettings();
                 const channelId = settings.youtube_channel_id || process.env.YOUTUBE_CHANNEL_ID;
@@ -690,11 +741,18 @@ async function handleRequest(req, res) {
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 return res.end(JSON.stringify({ videos }));
             } catch (e) {
+                // Don't expose internal errors to client; log for debugging
+                console.error('[YouTube API] Error:', e.message);
                 res.writeHead(500);
-                return res.end(JSON.stringify({ error: e.message }));
+                return res.end(JSON.stringify({ error: 'Service temporarily unavailable' }));
             }
         }
         if (url === '/api/discord') {
+            const limit = checkRateLimit(req, '/api/discord');
+            if (!limit.allowed) {
+                res.writeHead(429);
+                return res.end(JSON.stringify({ error: limit.message }));
+            }
             try {
                 const settings = await contentDB.SelectXanreanSettings();
                 const server_id = settings.discord_server_id || process.env.DISCORD_SERVER_ID || null;
@@ -706,11 +764,17 @@ async function handleRequest(req, res) {
                     invite_url: invite_code ? `https://discord.gg/${invite_code}` : null
                 }));
             } catch (e) {
+                console.error('[Discord API] Error:', e.message);
                 res.writeHead(500);
-                return res.end(JSON.stringify({ error: e.message }));
+                return res.end(JSON.stringify({ error: 'Service temporarily unavailable' }));
             }
         }
         if (url === '/api/sales') {
+            const limit = checkRateLimit(req, '/api/sales');
+            if (!limit.allowed) {
+                res.writeHead(429);
+                return res.end(JSON.stringify({ error: limit.message }));
+            }
             try {
                 const sales = await contentDB.SelectRecentSales(25);
                 const mapped = sales.map(s => ({
@@ -718,12 +782,14 @@ async function handleRequest(req, res) {
                     price_cents: s.price_cents,
                     currency: s.currency,
                     purchased_at: s.purchased_at
+                    // Note: email deliberately excluded for privacy
                 }));
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 return res.end(JSON.stringify({ sales: mapped }));
             } catch (e) {
+                console.error('[Sales API] Error:', e.message);
                 res.writeHead(500);
-                return res.end(JSON.stringify({ error: e.message }));
+                return res.end(JSON.stringify({ error: 'Service temporarily unavailable' }));
             }
         }
     }
@@ -986,6 +1052,7 @@ async function handleRequest(req, res) {
     // Admin Character API
     if (url.startsWith('/api/characters')) {
         try {
+            if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
             if (req.method === 'POST' && url.match(/^\/api\/characters\/([^\/]+)\/appearances$/)) {
                 const id = url.split('/')[3];
                 const body = await readRawBody(req, 64 * 1024);
@@ -1021,6 +1088,7 @@ async function handleRequest(req, res) {
     // Admin Timeline API
     if (url.startsWith('/api/timeline')) {
         try {
+            if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
             if (req.method === 'POST' || req.method === 'PUT') {
                 const body = await readRawBody(req, 10 * 1024 * 1024);
                 const data = JSON.parse(body.toString());
@@ -1051,6 +1119,7 @@ async function handleRequest(req, res) {
     // Admin Lore API
     if (url.startsWith('/api/lore-topics')) {
         try {
+            if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
             if (req.method === 'POST' || req.method === 'PUT') {
                 const body = await readRawBody(req, 10 * 1024 * 1024);
                 const data = JSON.parse(body.toString());
@@ -1096,6 +1165,7 @@ async function handleRequest(req, res) {
 
     // Admin Integrations Settings API (auth already enforced by the gate above)
     if (url === '/api/settings') {
+        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
         if (req.method === 'GET') {
             try {
                 const settings = await contentDB.SelectXanreanSettings();
@@ -1232,11 +1302,7 @@ async function handleRequest(req, res) {
             }
 
             // Safety: backup the DB before any bulk replacement, then proceed.
-            try {
-                backup.createRestorePoint('save-content');
-            } catch (backupErr) {
-                console.error('Pre-save backup failed, continuing with save:', backupErr.message);
-            }
+            const restorePoint = await contentDB.CreateBackup('save-content');
             await contentDB.SaveAllContent(data);
             // Best-effort: keep sitemap.xml/rss.xml in sync with content changes.
             meta.generateAll().catch(err => console.error('Meta regeneration failed:', err));
@@ -1458,6 +1524,7 @@ async function handleRequest(req, res) {
             const { username, password, role } = JSON.parse(body.toString());
             if (!username || !password) { res.writeHead(400); return res.end('Missing username or password'); }
             if (password.length < 8) { res.writeHead(400); return res.end('Password must be at least 8 characters'); }
+            if (role && !['admin', 'user'].includes(role)) { res.writeHead(400); return res.end('Invalid role'); }
             const success = accounts.createUser(username, password, role || 'user');
             if (!success) { res.writeHead(409); return res.end('Username already exists'); }
             res.writeHead(201, { 'Content-Type': 'application/json' });

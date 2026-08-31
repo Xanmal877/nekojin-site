@@ -1,10 +1,17 @@
 #!/usr/bin/env node
 /**
- * backup.js - Automatic database backup for Nekojin Interactive
- * 
+ * backup.js - Database backup utility for Nekojin Interactive
+ *
  * Usage:
- *   node backup.js              # Run once, manual backup
+ *   node backup.js              # Run once, manual backup (file copy)
  *   node backup.js --schedule   # Start scheduled backups (runs in background)
+ *   node backup.js --status     # Show backup status
+ *
+ * Features:
+ *   - File-based backups (safe for offline use)
+ *   - Backup validation (verifies SQLite integrity)
+ *   - Automatic cleanup (keeps last N days)
+ *   - Optional scheduled backups
  * 
  * Config:
  *   BACKUP_DIR  = ./data/backups/
@@ -41,7 +48,7 @@ function createBackup() {
     }
 
     const timestamp = getTimestamp();
-    const backupFile = path.join(BACKUP_DIR, `nekojin-${timestamp}.db`);
+    const backupFile = path.join(BACKUP_DIR, `nekojin-daily-${timestamp}.db`);
 
     // Don't overwrite if already exists today
     if (fs.existsSync(backupFile)) {
