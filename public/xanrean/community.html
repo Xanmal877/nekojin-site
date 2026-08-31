@@ -102,10 +102,48 @@
       box-shadow: 0 4px 15px rgba(124,58,237,0.4);
     }
 
+    .nav-tama {
+      width: 32px;
+      height: 32px;
+      image-rendering: pixelated;
+      background: url('/images/tama-idle.png') 0 0 / 256px 32px;
+      animation: tama-nav 1.2s steps(8) infinite;
+    }
+
+    @keyframes tama-nav {
+      from { background-position: 0 0; }
+      to { background-position: -256px 0; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .nav-tama { animation: none; }
+    }
+
     .footer-newsletter {
       display: flex;
       align-items: center;
       gap: 0.5rem;
+    }
+
+    /* Light theme: ensure hero text stays readable on the light background */
+    [data-theme="light"] .hero-sub {
+      color: #4b5563;
+    }
+
+    [data-theme="light"] .section-desc {
+      color: #4b5563;
+    }
+
+    .nl-label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+      border: 0;
     }
 
     .footer-newsletter input {
@@ -138,6 +176,11 @@
       background: #c4b5fd;
     }
 
+    .footer-newsletter button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
     .nl-message {
       position: fixed;
       bottom: 100px;
@@ -157,6 +200,35 @@
     .nl-message.visible {
       opacity: 1;
       transform: translateY(0);
+    }
+
+    .nl-message.success {
+      background: rgba(6,78,59,0.95);
+      border: 1px solid rgba(45,212,191,0.4);
+      color: #a7f3d0;
+    }
+
+    .nl-message.error {
+      background: rgba(78,16,32,0.95);
+      border: 1px solid rgba(239,68,68,0.4);
+      color: #fecaca;
+    }
+
+    /* Responsive Discord iframe: fill the available width up to its natural size */
+    #discord-widget-container {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+
+    #discord-widget-container iframe {
+      max-width: 100%;
+      border: 1px solid rgba(124,58,237,0.2);
+      border-radius: 12px;
+    }
+
+    .discord-wrap {
+      gap: 1.5rem;
     }
 
     @media (max-width: 768px) {
@@ -184,14 +256,35 @@
 <body>
 
 <nav>
-  <a href="/" class="nav-logo">
-    <div class="nav-tama"></div>
-    Nekojin Interactive
-  </a>
-  <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
-    <span id="theme-icon">☀️</span>
-  </button>
+  <div class="nav-left">
+    <a href="/" class="nav-logo">
+      <div class="nav-tama"></div>
+      Nekojin Interactive
+    </a>
+    <ul class="nav-links">
+      <li><a href="/">Home</a></li>
+      <li><a href="/books">Books</a></li>
+      <li><a href="/games">Games</a></li>
+      <li><a href="/xanrean/community" class="active" aria-current="page">Community</a></li>
+    </ul>
+  </div>
+  <div class="nav-right">
+    <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+      <span id="theme-icon">☀️</span>
+    </button>
+    <button class="nav-hamburger" id="nav-hamburger" aria-label="Menu" aria-expanded="false" onclick="toggleNav()">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
 </nav>
+<div class="nav-drawer" id="nav-drawer">
+  <ul>
+    <li><a href="/">Home</a></li>
+    <li><a href="/books">Books</a></li>
+    <li><a href="/games">Games</a></li>
+    <li><a href="/xanrean/community" class="active" aria-current="page">Community</a></li>
+  </ul>
+</div>
 
 <main>
   <section class="hero">
@@ -258,14 +351,16 @@
         ☕ Support on Patreon
       </a>
       <form class="footer-newsletter" onsubmit="subscribe(event)">
-        <input type="email" placeholder="your@email.com" required>
+        <label class="nl-label" for="newsletter-email">Email address</label>
+        <input id="newsletter-email" name="email" type="email" placeholder="your@email.com"
+               autocomplete="email" required>
         <button type="submit">Subscribe</button>
       </form>
     </div>
   </div>
 </footer>
 
-<div class="nl-message" id="nl-message"></div>
+<div class="nl-message" id="nl-message" role="status" aria-live="polite"></div>
 
 <script src="/common.js"></script>
 <script>
@@ -279,11 +374,50 @@
     if (icon) icon.textContent = next === 'dark' ? '🌙' : '☀️';
   }
 
+  function toggleNav() {
+    const hamburger = document.getElementById('nav-hamburger');
+    const drawer = document.getElementById('nav-drawer');
+    if (!hamburger || !drawer) return;
+    const open = !drawer.classList.contains('open');
+    drawer.classList.toggle('open', open);
+    hamburger.classList.toggle('open', open);
+    hamburger.setAttribute('aria-expanded', String(open));
+  }
+
+  // Initialize theme icon to reflect the theme applied in <head>
+  (function initThemeIcon() {
+    const icon = document.getElementById('theme-icon');
+    if (!icon) return;
+    const current = document.documentElement.getAttribute('data-theme') || 'light';
+    icon.textContent = current === 'dark' ? '🌙' : '☀️';
+  })();
+
+  // Format an ISO date into a friendly, human-readable string.
+  function friendlyDate(input) {
+    if (!input) return '';
+    const d = new Date(input);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+
+  // Only allow safe http(s) URLs when injecting href/src attributes.
+  function safeUrl(url) {
+    if (!url) return '#';
+    const text = String(url);
+    if (/^https?:\/\//i.test(text)) return text;
+    // Reject javascript:, data:, and any other scheme outright.
+    return '#';
+  }
+
+
   async function subscribe(e) {
     e.preventDefault();
-    const input = e.target.querySelector('input');
-    const email = input.value.trim();
+    const input = e.target.querySelector('input[type="email"]');
+    const btn = e.target.querySelector('button[type="submit"]');
     const msg = document.getElementById('nl-message');
+    const email = input.value.trim();
+    if (!email) return;
+    btn.disabled = true;
     try {
       const res = await fetch('/newsletter', {
         method: 'POST',
@@ -291,45 +425,56 @@
         body: JSON.stringify({email})
       });
       if (res.ok) {
+        msg.className = 'nl-message visible success';
         msg.textContent = '✓ Subscribed!';
         input.value = '';
       } else {
+        msg.className = 'nl-message visible error';
         msg.textContent = 'Try again later';
       }
     } catch {
+      msg.className = 'nl-message visible error';
       msg.textContent = 'Network error';
     }
-    msg.classList.add('visible');
-    setTimeout(() => msg.classList.remove('visible'), 3000);
+    btn.disabled = false;
+    setTimeout(() => {
+      msg.classList.remove('visible');
+    }, 3000);
   }
+
 
   async function loadSales() {
     const section = document.getElementById('sales-section');
     const list = document.getElementById('sales-list');
+    list.innerHTML = '<p class="loading-text">Loading supporters...</p>';
+    section.style.display = 'block';
     try {
       const res = await fetch('/api/sales');
       if (!res.ok) throw new Error('API error');
       const data = await res.json();
       if (!data.sales || data.sales.length === 0) {
-        section.style.display = 'none';
+        list.innerHTML = '<p class="no-content">No supporters yet.</p>';
         return;
       }
-      
+
       const items = data.sales.map(sale => {
-        const price = (sale.price_cents / 100).toFixed(2);
-        return `<div class="sale-item">Someone just picked up <strong>${esc(sale.product_name)}</strong> ✦ $${price} ${esc(sale.currency)}</div>`;
+        const price = (Number(sale.price_cents) / 100).toFixed(2);
+        const date = sale.purchased_at ? friendlyDate(sale.purchased_at) : '';
+        const dateText = date ? ` · ${esc(date)}` : '';
+        return `<div class="sale-item">Someone just picked up <strong>${esc(sale.product_name)}</strong> ✦ $${esc(price)} ${esc(sale.currency)}${dateText}</div>`;
       }).join('');
-      
+
       list.innerHTML = items;
-      section.style.display = 'block';
     } catch (e) {
       console.error('Sales load failed:', e);
-      section.style.display = 'none';
+      list.innerHTML = '<p class="no-content">Sorry, we couldn\u2019t load recent supporters.</p>';
     }
   }
 
+
   async function loadVideos() {
     const grid = document.getElementById('video-grid');
+    grid.innerHTML = '<p class="loading-text">Loading videos...</p>';
     try {
       const res = await fetch('/api/youtube');
       if (!res.ok) throw new Error('API error');
@@ -338,19 +483,22 @@
         grid.innerHTML = '<p class="no-content">No videos yet.</p>';
         return;
       }
-      
-      const cards = data.videos.map(v => `
-        <a href="https://www.youtube.com/watch?v=${esc(v.id)}" target="_blank" rel="noopener" class="video-card">
+
+      const cards = data.videos.map(v => {
+        const watchUrl = 'https://www.youtube.com/watch?v=' + encodeURIComponent(String(v.id || ''));
+        return `
+        <a href="${safeUrl(watchUrl)}" target="_blank" rel="noopener" class="video-card">
           <div class="video-thumb">
-            <img src="${esc(v.thumbnail)}" alt="${esc(v.title)}" loading="lazy">
+            <img src="${safeUrl(v.thumbnail)}" alt="${esc(v.title)}" loading="lazy">
           </div>
           <div class="video-info">
             <h3 class="video-title">${esc(v.title)}</h3>
-            <span class="video-date">${esc(v.published)}</span>
+            <span class="video-date">${friendlyDate(v.published)}</span>
           </div>
         </a>
-      `).join('');
-      
+      `;
+      }).join('');
+
       grid.innerHTML = cards;
     } catch (e) {
       console.error('Videos load failed:', e);
@@ -362,34 +510,39 @@
     const section = document.getElementById('discord-section');
     const container = document.getElementById('discord-widget-container');
     const btn = document.getElementById('discord-join-btn');
+    container.innerHTML = '<p class="loading-text">Loading Discord...</p>';
+    section.style.display = 'block';
     try {
       const res = await fetch('/api/discord');
       if (!res.ok) throw new Error('API error');
       const data = await res.json();
-      
+
       if (data.server_id) {
+        const widgetUrl = 'https://discord.com/widget?id=' + encodeURIComponent(String(data.server_id)) + '&theme=dark';
         container.innerHTML = `
-          <iframe src="https://discord.com/widget?id=${esc(data.server_id)}&theme=dark" 
-                  width="350" height="500" allowtransparency="true" 
+          <iframe src="${safeUrl(widgetUrl)}" title="Join the Nekojin Discord server"
+                  width="350" height="500" allowtransparency="true"
                   frameborder="0" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts">
           </iframe>`;
+      } else {
+        container.innerHTML = '';
       }
 
-      const inviteUrl = data.invite_url || (data.invite_code ? `https://discord.gg/${esc(data.invite_code)}` : null);
+      const inviteUrl = data.invite_url || (data.invite_code ? `https://discord.gg/${encodeURIComponent(String(data.invite_code))}` : null);
       if (inviteUrl) {
-        btn.href = inviteUrl;
+        btn.href = safeUrl(inviteUrl);
+        btn.style.display = '';
       } else {
         btn.style.display = 'none';
       }
 
       if (!data.server_id && !inviteUrl) {
         section.style.display = 'none';
-      } else {
-        section.style.display = 'block';
       }
     } catch (e) {
       console.error('Discord load failed:', e);
-      section.style.display = 'none';
+      container.innerHTML = '<p class="no-content">Sorry, Discord isn\u2019t available right now.</p>';
+      btn.style.display = 'none';
     }
   }
 

@@ -1024,6 +1024,7 @@ footer::before {
 
 .sale-item:hover {
   border-color: var(--royal-light);
+  color: var(--ink);
   transform: translateX(4px);
 }
 
@@ -1054,7 +1055,7 @@ footer::before {
 .video-thumb {
   aspect-ratio: 16 / 9;
   overflow: hidden;
-  background: #000;
+  background: var(--surface2);
 }
 
 .video-thumb img {
@@ -1110,4 +1111,38 @@ footer::before {
   text-align: center;
   padding: 3rem;
   color: var(--muted);
+}
+
+/* Newsletter label is visually hidden via .nl-label (defined in page styles) */
+
+/* Responsive community page */
+@media (max-width: 480px) {
+  .video-grid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+  .video-card:hover {
+    transform: translateY(-4px);
+  }
+}
+
+/* Focus-visible: keyboard access visible on community interactive elements */
+.sale-item:focus-visible,
+.video-card:focus-visible {
+  outline: 2px solid var(--royal);
+  outline-offset: 2px;
+}
+.footer-newsletter input:focus-visible,
+.footer-newsletter button:focus-visible {
+  outline: 2px solid var(--royal-light);
+  outline-offset: 2px;
+}
+
+/* Reduced motion: soften hover transforms and animations */
+@media (prefers-reduced-motion: reduce) {
+  .sale-item:hover { transform: none; }
+  .video-card:hover { transform: none; }
+  .video-card:hover .video-thumb img { transform: none; }
+  .orb, .status-dot, .game-status-badge .status-dot { animation: none; }
+  html { scroll-behavior: auto; }
 }
