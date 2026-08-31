@@ -123,6 +123,18 @@ function deleteSession(id) {
     saveSessions();
 }
 
+function invalidateUserSessions(username) {
+    let removed = 0;
+    for (const [id, session] of sessions) {
+        if (session.username === username) {
+            sessions.delete(id);
+            removed++;
+        }
+    }
+    if (removed) saveSessions();
+    return removed;
+}
+
 // ── USERS ───────────────────────────────────────────────
 function loadUsers() {
     try { return JSON.parse(fs.readFileSync(USERS_FILE, 'utf8')); }
@@ -224,6 +236,7 @@ function deleteUser(username) {
     if (!db.users[username]) return false;
     delete db.users[username];
     saveUsers(db);
+    invalidateUserSessions(username);
     return true;
 }
 
@@ -232,6 +245,7 @@ function resetPassword(username, newPassword) {
     if (!db.users[username]) return false;
     db.users[username].passwordHash = bcrypt.hashSync(newPassword, SALT_ROUNDS);
     saveUsers(db);
+    invalidateUserSessions(username);
     return true;
 }
 
@@ -240,6 +254,7 @@ function setUserRole(username, role) {
     if (!db.users[username]) return false;
     db.users[username].role = role;
     saveUsers(db);
+    invalidateUserSessions(username);
     return true;
 }
 
@@ -313,6 +328,7 @@ module.exports = {
     isValidSession,
     getSessionUser,
     deleteSession,
+    invalidateUserSessions,
     cleanupExpiredSessions,
     getSessionCsrfToken,
     isValidCsrfToken,

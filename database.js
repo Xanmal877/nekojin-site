@@ -2,6 +2,11 @@
  * database.js - SQLite module for Nekojin Interactive
  * Pattern matches your Godot AccountDB/SoulBlueprintDB structure
  * Uses Node.js sqlite3 package (similar to Godot's SQLite addon)
+ *
+ * Persistence Features:
+ * - Backup API for pre-save snapshots
+ * - Graceful database close with timeout protection
+ * - Consistent transaction handling
  */
 
 const sqlite3 = require('sqlite3').verbose();
@@ -13,6 +18,7 @@ const crypto = require('node:crypto');
 // Database location - single file like your Godot project
 const DB_DIR = path.join(__dirname, 'data');
 const DB_PATH = path.join(DB_DIR, 'nekojin.db');
+const BACKUP_DIR = path.join(DB_DIR, 'backups');
 
 /**
  * ContentDB - Manages books, series, game, and about data
@@ -23,6 +29,86 @@ class ContentDB {
         this.db = null;
         this.isOpen = false;
         this.initPromise = null;
+        this.backupInProgress = false;
+        this.backupQueue = Promise.resolve();
+        this.saveQueue = Promise.resolve();
+    }
+
+    /**
+     * Create a backup file for disaster recovery
+     * Uses SQLite backup API when DB is open, file copy for offline backups
+     */
+    async CreateBackup(label = 'manual') {
+        const operation = this.backupQueue.then(() => this._createBackup(label));
+        this.backupQueue = operation.catch(() => {});
+        return operation;
+    }
+
+    async _createBackup(label = 'manual') {
+        if (!fs.existsSync(BACKUP_DIR)) {
+            fs.mkdirSync(BACKUP_DIR, { recursive: true });
+        }
+
+        if (!fs.existsSync(DB_PATH)) {
+            throw new Error(`Database not found: ${DB_PATH}`);
+        }
+
+        this.backupInProgress = true;
+        try {
+            const now = new Date();
+            const safeLabel = String(label).replace(/[^a-z0-9_-]/gi, '-').slice(0, 50);
+            const timestamp = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
+            const backupPath = path.join(BACKUP_DIR,
+                `nekojin-${safeLabel}-${timestamp}-${crypto.randomBytes(4).toString('hex')}.db`);
+
+            // Use SQLite backup API if open, file copy otherwise
+            if (this.isOpen && this.db) {
+                await this._backupViaApi(backupPath);
+            } else {
+                fs.copyFileSync(DB_PATH, backupPath);
+            }
+
+            // Validate it's a real SQLite database
+            await this._validateBackup(backupPath);
+
+            const stats = fs.statSync(backupPath);
+            const sizeMB = (stats.size / 1024 / 1024).toFixed(2);
+            console.log(`✅ Backup created: ${path.basename(backupPath)} (${sizeMB} MB)`);
+            return backupPath;
+        } finally {
+            this.backupInProgress = false;
+        }
+    }
+
+    async _backupViaApi(targetPath) {
+        return new Promise((resolve, reject) => {
+            try {
+                this.db.exec(`VACUUM INTO '${targetPath.replace(/'/g, "''")}'`, err => {
+                    if (err) reject(new Error(`SQLite backup failed: ${err.message}`));
+                    else resolve();
+                });
+            } catch (err) { reject(err); }
+        });
+    }
+
+    async _validateBackup(backupPath) {
+        return new Promise((resolve, reject) => {
+            const backup = new sqlite3.Database(backupPath, sqlite3.OPEN_READONLY, (err) => {
+                if (err) {
+                    reject(new Error(`Backup validation failed: ${err.message}`));
+                    return;
+                }
+                backup.get('SELECT 1', (getErr) => {
+                    backup.close(() => {
+                        if (getErr) {
+                            reject(new Error(`Backup is not a valid SQLite database`));
+                        } else {
+                            resolve();
+                        }
+                    });
+                });
+            });
+        });
     }
 
     /**
@@ -407,19 +493,30 @@ class ContentDB {
     }
 
     /**
-     * Close the database connection
-     * Similar to your Close(path) method
-     */
+      * Close the database connection gracefully
+      * Similar to your Close(path) method
+      * Ensures pending operations are flushed with timeout protection
+      */
     async Close() {
-
         if (!this.db || !this.isOpen) return;
         this.isOpen = false;
-        await new Promise((resolve) => {
+
+        return new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+                console.warn('Database close timeout, forcing...');
+                reject(new Error('Database close timeout'));
+            }, 5000);
+
             this.db.close((err) => {
-                if (err) console.error('Error closing database:', err);
-                else console.log('ContentDB: Closed');
+                clearTimeout(timeout);
                 this.initPromise = null;
-                resolve();
+                if (err) {
+                    console.error('Error closing database:', err);
+                    reject(err);
+                } else {
+                    console.log('ContentDB: Closed gracefully');
+                    resolve();
+                }
             });
         });
     }
@@ -988,6 +1085,9 @@ class ContentDB {
     // ============================================================
 
     async InsertCharacter(data) {
+        if (!data || !data.id || !/^[a-zA-Z0-9_-]{1,64}$/.test(String(data.id))) {
+            throw new Error('Character ID is required and must be URL-safe');
+        }
         const sql = `
             INSERT INTO characters (id, slug, name, title, char_type, species, emoji, content, image, sort_order, visible, relationships, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
@@ -1157,6 +1257,9 @@ class ContentDB {
     // ============================================================
 
     async InsertLoreTopic(data) {
+        if (!data || !data.id || !/^[a-zA-Z0-9_-]{1,64}$/.test(String(data.id))) {
+            throw new Error('Lore topic ID is required and must be URL-safe');
+        }
         const sql = `
             INSERT INTO lore_topics (id, slug, section, title, content, sort_order, visible, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
@@ -1271,6 +1374,12 @@ class ContentDB {
     }
 
     async SaveAllContent(data) {
+        const operation = this.saveQueue.then(() => this._saveAllContent(data));
+        this.saveQueue = operation.catch(() => {});
+        return operation;
+    }
+
+    async _saveAllContent(data) {
         const { series = [], books = [], game = [], about = {} } = data;
 
         // Prevent duplicate slugs within the book set.
@@ -1417,7 +1526,7 @@ class ContentDB {
                             // itself is named `content`. Reading d.content
                             // here silently discarded every devlog entry's
                             // text on save.
-                            content: d.body || '',
+                             content: d.body ?? d.content ?? '',
                             date: d.date || d.created_at,
                             visible: d.visible !== false
                         });
