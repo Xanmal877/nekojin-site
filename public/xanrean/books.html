@@ -425,7 +425,7 @@ async function loadBooks() {
     const moderatorsGrid = document.getElementById('moderators-grid');
     
     // Sort books by volume number
-    const books = (data.books || []).sort((a, b) => (a.volume_number || 0) - (b.volume_number || 0));
+    const books = (data.books || []).filter(b => b.visible !== false).sort((a, b) => (a.volume_number || 0) - (b.volume_number || 0));
     
     // Filter by tier - use tier field or infer from series/volume
     const admins = books.filter(b => b.tier === 'admins' || (!b.tier && b.volume_number));

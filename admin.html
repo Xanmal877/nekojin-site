@@ -378,6 +378,16 @@
     }
     .platform-row label { margin: 0; font-size: 0.85rem; color: var(--muted); }
   </style>
+  <style>
+    @media (max-width: 760px) {
+      .sidebar { width: 64px; }
+      .sidebar .brand-text, .sidebar .nav-label { display: none; }
+      .main-content { margin-left: 64px; padding: 1rem; }
+      .form-row, .games-grid { grid-template-columns: 1fr !important; }
+      .books-toolbar { flex-wrap: wrap; }
+      .platform-row { grid-template-columns: 1fr !important; }
+    }
+  </style>
 </head>
 <body>
 
@@ -699,15 +709,18 @@
         </div>
       </div>
     </div>
+
+    <!-- ADD NEW GAME MODAL -->
+    <div id="add-game-modal" class="modal" style="display:none;">
       <div class="modal-content">
         <div class="modal-header">
           <h3>Add New Game</h3>
           <button class="modal-close" onclick="closeAddGameModal()">&times;</button>
         </div>
         <div class="modal-body">
-          <label>Game Title</label>
+          <label for="new-game-title">Game Title</label>
           <input type="text" id="new-game-title" placeholder="Enter game title...">
-          <label>Slug (URL-friendly ID)</label>
+          <label for="new-game-slug">Slug (URL-friendly ID)</label>
           <input type="text" id="new-game-slug" placeholder="e.g., autumns-dungeoneering">
         </div>
         <div class="modal-footer">
@@ -3442,6 +3455,9 @@ document.addEventListener('input', (e) => {
   }
   if (e.target.id === 'homepage-standalone-bg') {
     document.getElementById('homepage-standalone-preview').style.backgroundImage = `url('${e.target.value}')`;
+  }
+  if (e.target.id === 'homepage-community-bg') {
+    document.getElementById('homepage-community-preview').style.backgroundImage = `url('${e.target.value}')`;
   }
 });
 

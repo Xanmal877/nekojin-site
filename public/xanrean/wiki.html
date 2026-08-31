@@ -500,6 +500,7 @@
     
     // Parse markdown
     function parseMarkdown(md) {
+      md = String(md || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
       let html = md
         // Headers
         .replace(/^### (.*$)/gim, '<h3>$1</h3>')

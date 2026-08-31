@@ -156,18 +156,18 @@
         let html = '';
         for (const era in groups) {
           html += `<div style="text-align:center; margin: 2rem 0; position:relative; z-index:2;">
-                    <span style="background:var(--bg); padding: 0 1rem; color:var(--royal); font-family:var(--font-display); font-size:1.5rem; border: 1px solid var(--royal); border-radius:8px;">${era}</span>
+                    <span style="background:var(--bg); padding: 0 1rem; color:var(--royal); font-family:var(--font-display); font-size:1.5rem; border: 1px solid var(--royal); border-radius:8px;">${esc(era)}</span>
                   </div>`;
           
           html += groups[era].map(e => `
             <div class="timeline-event">
               <div class="event-card">
-                <div class="event-era">${e.era || 'Unknown Era'}</div>
-                <h2 class="event-title">${e.title}</h2>
-                <div class="event-desc">${e.description}</div>
+                <div class="event-era">${esc(e.era || 'Unknown Era')}</div>
+                <h2 class="event-title">${esc(e.title)}</h2>
+                <div class="event-desc">${esc(e.description)}</div>
                 <div class="event-chars">
                   ${(e.related_character_slugs || []).map(slug => 
-                    `<a href="/xanrean/characters/${slug}" class="char-tag">${slug}</a>`
+                    `<a href="/xanrean/characters/${encodeURIComponent(slug)}" class="char-tag">${esc(slug)}</a>`
                   ).join('')}
                 </div>
               </div>
@@ -184,6 +184,10 @@
       }
     }
     loadTimeline();
+
+    function esc(value) {
+      return String(value || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
   </script>
 </body>
 </html>

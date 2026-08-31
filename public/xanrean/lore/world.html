@@ -179,6 +179,7 @@
 <script>
   function parseMarkdown(md) {
     if (!md) return '';
+    md = String(md).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     return md
       .replace(/^# (.*$)/gim, '<h2 style="font-size:1.2rem; margin-bottom:0.5rem;">$1</h2>')
       .replace(/^## (.*$)/gim, '<h3 style="font-size:1rem; margin-bottom:0.5rem;">$1</h3>')
@@ -211,8 +212,8 @@
           const title = topic.title;
           
           return `
-            <a href="/xanrean/lore/world/${topic.slug}" class="world-card">
-              <h2>${title}</h2>
+            <a href="/xanrean/lore/world/${encodeURIComponent(topic.slug)}" class="world-card">
+              <h2>${escapeHtml(title)}</h2>
               <div class="md-content">
                 ${parseMarkdown(summary)}
               </div>
@@ -232,6 +233,10 @@
       console.error('Error loading worlds', err);
       loader.innerHTML = 'Failed to load world data. Please refresh.';
     }
+  }
+
+  function escapeHtml(value) {
+    return String(value || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
 
