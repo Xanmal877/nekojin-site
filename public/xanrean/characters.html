@@ -305,6 +305,8 @@ function toggleNav() {
 
 // Minimal markdown -> HTML for the inline reader (headers, bold, italic, paragraphs)
 function parseMarkdown(md) {
+  // CMS content is Markdown-only; escape HTML before applying formatting.
+  md = String(md || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   let html = md
     .replace(/^### (.*$)/gim, '<h3>$1</h3>')
     .replace(/^## (.*$)/gim, '<h2>$1</h2>')
@@ -389,8 +391,13 @@ function renderSeriesFilter() {
 
 function cardAvatar(c) {
   return c.image
-    ? `<img src="${c.image}" alt="${escapeHtml(c.name)}">`
+    ? `<img src="${safeMediaUrl(c.image)}" alt="${escapeHtml(c.name)}">`
     : (c.emoji || '👤');
+}
+
+function safeMediaUrl(value) {
+  const url = String(value || '');
+  return /^(\/|https?:\/\/)/i.test(url) ? escapeHtml(url) : '';
 }
 
 function escapeHtml(s) {

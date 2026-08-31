@@ -392,6 +392,10 @@ async function loadBook() {
   }
 
   let book, data;
+  // Hoisted so the "More Books" section below can read it. It was previously
+  // declared with `const` inside the else block, which scoped it out of reach
+  // of the `typeof allBooks` guard, so the section never rendered.
+  let allBooks = [];
   try {
     if (preview) {
       // Preview mode uses a dedicated endpoint so preview books aren't
@@ -406,7 +410,7 @@ async function loadBook() {
       data = await res.json();
       const standaloneBooks = (data.books || []).filter(b => b.visible !== false);
       const seriesBooks = (data.series || []).filter(s => s.visible !== false).flatMap(s => (s.books || []).filter(b => b.visible !== false));
-      const allBooks = [...standaloneBooks, ...seriesBooks];
+      allBooks = [...standaloneBooks, ...seriesBooks];
       book = allBooks.find(b => b.id === bookId || b.slug === bookId);
     }
   } catch(e) {
@@ -438,7 +442,8 @@ async function loadBook() {
   const ctas = (book.platforms || []).filter(p => p.url).map(p => {
     const cls = PLAT_CTA_CLASS[p.type] || 'cta-' + (p.type || 'other');
     const label = PLAT_CTA_LABEL[p.type] || (p.name || 'Read');
-    return `<a href="${esc(p.url)}" target="_blank" rel="noopener" class="${cls}">${label}</a>`;
+    const url = /^(https?:\/\/)/i.test(String(p.url)) ? esc(p.url) : '#';
+    return `<a href="${url}" target="_blank" rel="noopener" class="${cls}">${esc(label)}</a>`;
   }).join('');
 
   // DISABLED: Manuscript reading system hidden (Option 1 - can re-enable later)
@@ -472,7 +477,7 @@ async function loadBook() {
 
   // More books (skip in preview mode; the preview endpoint only returns one book)
   if (!preview && typeof allBooks !== 'undefined') {
-  const others = allBooks.filter(b => b.id !== bookId).slice(0, 4);
+  const others = allBooks.filter(b => b.id !== bookId && b.slug !== bookId).slice(0, 4);
   if (others.length) {
     const moreSection = document.getElementById('more-section');
     const moreGrid = document.getElementById('more-grid');

@@ -283,6 +283,7 @@
     }
 
     function mdToHtml(text) {
+      text = String(text || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
       // First, handle the Canon Status Key section specially
       let html = text
         // Remove the Canon Status Key block entirely (it's metadata)
@@ -315,7 +316,7 @@
         // Code
         .replace(/`([^`]+)`/g, '<code>$1</code>')
         // MD links [text](url)
-        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
+        .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+|\/[^)]*)\)/g, '<a href="$2">$1</a>')
         // Horizontal rules
         .replace(/^---$/gim, '<hr>')
         // Lists
@@ -371,7 +372,7 @@
         avatarEl.textContent = '';
         if (char.image) {
           const img = document.createElement('img');
-          img.src = char.image;
+          img.src = /^(\/|https?:\/\/)/i.test(char.image) ? char.image : '';
           img.alt = name;
           avatarEl.appendChild(img);
         } else {
@@ -411,7 +412,7 @@
         }
         
         const statsHtml = stats.map(s => 
-          `<div class="char-stat"><span class="char-stat-label">${s.label}</span><span>${s.value}</span></div>`
+           `<div class="char-stat"><span class="char-stat-label">${escapeHtml(s.label)}</span><span>${escapeHtml(s.value)}</span></div>`
         ).join('');
         document.getElementById('card-stats').innerHTML = statsHtml;
         
@@ -443,7 +444,7 @@
           if (body) {
             contentHtml += `
               <div class="char-section">
-                <h3>${title}</h3>
+                 <h3>${escapeHtml(title)}</h3>
                 ${mdToHtml(body)}
               </div>
             `;
@@ -454,9 +455,9 @@
         if (char.relationships && char.relationships.length > 0) {
           const relsHtml = char.relationships.map(r => `
             <div class="rel-card">
-              <a href="/xanrean/characters/${r.character_slug}" class="rel-name">${r.character_name || r.character_slug}</a>
-              <span class="rel-type">${r.relationship_type}</span>
-              <div class="rel-desc">${r.description}</div>
+               <a href="/xanrean/characters/${encodeURIComponent(r.character_slug || '')}" class="rel-name">${escapeHtml(r.character_name || r.character_slug)}</a>
+               <span class="rel-type">${escapeHtml(r.relationship_type)}</span>
+               <div class="rel-desc">${escapeHtml(r.description)}</div>
             </div>
           `).join('');
           contentHtml += `
@@ -477,6 +478,10 @@
         document.getElementById('card-role').textContent = 'Failed to load';
         document.getElementById('char-avatar').textContent = '❌';
       }
+    }
+
+    function escapeHtml(value) {
+      return String(value || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     }
 
 

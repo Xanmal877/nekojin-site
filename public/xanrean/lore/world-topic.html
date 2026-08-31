@@ -143,6 +143,7 @@
 <script>
   function parseMarkdown(md) {
     if (!md) return '';
+    md = String(md).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     let html = md
       .replace(/^## (.*$)/gim, '<h2>$1</h2>')
       .replace(/^# (.*$)/gim, '<h2>$1</h2>')
@@ -167,10 +168,14 @@
       const topic = await response.json();
 
       document.title = topic.title + ' - The Lore | Xanrean Chronicles';
-      container.innerHTML = `<h1>${topic.title}</h1>${parseMarkdown(topic.content)}`;
+      container.innerHTML = `<h1>${escapeHtml(topic.title)}</h1>${parseMarkdown(topic.content)}`;
     } catch (err) {
       container.innerHTML = '<div class="loading">Could not load this world topic.</div>';
     }
+  }
+
+  function escapeHtml(value) {
+    return String(value || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
   loadTopic();
