@@ -113,4 +113,6 @@ Saki's story is about learning that control is not the same as safety.
 
 She must accept that intelligence cannot prevent every loss, that affection is not automatically manipulation, and that destruction does not make her evil.
 
-Her life as Saki ultimately changes how Admin Destruction understands judgment, restraint, and the value of protecting something before deciding what must erase.
+Her life as Saki ultimately changes how Admin Destruction understands judgment, restraint, and the value of protecting something before deciding what must be erased.
+
+See **[Admin Destruction](Admin%20Destruction.md)** for the administrator's biography.
