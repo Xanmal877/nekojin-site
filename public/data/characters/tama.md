@@ -104,3 +104,5 @@ Tama's story is about learning that survival is not the same as healing.
 She must confront the harm hidden inside Sensei's training, accept that leadership cannot always be reduced to direct action, and learn that protecting people does not require carrying every burden alone.
 
 Her life as Tama ultimately changes how Admin Creation understands creation itself.
+
+See **[Admin Creation](Admin%20Creation.md)** for the administrator's biography.
