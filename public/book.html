@@ -218,7 +218,7 @@
       <li><a href="/">Home</a></li>
       <li><a href="/books" class="active">Books</a></li>
       <li><a href="/games">Games</a></li>
-      
+
     </ul>
   </div>
   <div class="nav-right">
@@ -242,7 +242,7 @@
     <li><a href="/">Home</a></li>
     <li><a href="/books" class="active">Books</a></li>
     <li><a href="/games">Games</a></li>
-    
+
   </ul>
 </div>
 
@@ -344,7 +344,7 @@ document.addEventListener('DOMContentLoaded', function() {
       } else {
         results.innerHTML = matches.map(b => `
           <a href="/book?id=${encodeURIComponent(b.id)}" class="sr-item" onclick="document.querySelectorAll('.nav-search-results,.drawer-search-results').forEach(r=>r.classList.remove('visible'));document.getElementById('nav-drawer').classList.remove('open');document.body.style.overflow='';document.getElementById('nav-hamburger').classList.remove('open')">
-            ${b.cover ? `<img src="${b.cover}" alt="">` : '<div style="width:32px;height:48px;background:linear-gradient(160deg,#2d1065,#1e1b4b);border-radius:4px;flex-shrink:0;"></div>'}
+            ${b.cover ? `<img src="${safeUrl(b.cover)}" alt="">` : '<div style="width:32px;height:48px;background:linear-gradient(160deg,#2d1065,#1e1b4b);border-radius:4px;flex-shrink:0;"></div>'}
             <div>
               <div class="sr-title">${esc(b.title)}</div>
               <div class="sr-meta">${esc(b.volume || b.tags.slice(0, 30) || 'Book')}</div>
@@ -442,7 +442,7 @@ async function loadBook() {
   const ctas = (book.platforms || []).filter(p => p.url).map(p => {
     const cls = PLAT_CTA_CLASS[p.type] || 'cta-' + (p.type || 'other');
     const label = PLAT_CTA_LABEL[p.type] || (p.name || 'Read');
-    const url = /^(https?:\/\/)/i.test(String(p.url)) ? esc(p.url) : '#';
+    const url = safeUrl(p.url);
     return `<a href="${url}" target="_blank" rel="noopener" class="${cls}">${esc(label)}</a>`;
   }).join('');
 
@@ -454,7 +454,7 @@ async function loadBook() {
     <div class="book-hero">
       <div class="book-hero-cover">
         ${book.cover
-          ? `<img src="${esc(book.cover)}" alt="${esc(book.title)} cover">`
+          ? `<img src="${safeUrl(book.cover)}" alt="${esc(book.title)} cover">`
           : `<div class="placeholder">📖</div>`
         }
       </div>
@@ -484,7 +484,7 @@ async function loadBook() {
     moreGrid.innerHTML = others.map(b => `
       <a href="/book?id=${encodeURIComponent(b.id)}" class="more-card">
         <div class="more-cover">
-          ${b.cover ? `<img src="${esc(b.cover)}" alt="${esc(b.title)} cover" loading="lazy">`
+          ${b.cover ? `<img src="${safeUrl(b.cover)}" alt="${esc(b.title)} cover" loading="lazy">`
             : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:3rem;">📖</div>'}
         </div>
         <div class="more-info">

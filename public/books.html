@@ -282,7 +282,7 @@
       <li><a href="/">Home</a></li>
       <li><a href="/books" class="active">Books</a></li>
       <li><a href="/games">Games</a></li>
-      
+
     </ul>
   </div>
   <div class="nav-right">
@@ -306,7 +306,7 @@
     <li><a href="/">Home</a></li>
     <li><a href="/books" class="active">Books</a></li>
     <li><a href="/games">Games</a></li>
-    
+
   </ul>
 </div>
 
@@ -364,14 +364,14 @@ function platLabel(p) {
 function renderPlatforms(platforms) {
   if (!platforms || !platforms.length) return `<span class="no-platforms">Links coming soon</span>`;
   return platforms.filter(p => p.url).map(p => `
-    <a href="${esc(p.url)}" target="_blank" rel="noopener"
+    <a href="${safeUrl(p.url)}" target="_blank" rel="noopener"
        class="plat-btn ${esc(p.type || 'other')}">${esc(platLabel(p))}</a>
   `).join('');
 }
 
 function renderBook(book) {
   const cover = book.cover
-    ? `<img src="${esc(book.cover)}" alt="${esc(book.title)} cover" loading="lazy">`
+    ? `<img src="${safeUrl(book.cover)}" alt="${esc(book.title)} cover" loading="lazy">`
     : `<div class="book-cover-placeholder"><span>📖</span></div>`;
 
   const tags = (book.tags || []).map(t => `<span class="book-tag">${esc(t)}</span>`).join('');
@@ -430,7 +430,7 @@ async function loadBooks() {
         <div class="series-block reveal">
           <div class="series-header">
             <div style="display:flex;gap:1rem;align-items:center;">
-              ${s.cover_image ? `<img src="${esc(s.cover_image)}" class="series-cover" alt="${esc(s.universe)} cover">` : ''}
+              ${s.cover_image ? `<img src="${safeUrl(s.cover_image)}" class="series-cover" alt="${esc(s.universe)} cover">` : ''}
               <div>
                 <span class="series-eyebrow">Series ${si + 1}</span>
                 <h2 class="series-name">${esc(s.universe)}</h2>
@@ -554,7 +554,7 @@ document.addEventListener('DOMContentLoaded', function() {
       } else {
         results.innerHTML = matches.map(b => `
           <a href="/book?id=${encodeURIComponent(b.id)}" class="sr-item" onclick="document.querySelectorAll('.nav-search-results,.drawer-search-results').forEach(r=>r.classList.remove('visible'));document.getElementById('nav-drawer').classList.remove('open');document.body.style.overflow='';document.getElementById('nav-hamburger').classList.remove('open')">
-            ${b.cover ? `<img src="${b.cover}" alt="">` : '<div style="width:32px;height:48px;background:linear-gradient(160deg,#2d1065,#1e1b4b);border-radius:4px;flex-shrink:0;"></div>'}
+            ${b.cover ? `<img src="${safeUrl(b.cover)}" alt="">` : '<div style="width:32px;height:48px;background:linear-gradient(160deg,#2d1065,#1e1b4b);border-radius:4px;flex-shrink:0;"></div>'}
             <div>
               <div class="sr-title">${esc(b.title)}</div>
               <div class="sr-meta">${esc(b.volume || b.tags.slice(0, 30) || 'Book')}</div>

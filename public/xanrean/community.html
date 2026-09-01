@@ -404,6 +404,9 @@
   function safeUrl(url) {
     if (!url) return '#';
     const text = String(url);
+    // Reject characters that could break out of a double-quoted attribute
+    // when the value is interpolated into a template.
+    if (/["'<>`]/.test(text)) return '#';
     if (/^https?:\/\//i.test(text)) return text;
     // Reject javascript:, data:, and any other scheme outright.
     return '#';

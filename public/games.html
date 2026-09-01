@@ -41,7 +41,7 @@
       position: relative;
       overflow: hidden;
       padding: 2rem;
-      background: 
+      background:
         radial-gradient(ellipse 80% 50% at 50% 120%, rgba(124,58,237,0.15), transparent),
         radial-gradient(ellipse 60% 40% at 30% 20%, rgba(167,139,250,0.08), transparent),
         radial-gradient(ellipse 60% 40% at 70% 80%, rgba(139,92,246,0.08), transparent),
@@ -73,14 +73,14 @@
     }
 
     /* Floating Orbs (enhanced) */
-    .games-hero-orbs { 
-      position: absolute; 
-      inset: 0; 
-      pointer-events: none; 
+    .games-hero-orbs {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
       overflow: hidden;
       z-index: 2;
     }
-    .games-hero-orbs .orb { 
+    .games-hero-orbs .orb {
       opacity: 0.08;
       animation: orbFloat 20s ease-in-out infinite;
     }
@@ -115,10 +115,10 @@
     .games-hero-eyebrow {
       font-size: 0.75rem; font-weight: 700;
       letter-spacing: 0.3em; text-transform: uppercase;
-      color: var(--royal-light); 
+      color: var(--royal-light);
       margin-bottom: 1.5rem;
-      display: inline-flex; 
-      align-items: center; 
+      display: inline-flex;
+      align-items: center;
       gap: 1rem;
       opacity: 0;
       animation: fadeSlideUp 0.8s 0.3s forwards;
@@ -144,7 +144,7 @@
     .games-hero-title {
       font-family: var(--font-display);
       font-size: clamp(3.5rem, 10vw, 7rem);
-      color: var(--ink); 
+      color: var(--ink);
       line-height: 1;
       margin-bottom: 1.5rem;
       opacity: 0;
@@ -170,10 +170,10 @@
     }
 
     .games-hero-tagline {
-      font-size: clamp(1rem, 2vw, 1.35rem); 
+      font-size: clamp(1rem, 2vw, 1.35rem);
       font-weight: 300;
       color: rgba(212,200,240,0.85);
-      max-width: 600px; 
+      max-width: 600px;
       margin: 0 auto 2rem;
       line-height: 1.7;
       opacity: 0;
@@ -658,7 +658,7 @@
       border-radius: 32px;
       overflow: hidden;
       position: relative;
-      box-shadow: 
+      box-shadow:
         0 40px 100px rgba(0,0,0,0.6),
         0 0 0 1px rgba(124,58,237,0.1),
         inset 0 1px 0 rgba(255,255,255,0.05);
@@ -669,7 +669,7 @@
       content: '';
       position: absolute;
       inset: 0;
-      background: 
+      background:
         radial-gradient(ellipse 80% 50% at 20% 80%, rgba(124,58,237,0.15), transparent 70%),
         radial-gradient(ellipse 60% 40% at 80% 20%, rgba(167,139,250,0.1), transparent 60%);
       pointer-events: none;
@@ -688,7 +688,7 @@
 
     .game-card.featured:hover {
       transform: translateY(-8px);
-      box-shadow: 
+      box-shadow:
         0 60px 120px rgba(0,0,0,0.7),
         0 0 0 1px rgba(124,58,237,0.3),
         0 0 60px rgba(124,58,237,0.15),
@@ -1703,7 +1703,7 @@
       <li><a href="/">Home</a></li>
       <li><a href="/books">Books</a></li>
       <li><a href="/games" class="active">Games</a></li>
-      
+
     </ul>
   </div>
   <div class="nav-right">
@@ -1727,7 +1727,7 @@
     <li><a href="/">Home</a></li>
     <li><a href="/books">Books</a></li>
     <li><a href="/games" class="active">Games</a></li>
-    
+
   </ul>
 </div>
 
@@ -1850,17 +1850,17 @@ function formatGameDesc(desc, title) {
 (function initHeroParticles() {
   const canvas = document.getElementById('hero-particles');
   if (!canvas) return;
-  
+
   const ctx = canvas.getContext('2d');
   let particles = [];
   let animationId;
   let isActive = true;
-  
+
   function resize() {
     canvas.width = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
   }
-  
+
   function createParticle() {
     return {
       x: Math.random() * canvas.width,
@@ -1872,7 +1872,7 @@ function formatGameDesc(desc, title) {
       pulse: Math.random() * Math.PI * 2
     };
   }
-  
+
   function init() {
     resize();
     particles = [];
@@ -1881,37 +1881,37 @@ function formatGameDesc(desc, title) {
       particles.push(createParticle());
     }
   }
-  
+
   function draw() {
     if (!isActive) return;
-    
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
+
     particles.forEach((p, i) => {
       // Update position
       p.x += p.speedX;
       p.y += p.speedY;
       p.pulse += 0.02;
-      
+
       // Wrap around edges
       if (p.x < 0) p.x = canvas.width;
       if (p.x > canvas.width) p.x = 0;
       if (p.y < 0) p.y = canvas.height;
       if (p.y > canvas.height) p.y = 0;
-      
+
       // Draw particle with pulse
       const pulseOpacity = p.opacity * (0.7 + 0.3 * Math.sin(p.pulse));
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
       ctx.fillStyle = `rgba(196, 181, 253, ${pulseOpacity})`;
       ctx.fill();
-      
+
       // Draw connections to nearby particles
       particles.slice(i + 1).forEach(p2 => {
         const dx = p.x - p2.x;
         const dy = p.y - p2.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        
+
         if (dist < 100) {
           ctx.beginPath();
           ctx.moveTo(p.x, p.y);
@@ -1922,13 +1922,13 @@ function formatGameDesc(desc, title) {
         }
       });
     });
-    
+
     animationId = requestAnimationFrame(draw);
   }
-  
+
   // Handle resize
   window.addEventListener('resize', resize);
-  
+
   // Pause when tab is hidden
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
@@ -1939,7 +1939,7 @@ function formatGameDesc(desc, title) {
       draw();
     }
   });
-  
+
   init();
   draw();
 })();
@@ -1948,13 +1948,13 @@ function formatGameDesc(desc, title) {
 (function initParallax() {
   const layers = document.querySelectorAll('.hero-parallax-layer');
   if (!layers.length) return;
-  
+
   let ticking = false;
-  
+
   function updateParallax() {
     const scrolled = window.scrollY;
     const heroHeight = document.getElementById('games-hero')?.offsetHeight || window.innerHeight;
-    
+
     if (scrolled < heroHeight) {
       layers.forEach((layer, index) => {
         const speed = (index + 1) * 0.15;
@@ -1962,10 +1962,10 @@ function formatGameDesc(desc, title) {
         layer.style.transform = `translateY(${yPos}px)`;
       });
     }
-    
+
     ticking = false;
   }
-  
+
   window.addEventListener('scroll', () => {
     if (!ticking) {
       requestAnimationFrame(updateParallax);
@@ -2010,30 +2010,30 @@ async function loadGame() {
         gamesContainer.innerHTML = games.map((game, index) => {
           const isFeatured = index === 0;
           const cardClass = isFeatured ? 'featured' : 'compact';
-          
+
           // Status badge
           const statusClass = (game.status || 'in-development').toLowerCase().replace(/\s+/g, '-');
           const statusPulse = statusClass === 'released' ? '' : '<span class="status-pulse"></span>';
-          
+
           // Cover art
           const artHtml = game.coverImage
-            ? `<img src="${esc(game.coverImage)}" alt="${esc(game.title)} cover" loading="lazy">`
+            ? `<img src="${safeUrl(game.coverImage)}" alt="${esc(game.title)} cover" loading="lazy">`
             : `<div class="game-card-art-placeholder">
-                 <span class="art-placeholder-icon">${game.icon || '🎮'}</span>
+                 <span class="art-placeholder-icon">${esc(game.icon || '🎮')}</span>
                  <span class="art-placeholder-text">Key Art in Progress</span>
                </div>`;
-          
+
           // Meta items
           const metaItems = [
             game.engine && `<span class="game-card-meta-item"><strong>${esc(game.engine)}</strong></span>`,
             game.players && `<span class="game-card-meta-item">${esc(game.players)}</span>`,
             game.platform && `<span class="game-card-meta-item">${esc(game.platform)}</span>`
           ].filter(Boolean).join('');
-          
+
           // Platform buttons with smart labeling based on status
           const isReleased = ['released', 'available', 'launched'].includes(statusClass);
           const hasDemo = game.demoUrl || (game.platforms?.demo && game.platforms.demo !== '');
-          
+
           // Define button labels based on status
           const getSteamLabel = () => {
             if (hasDemo && !isReleased) return 'Try Steam Demo';
@@ -2055,75 +2055,75 @@ async function loadGame() {
             if (isReleased) return 'Get on Epic';
             return 'Wishlist on Epic';
           };
-          
+
           const platformButtons = [];
-          
+
           // Steam
           if (game.steamUrl || game.platforms?.steam) {
             const url = game.steamUrl || game.platforms?.steam;
-            platformButtons.push(`<a href="${esc(url)}" target="_blank" rel="noopener" class="btn-wishlist-primary btn-steam">
+            platformButtons.push(`<a href="${safeUrl(url)}" target="_blank" rel="noopener" class="btn-wishlist-primary btn-steam">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15h-2v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3l-.5 3H13v6.95c5.05-.5 9-4.76 9-9.95 0-5.52-4.48-10-10-10z"/></svg>
               ${getSteamLabel()}
             </a>`);
           }
-          
+
           // Itch.io
           if (game.itchUrl || game.platforms?.itch) {
             const url = game.itchUrl || game.platforms?.itch;
-            platformButtons.push(`<a href="${esc(url)}" target="_blank" rel="noopener" class="btn-wishlist-primary btn-itch">
+            platformButtons.push(`<a href="${safeUrl(url)}" target="_blank" rel="noopener" class="btn-wishlist-primary btn-itch">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M4 2h16c1.1 0 2 .9 2 2v16c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2zm8 4c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"/></svg>
               ${getItchLabel()}
             </a>`);
           }
-          
+
           // GOG
           if (game.gogUrl || game.platforms?.gog) {
             const url = game.gogUrl || game.platforms?.gog;
-            platformButtons.push(`<a href="${esc(url)}" target="_blank" rel="noopener" class="btn-wishlist-primary btn-gog">
+            platformButtons.push(`<a href="${safeUrl(url)}" target="_blank" rel="noopener" class="btn-wishlist-primary btn-gog">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
               ${getGOGLabel()}
             </a>`);
           }
-          
+
           // Epic Games Store
           if (game.epicUrl || game.platforms?.epic) {
             const url = game.epicUrl || game.platforms?.epic;
-            platformButtons.push(`<a href="${esc(url)}" target="_blank" rel="noopener" class="btn-wishlist-primary btn-epic">
+            platformButtons.push(`<a href="${safeUrl(url)}" target="_blank" rel="noopener" class="btn-wishlist-primary btn-epic">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
               ${getEpicLabel()}
             </a>`);
           }
-          
+
           // Dedicated demo button (if demoUrl set separately)
           if (hasDemo && !game.platforms?.steam && !game.platforms?.itch) {
-            platformButtons.push(`<a href="${esc(game.demoUrl || game.platforms.demo)}" target="_blank" rel="noopener" class="btn-wishlist-primary btn-demo"
+            platformButtons.push(`<a href="${safeUrl(game.demoUrl || game.platforms.demo)}" target="_blank" rel="noopener" class="btn-wishlist-primary btn-demo"
                style="background: linear-gradient(135deg, #f59e0b, #d97706);"
             >
               🎮 Try Demo
             </a>`);
           }
-          
+
           // Generic/custom platform
           if (game.platforms) {
             Object.entries(game.platforms).forEach(([name, url]) => {
               if (['steam', 'itch', 'gog', 'epic', 'demo'].includes(name)) return;
               if (typeof url === 'string') {
-                platformButtons.push(`<a href="${esc(url)}" target="_blank" rel="noopener" class="btn-wishlist-primary btn-platform">
+                platformButtons.push(`<a href="${safeUrl(url)}" target="_blank" rel="noopener" class="btn-wishlist-primary btn-platform">
                   ${esc(name.charAt(0).toUpperCase() + name.slice(1))}
                 </a>`);
               }
             });
           }
-          
+
           // If no platforms, show Coming Soon
           if (platformButtons.length === 0) {
             platformButtons.push(`<button class="btn-wishlist-primary disabled" disabled>
               🎮 Coming Soon
             </button>`);
           }
-          
+
           const platformsHtml = platformButtons.join('');
-          
+
           return `
             <article class="game-card ${cardClass}" data-game-id="${esc(game.id || game.slug || 'main')}">
               <div class="game-card-info">
@@ -2219,7 +2219,7 @@ async function loadGame() {
           videoSection.innerHTML = `
             <div class="video-section-title">▶ Gameplay Video</div>
             <div class="video-wrapper">
-              <iframe src="${esc(firstGame.videoUrl)}" title="${esc(firstGame.title)} gameplay video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe>
+              <iframe src="${safeUrl(firstGame.videoUrl)}" title="${esc(firstGame.title)} gameplay video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe>
             </div>
           `;
         } else {
@@ -2239,8 +2239,8 @@ async function loadGame() {
       if (screenshotsGrid) {
         if (Array.isArray(firstGame.screenshots) && firstGame.screenshots.length) {
           screenshotsGrid.innerHTML = firstGame.screenshots.map((s,i) => `
-            <button class="screenshot-card reveal reveal-d${Math.min(i+1,4)}" data-lightbox="${esc(s.path)}" data-caption="${esc(s.caption || '')}" aria-label="View screenshot: ${esc(s.caption || 'Screenshot ' + (i+1))}" type="button">
-              <img src="${esc(s.path)}" alt="${esc(s.caption || '')}" loading="lazy">
+            <button class="screenshot-card reveal reveal-d${Math.min(i+1,4)}" data-lightbox="${safeUrl(s.path)}" data-caption="${esc(s.caption || '')}" aria-label="View screenshot: ${esc(s.caption || 'Screenshot ' + (i+1))}" type="button">
+              <img src="${safeUrl(s.path)}" alt="${esc(s.caption || '')}" loading="lazy">
               ${s.caption ? `<div class="screenshot-caption">${esc(s.caption)}</div>` : ''}
             </button>
           `).join('');
@@ -2441,7 +2441,7 @@ document.addEventListener('DOMContentLoaded', function() {
       } else {
         results.innerHTML = matches.map(b => `
           <a href="/book?id=${encodeURIComponent(b.id)}" class="sr-item" onclick="document.querySelectorAll('.nav-search-results,.drawer-search-results').forEach(r=>r.classList.remove('visible'));document.getElementById('nav-drawer').classList.remove('open');document.body.style.overflow='';document.getElementById('nav-hamburger').classList.remove('open')">
-            ${b.cover ? `<img src="${b.cover}" alt="">` : '<div style="width:32px;height:48px;background:linear-gradient(160deg,#2d1065,#1e1b4b);border-radius:4px;flex-shrink:0;"></div>'}
+            ${b.cover ? `<img src="${safeUrl(b.cover)}" alt="">` : '<div style="width:32px;height:48px;background:linear-gradient(160deg,#2d1065,#1e1b4b);border-radius:4px;flex-shrink:0;"></div>'}
             <div>
               <div class="sr-title">${esc(b.title)}</div>
               <div class="sr-meta">${esc(b.volume || b.tags.slice(0, 30) || 'Book')}</div>
