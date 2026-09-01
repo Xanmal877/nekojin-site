@@ -15,58 +15,83 @@ puppeteer.use(StealthPlugin());
 
 const fs   = require('fs');
 const path = require('path');
+const sqlite3 = require('sqlite3').verbose();
 
 const METRICS_FILE = path.join(__dirname, 'story-metrics.json');
-const CONTENT_FILE = path.join(__dirname, '..', 'site-content.json');
+const DB_PATH = path.join(__dirname, '..', '..', 'data', 'nekojin.db');
 
 ////////////////////////////////////////////////////////////
 // CONFIG LOADER
-// Reads content.json and extracts RR + SH platform links.
-// Expected content.json shape:
-//   { books: [ { title, platforms: [ { type, url } ] } ] }
+// Reads from SQLite database: extracts RR + SH platform links from book_platforms
+// Queries flat books/book_platforms tables (no nesting).
 //
 // Platform types recognised:
 //   'rr'  -> Royal Road  (extracts numeric fiction ID from URL)
 //   'sh'  -> ScribbleHub (uses full URL as-is: bare IDs are unreliable)
 ////////////////////////////////////////////////////////////
 
-function loadStoryConfig() {
-    let content;
-    try {
-        content = JSON.parse(fs.readFileSync(CONTENT_FILE, 'utf8'));
-    } catch (err) {
-        console.error(`❌  Could not read ${CONTENT_FILE}:`, err.message);
-        process.exit(1);
-    }
-
-    // { rrId: title }
-    const royalroad   = {};
-    // { title: fullUrl }
-    const scribblehub = {};
-
-    // Helper: extract platforms from a single book
-    function processBook(book) {
-        if (!book.title) return;
-        for (const plat of (book.platforms || [])) {
-            if (!plat.url) continue;
-            if (plat.type === 'rr') {
-                const m = plat.url.match(/\/fiction\/(\d+)/);
-                if (m) royalroad[m[1]] = book.title;
-            } else if (plat.type === 'sh') {
-                scribblehub[book.title] = plat.url;
+async function loadStoryConfig() {
+    return new Promise((resolve, reject) => {
+        const db = new sqlite3.Database(DB_PATH, sqlite3.OPEN_READONLY, (err) => {
+            if (err) {
+                console.error(`❌  Could not open ${DB_PATH}:`, err.message);
+                process.exit(1);
             }
-        }
-    }
+        });
 
-    // Books inside series
-    for (const series of (content.series || [])) {
-        for (const book of (series.books || [])) processBook(book);
-    }
+        db.all(`
+            SELECT b.id, b.title, bp.platform_type, bp.url
+            FROM books b
+            LEFT JOIN book_platforms bp ON b.id = bp.book_id
+            ORDER BY b.title, bp.sort_order
+        `, (err, rows) => {
+            if (err) {
+                console.error('❌  Database query error:', err.message);
+                db.close();
+                process.exit(1);
+            }
 
-    // Standalone books (content.books array)
-    for (const book of (content.books || [])) processBook(book);
+            // { rrId: title }
+            const royalroad   = {};
+            // { title: fullUrl }
+            const scribblehub = {};
 
-    return { royalroad, scribblehub };
+            if (!rows || rows.length === 0) {
+                db.close();
+                resolve({ royalroad, scribblehub });
+                return;
+            }
+
+            // Group platforms by book
+            const bookPlatforms = {};
+            for (const row of rows) {
+                if (!bookPlatforms[row.id]) {
+                    bookPlatforms[row.id] = { title: row.title, platforms: [] };
+                }
+                if (row.platform_type && row.url) {
+                    bookPlatforms[row.id].platforms.push({
+                        type: row.platform_type,
+                        url: row.url
+                    });
+                }
+            }
+
+            // Extract RR and SH URLs
+            for (const book of Object.values(bookPlatforms)) {
+                for (const plat of book.platforms) {
+                    if (plat.type === 'rr') {
+                        const m = plat.url.match(/\/fiction\/(\d+)/);
+                        if (m) royalroad[m[1]] = book.title;
+                    } else if (plat.type === 'sh') {
+                        scribblehub[book.title] = plat.url;
+                    }
+                }
+            }
+
+            db.close();
+            resolve({ royalroad, scribblehub });
+        });
+    });
 }
 
 ////////////////////////////////////////////////////////////
@@ -116,7 +141,7 @@ async function scrapeScribblehub(page, url) {
     try {
         // networkidle2 hangs on SH due to persistent background JS
         await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
-        
+
         // CRITICAL: Wait for Cloudflare challenge to complete
         // Cloudflare typically takes 5-10 seconds to verify the browser
         console.log('    Waiting for Cloudflare (10 seconds)...');
@@ -135,7 +160,7 @@ async function scrapeScribblehub(page, url) {
             const text = document.body.innerText;
 
             // Check if we're still on Cloudflare page
-            const isCloudflare = text.includes('Checking your browser') || 
+            const isCloudflare = text.includes('Checking your browser') ||
                                 text.includes('Just a moment') ||
                                 text.includes('Cloudflare');
 
@@ -270,17 +295,17 @@ function cleanGhostEntries(metricsData) {
 async function main() {
     console.log('📊  Multi-Platform Metrics Scraper\n');
 
-    const { royalroad, scribblehub } = loadStoryConfig();
+    const { royalroad, scribblehub } = await loadStoryConfig();
 
     const rrCount = Object.keys(royalroad).length;
     const shCount = Object.keys(scribblehub).length;
 
     if (rrCount + shCount === 0) {
-        console.error('❌  No stories found in content.json. Make sure books have rr/sh platform links.');
+        console.error('❌  No stories found in database. Make sure books have rr/sh platform links.');
         process.exit(1);
     }
 
-    console.log(`📋  Loaded from content.json: ${rrCount} Royal Road, ${shCount} ScribbleHub\n`);
+    console.log(`📋  Loaded from SQLite: ${rrCount} Royal Road, ${shCount} ScribbleHub\n`);
 
     const browser = await puppeteer.launch({
         headless: 'new',
@@ -331,7 +356,7 @@ async function main() {
 
             updateHistory(metricsData, `sh-${id}`, data, { platform: 'scribblehub', title, id });
             console.log(`    Readers: ${data.followers ?? 'N/A'} | Chapters: ${data.chapters ?? 'N/A'} | Views: ${data.views?.toLocaleString() ?? 'N/A'}`);
-            
+
             // Add delay between stories to avoid rate limiting (except for last story)
             shIndex++;
             if (shIndex < shCount) {
