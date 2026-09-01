@@ -587,8 +587,9 @@
         const key = pageName.toLowerCase();
         const isCompendium = compendiumKeys.has(key) || !fileMap[key];
         const file = fileMap[key];
-        const path = isCompendium ? '/data/lore/compendium.md' : `/data/characters/${file}`;
+        const path = isCompendium ? '/api/compendium' : `/api/wiki/${encodeURIComponent(file.replace(/\.md$/, ''))}`;
         const response = await fetch(path);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const md = await response.text();
 
         // Parse content

@@ -476,10 +476,14 @@ function renderBookCard(book) {
   const statusLabel = { published: 'Published', preview: 'Preview', draft: 'Coming Soon' }[statusClass] || statusClass;
   const words = book.word_count ? `${formatCount(book.word_count)} words` : '';
   const vol = book.volume ? book.volume : (book.volume_number ? `Vol. ${book.volume_number}` : '');
-  
+  const cover = String(book.cover || '/images/placeholder-cover.png');
+  const safeCover = (/^(?:https?:\/\/|\/(?!\/))/.test(cover) && !/[\s"'()\\<>`]/.test(cover))
+    ? cover
+    : '/images/placeholder-cover.png';
+
   return `
     <a href="/book?id=${esc(book.slug)}&from=xanrean" class="book-card">
-      <div class="book-cover" style="background-image: url('${esc(book.cover || '/images/placeholder-cover.png')}')">
+      <div class="book-cover" style="background-image: url('${safeCover}')">
         <span class="book-status ${statusClass}">${statusLabel}</span>
       </div>
       <div class="book-info">

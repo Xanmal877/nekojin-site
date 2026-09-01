@@ -458,7 +458,7 @@
     <div class="panel" id="panel-games">
       <h1 class="panel-title">🎮 Games</h1>
       <p class="panel-sub">Manage your game portfolio. Add, edit, and organize game listings.</p>
-      
+
       <div id="games-list-container">
         <div class="card" id="games-list">
           <p style="color:var(--muted);">Loading games...</p>
@@ -467,7 +467,7 @@
           + Add New Game
         </button>
       </div>
-      
+
       <div id="game-edit-container" style="display:none;">
         <button class="btn btn-ghost btn-sm" onclick="backToGamesList()" style="margin-bottom:1rem;">
           ← Back to Games List
@@ -484,13 +484,13 @@
     <div class="panel" id="panel-lore_characters">
       <h1 class="panel-title">📜 Lore & Characters</h1>
       <p class="panel-sub">Manage world-building topics and character profiles.</p>
- 
+
       <div style="display:flex;gap:0.5rem;margin-bottom:1.5rem;">
         <button class="btn btn-ghost btn-sm active-sub-tab" id="tab-chars-btn" onclick="switchLoreSubTab('chars')">Characters</button>
         <button class="btn btn-ghost btn-sm" id="tab-lore-btn" onclick="switchLoreSubTab('lore')">Lore Topics</button>
         <button class="btn btn-ghost btn-sm" id="tab-timeline-btn" onclick="switchLoreSubTab('timeline')">Timeline</button>
       </div>
- 
+
       <!-- Characters Sub-section -->
       <div id="lore-sub-chars">
         <div class="books-toolbar">
@@ -502,7 +502,7 @@
           <p style="color:var(--muted);">Loading characters...</p>
         </div>
       </div>
- 
+
       <!-- Lore Sub-section -->
       <div id="lore-sub-lore" style="display:none;">
         <div class="books-toolbar">
@@ -742,7 +742,7 @@
     <div class="panel" id="panel-xanrean">
       <h1 class="panel-title">✨ Xanrean Page</h1>
       <p class="panel-sub">Customize the background images for the Xanrean Chronicles hub panels.</p>
-      
+
       <div class="card">
         <h3 style="margin-bottom:1rem;">Books Panel</h3>
         <div class="bg-preview" id="xanrean-books-preview" style="width:140px;height:200px;border-radius:10px;background:var(--surface2);background-size:cover;background-position:center;margin-bottom:0.75rem;border:2px solid var(--border);box-shadow:0 4px 12px rgba(0,0,0,0.3);"></div>
@@ -752,7 +752,7 @@
           <button class="btn btn-ghost" onclick="document.getElementById('xanrean-books-file-input').click()">📁 Browse</button>
         </div>
       </div>
-      
+
       <div class="card" style="margin-top:1rem;">
         <h3 style="margin-bottom:1rem;">Characters Panel</h3>
         <div class="bg-preview" id="xanrean-characters-preview" style="width:140px;height:200px;border-radius:10px;background:var(--surface2);background-size:cover;background-position:center;margin-bottom:0.75rem;border:2px solid var(--border);box-shadow:0 4px 12px rgba(0,0,0,0.3);"></div>
@@ -762,7 +762,7 @@
           <button class="btn btn-ghost" onclick="document.getElementById('xanrean-characters-file-input').click()">📁 Browse</button>
         </div>
       </div>
-      
+
       <div class="card" style="margin-top:1rem;">
         <h3 style="margin-bottom:1rem;">Lore Panel</h3>
         <div class="bg-preview" id="xanrean-lore-preview" style="width:140px;height:200px;border-radius:10px;background:var(--surface2);background-size:cover;background-position:center;margin-bottom:0.75rem;border:2px solid var(--border);box-shadow:0 4px 12px rgba(0,0,0,0.3);"></div>
@@ -772,7 +772,7 @@
           <button class="btn btn-ghost" onclick="document.getElementById('xanrean-lore-file-input').click()">📁 Browse</button>
         </div>
       </div>
-      
+
       <div class="card" style="margin-top:1rem;">
         <h3 style="margin-bottom:1rem;">Game Panel</h3>
         <div class="bg-preview" id="xanrean-game-preview" style="width:140px;height:200px;border-radius:10px;background:var(--surface2);background-size:cover;background-position:center;margin-bottom:0.75rem;border:2px solid var(--border);box-shadow:0 4px 12px rgba(0,0,0,0.3);"></div>
@@ -782,7 +782,7 @@
           <button class="btn btn-ghost" onclick="document.getElementById('xanrean-game-file-input').click()">📁 Browse</button>
         </div>
       </div>
-      
+
       <button class="btn btn-primary" onclick="saveXanreanSettings()" style="margin-top:1rem;">💾 Save Xanrean</button>
     </div>
 
@@ -790,7 +790,7 @@
     <div class="panel" id="panel-homepage">
       <h1 class="panel-title">🏠 Homepage</h1>
       <p class="panel-sub">Customize the background images for the homepage split panels.</p>
-      
+
       <div class="card">
         <h3 style="margin-bottom:1rem;">Xanrean Chronicles Panel</h3>
         <div class="bg-preview" id="homepage-xanrean-preview" style="width:140px;height:200px;border-radius:10px;background:var(--surface2);background-size:cover;background-position:center;margin-bottom:0.75rem;border:2px solid var(--border);box-shadow:0 4px 12px rgba(0,0,0,0.3);"></div>
@@ -800,7 +800,7 @@
           <button class="btn btn-ghost" onclick="document.getElementById('xanrean-file-input').click()">📁 Browse</button>
         </div>
       </div>
-      
+
       <div class="card" style="margin-top:1rem;">
         <h3 style="margin-bottom:1rem;">Standalone Works Panel</h3>
         <div class="bg-preview" id="homepage-standalone-preview" style="width:140px;height:200px;border-radius:10px;background:var(--surface2);background-size:cover;background-position:center;margin-bottom:0.75rem;border:2px solid var(--border);box-shadow:0 4px 12px rgba(0,0,0,0.3);"></div>
@@ -810,7 +810,7 @@
           <button class="btn btn-ghost" onclick="document.getElementById('standalone-file-input').click()">📁 Browse</button>
         </div>
       </div>
-      
+
       <div class="card" style="margin-top:1rem;">
         <h3 style="margin-bottom:1rem;">Community Panel</h3>
         <div class="bg-preview" id="homepage-community-preview" style="width:140px;height:200px;border-radius:10px;background:var(--surface2);background-size:cover;background-position:center;margin-bottom:0.75rem;border:2px solid var(--border);box-shadow:0 4px 12px rgba(0,0,0,0.3);"></div>
@@ -820,7 +820,7 @@
           <button class="btn btn-ghost" onclick="document.getElementById('community-file-input').click()">📁 Browse</button>
         </div>
       </div>
-      
+
       <button class="btn btn-primary" onclick="saveHomepageSettings()" style="margin-top:1rem;">💾 Save Homepage</button>
     </div>
 
@@ -836,11 +836,11 @@
     <div class="panel" id="panel-users">
       <h1 class="panel-title">👥 Users</h1>
       <p class="panel-sub">Manage user accounts, roles, and passwords.</p>
-      
+
       <div class="users-toolbar" style="display:flex;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap;">
         <button class="btn btn-primary" onclick="openAddUserModal()">+ Create User</button>
       </div>
-      
+
       <div class="card" id="users-list-container">
         <p style="color:var(--muted);">Loading users...</p>
       </div>
@@ -1084,7 +1084,7 @@ function switchPanel(name) {
   document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
   document.getElementById('panel-' + name).classList.add('active');
   document.querySelector(`[data-panel="${name}"]`).classList.add('active');
-  
+
   if (name === 'xanrean') loadXanreanSettings();
 }
 
@@ -1099,7 +1099,8 @@ async function discardChanges() {
   if (!ok) return;
   dirty = false;
   document.getElementById('save-banner').classList.remove('visible');
-  await loadContent();
+  const contentLoaded = await loadContent();
+  if (!contentLoaded) return;
   renderBooksPanel();
   renderGamesPanel();
   renderAboutPanel();
@@ -1113,7 +1114,7 @@ async function loadIntegrationsSettings() {
     const res = await fetch('/api/settings');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    
+
     document.getElementById('settings-gumroad-seller-id').value = data.gumroad_seller_id || '';
     document.getElementById('settings-gumroad-token').value = data.gumroad_access_token || '';
     document.getElementById('settings-youtube-channel').value = data.youtube_channel_id || '';
@@ -1137,9 +1138,9 @@ async function saveIntegrationsSettings() {
   try {
     const res = await fetch('/api/settings', {
       method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json', 
-        'X-CSRF-Token': getCsrfToken() 
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': getCsrfToken()
       },
       body: JSON.stringify(data)
     });
@@ -1819,7 +1820,7 @@ function ensureGamesArray() {
 function renderGamesPanel() {
   ensureGamesArray();
   const games = siteContent.game;
-  
+
   if (games.length === 0) {
     document.getElementById('games-list').innerHTML = `
       <div style="text-align:center;padding:3rem;color:var(--muted);">
@@ -1872,7 +1873,7 @@ function renderGameEditor() {
   ensureGamesArray();
   const g = siteContent.game[currentEditingGameIndex];
   if (!g) return backToGamesList();
-  
+
   document.getElementById('game-editor').innerHTML = `
     <div class="card-title">🎮 ${esc(g.title || 'Edit Game')}</div>
     <input type="hidden" id="game-index" value="${currentEditingGameIndex}">
@@ -1883,9 +1884,9 @@ function renderGameEditor() {
     </label>
 
     <label>Game ID / Slug</label>
-    <input type="text" id="game-slug" value="${esc(g.slug || g.id || '')}" 
+    <input type="text" id="game-slug" value="${esc(g.slug || g.id || '')}"
       oninput="updateGameField('slug', this.value)" placeholder="autumns-dungeoneering">
-    
+
     <label>Game Cover Image</label>
     <div style="display:flex;gap:1.5rem;align-items:flex-start;margin-bottom:1rem;">
       <div class="cover-upload-area" style="width:160px;flex-shrink:0;" onclick="triggerGameCoverUpload()">
@@ -1902,9 +1903,9 @@ function renderGameEditor() {
           oninput="updateGameField('coverImage', this.value); document.getElementById('game-cover-preview').src=this.value;">
       </div>
     </div>
-    
+
     <div class="form-row">
-      <div><label>Game Title *</label><input type="text" id="game-title" value="${esc(g.title||'')}" 
+      <div><label>Game Title *</label><input type="text" id="game-title" value="${esc(g.title||'')}"
         oninput="updateGameField('title', this.value)" required></div>
       <div><label>Status</label>
         <select id="game-status" onchange="updateGameField('status', this.value)">
@@ -1915,44 +1916,44 @@ function renderGameEditor() {
         </select>
       </div>
     </div>
-    
+
     <label>Tagline</label>
-    <input type="text" id="game-tagline" value="${esc(g.tagline||'')}" 
+    <input type="text" id="game-tagline" value="${esc(g.tagline||'')}"
       oninput="updateGameField('tagline', this.value)" placeholder="Short subtitle">
-    
+
     <label>Description</label>
-    <textarea id="game-description" rows="4" oninput="updateGameField('description', this.value)" 
+    <textarea id="game-description" rows="4" oninput="updateGameField('description', this.value)"
       placeholder="Full description...">${esc(g.description||'')}</textarea>
-    
+
     <div class="form-row">
-      <div><label>Engine</label><input type="text" value="${esc(g.engine||'')}" 
+      <div><label>Engine</label><input type="text" value="${esc(g.engine||'')}"
         oninput="updateGameField('engine', this.value)" placeholder="Godot 4"></div>
-      <div><label>Players</label><input type="text" value="${esc(g.players||'')}" 
+      <div><label>Players</label><input type="text" value="${esc(g.players||'')}"
         oninput="updateGameField('players', this.value)" placeholder="1"></div>
     </div>
-    
+
     <div style="margin-top:1.5rem;border-top:1px solid var(--border);padding-top:1rem;">
       <div class="card-title" style="margin-bottom:0.75rem;">🎮 Platform Links</div>
       <p style="font-size:0.78rem;color:var(--muted);margin-bottom:1rem;">Add links to stores and platforms.</p>
       <div class="platform-inputs">
         <div class="platform-row">
           <label>Steam</label>
-          <input type="url" value="${esc(g.platforms?.steam || g.steamUrl || '')}" 
+          <input type="url" value="${esc(g.platforms?.steam || g.steamUrl || '')}"
             oninput="updatePlatform('steam', this.value)" placeholder="https://store.steampowered.com/...">
         </div>
         <div class="platform-row">
           <label>Itch.io</label>
-          <input type="url" value="${esc(g.platforms?.itch || g.itchUrl || '')}" 
+          <input type="url" value="${esc(g.platforms?.itch || g.itchUrl || '')}"
             oninput="updatePlatform('itch', this.value)" placeholder="https://...itch.io/...">
         </div>
         <div class="platform-row">
           <label>GOG</label>
-          <input type="url" value="${esc(g.platforms?.gog || g.gogUrl || '')}" 
+          <input type="url" value="${esc(g.platforms?.gog || g.gogUrl || '')}"
             oninput="updatePlatform('gog', this.value)" placeholder="https://www.gog.com/game/...">
         </div>
         <div class="platform-row">
           <label>Epic</label>
-          <input type="url" value="${esc(g.platforms?.epic || g.epicUrl || '')}" 
+          <input type="url" value="${esc(g.platforms?.epic || g.epicUrl || '')}"
             oninput="updatePlatform('epic', this.value)" placeholder="https://store.epicgames.com/...">
         </div>
       </div>
@@ -1979,14 +1980,14 @@ function renderGameEditor() {
         </div>
         <div id="demo-url-row" style="flex:1;${!g.hasDemo ? 'display:none;' : ''}">
           <label style="font-size:0.75rem;">Demo URL</label>
-          <input type="url" id="demo-url-input" value="${esc(g.demoUrl || '')}" 
-            oninput="updateGameField('demoUrl', this.value)" 
+          <input type="url" id="demo-url-input" value="${esc(g.demoUrl || '')}"
+            oninput="updateGameField('demoUrl', this.value)"
             placeholder="https://.../demo or /demo/index.html">
         </div>
       </div>
       <p id="demo-help-text" style="font-size:0.72rem;color:var(--muted);margin-top:0.5rem;${!g.hasDemo ? 'display:none;' : ''}">
-        ${g.demoPlatform === 'steam' ? 'Link to Steam demo page' : 
-          g.demoPlatform === 'itch' ? 'Link to Itch.io demo or project' : 
+        ${g.demoPlatform === 'steam' ? 'Link to Steam demo page' :
+          g.demoPlatform === 'itch' ? 'Link to Itch.io demo or project' :
           'Direct link to playable demo (HTML5/WebGL build)'}
       </p>
     </div>
@@ -2057,11 +2058,11 @@ function toggleDemoFields(show) {
   const platformRow = document.getElementById('demo-platform-row');
   const urlRow = document.getElementById('demo-url-row');
   const helpText = document.getElementById('demo-help-text');
-  
+
   if (platformRow) platformRow.style.display = show ? 'block' : 'none';
   if (urlRow) urlRow.style.display = show ? 'block' : 'none';
   if (helpText) helpText.style.display = show ? 'block' : 'none';
-  
+
   // Update help text based on platform
   if (show) {
     const platform = document.getElementById('demo-platform-select')?.value || 'steam';
@@ -2112,24 +2113,24 @@ function closeAddGameModal() {
 function createNewGame() {
   const title = document.getElementById('new-game-title').value.trim();
   let slug = document.getElementById('new-game-slug').value.trim();
-  
+
   if (!title) {
     showToast('Please enter a game title', 'error');
     return;
   }
-  
+
   if (!slug) {
     slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
   }
-  
+
   ensureGamesArray();
-  
+
   // Check for duplicate slug
   if (siteContent.game.some(g => g.slug === slug)) {
     showToast('A game with this slug already exists', 'error');
     return;
   }
-  
+
   const newGame = {
     id: slug,
     slug: slug,
@@ -2147,7 +2148,7 @@ function createNewGame() {
     screenshots: [],
     devlog: []
   };
-  
+
   siteContent.game.push(newGame);
   markDirty();
   closeAddGameModal();
@@ -2391,7 +2392,7 @@ function renderAboutPanel() {
     <input type="text" value="${esc(a.studioName)}" oninput="siteContent.about.studioName=this.value; markDirty()">
     <label>Footer Tagline</label>
     <input type="text" value="${esc(a.tagline)}" oninput="siteContent.about.tagline=this.value; markDirty()">
-    
+
     <div style="margin:1rem 0;padding:1rem;background:var(--surface2);border-radius:10px;border:1px solid var(--border);">
       <label style="margin-bottom:0.5rem;display:block;">Studio Portrait Image</label>
       <div style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap;">
@@ -2404,7 +2405,7 @@ function renderAboutPanel() {
                  oninput="siteContent.about.portrait=this.value; markDirty(); updateAboutPortraitPreview(this.value);"
                  style="margin-bottom:0.5rem;">
           <div style="display:flex;gap:0.5rem;">
-            <input type="file" id="about-portrait-file" accept="image/*" style="display:none;" 
+            <input type="file" id="about-portrait-file" accept="image/*" style="display:none;"
                    onchange="handlePortraitUpload(this)">
             <button class="btn btn-ghost" onclick="document.getElementById('about-portrait-file').click()" style="font-size:0.85rem;">📁 Upload Image</button>
             <button class="btn btn-ghost" onclick="siteContent.about.portrait=''; document.getElementById('about-portrait-input').value=''; updateAboutPortraitPreview(''); markDirty();" style="font-size:0.85rem;" ${a.portrait?'':'disabled'}>Clear</button>
@@ -2413,7 +2414,7 @@ function renderAboutPanel() {
         </div>
       </div>
     </div>
-    
+
     <label>Description Paragraph 1</label>
     <textarea oninput="siteContent.about.description=this.value; markDirty()">${esc(a.description)}</textarea>
     <label>Description Paragraph 2</label>
@@ -2645,7 +2646,7 @@ async function renderCharacters() {
     const res = await fetch('/api/characters');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const chars = await res.json();
-    
+
     if (chars.length === 0) {
       container.innerHTML = '<div class="empty-state">No characters found.</div>';
       return;
@@ -2755,7 +2756,7 @@ async function editCharacter(slug) {
     const res = await fetch(`/api/characters/${slug}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const char = await res.json();
-    
+
     currentEditingCharId = char.id;
     document.getElementById('char-modal-title').textContent = 'Edit Character';
     document.getElementById('char-name').value = char.name || '';
@@ -2809,15 +2810,36 @@ async function saveCharacter() {
     visible: document.getElementById('char-visible').checked
   };
 
-  // Read relationships from the UI
+  // Read relationships from the UI and resolve character names from loaded content
   const relRows = document.querySelectorAll('#char-rel-rows .rel-row');
   const relationships = [];
+
+  // Fetch available characters to resolve slugs to names (minimal load)
+  let availableCharacters = [];
+  try {
+    const res = await fetch('/api/characters');
+    if (res.ok) availableCharacters = await res.json();
+  } catch (e) {
+    console.warn('Could not fetch characters for relationship name resolution:', e);
+  }
+
+  // Build a map of slug -> name for quick lookup
+  const slugToName = {};
+  availableCharacters.forEach(c => {
+    slugToName[c.slug] = c.name;
+  });
+
   relRows.forEach(row => {
     const slug = row.querySelector('.rel-slug').value.trim();
     const type = row.querySelector('.rel-type').value.trim();
     const desc = row.querySelector('.rel-desc').value.trim();
     if (slug) {
-      relationships.push({ character_slug: slug, relationship_type: type, description: desc });
+      relationships.push({
+        character_slug: slug,
+        character_name: slugToName[slug] || slug,
+        relationship_type: type,
+        description: desc
+      });
     }
   });
   data.relationships = relationships;
@@ -2885,7 +2907,7 @@ async function addRelationshipRow(data = {}) {
   const container = document.getElementById('char-rel-rows');
   const row = document.createElement('div');
   row.className = 'rel-row platform-row';
-  
+
   const res = await fetch('/api/characters');
   const chars = await res.json();
   const options = chars.map(c => `<option value="${esc(c.slug)}" ${data.character_slug === c.slug ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
@@ -2943,7 +2965,7 @@ async function editLoreTopic(slug) {
     const res = await fetch(`/api/lore-topics/${slug}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const topic = await res.json();
-    
+
     currentEditingLoreId = topic.id;
     document.getElementById('lore-modal-title').textContent = 'Edit Lore Topic';
     document.getElementById('lore-title').value = topic.title || '';
@@ -2952,7 +2974,7 @@ async function editLoreTopic(slug) {
     document.getElementById('lore-content').value = topic.content || '';
     document.getElementById('lore-sort').value = topic.sort_order || 0;
     document.getElementById('lore-visible').checked = !!topic.visible;
-    
+
     document.getElementById('lore-modal').style.display = 'flex';
   } catch(e) {
     showToast('Failed to load lore topic: ' + e.message, 'error');
@@ -3140,9 +3162,9 @@ let usersData = [];
 async function loadUsers() {
   const container = document.getElementById('users-list-container');
   if (!container) return;
-  
+
   container.innerHTML = '<p style="color:var(--muted);">Loading users...</p>';
-  
+
   try {
     const res = await fetch('/api/users');
     if (res.status === 403) {
@@ -3168,7 +3190,7 @@ function renderUsersPanel() {
     container.innerHTML = '<p style="color:var(--muted);">No users found.</p>';
     return;
   }
-  
+
   const rows = usersData.map(u => `
     <div class="user-row" style="display:flex;align-items:center;justify-content:space-between;padding:0.75rem 0;border-bottom:1px solid var(--border);"
       data-username="${esc(u.username)}">
@@ -3192,7 +3214,7 @@ function renderUsersPanel() {
       </div>
     </div>
   `).join('');
-  
+
   container.innerHTML = rows;
 }
 
@@ -3212,25 +3234,25 @@ async function createNewUser() {
   const username = document.getElementById('new-user-username').value.trim();
   const password = document.getElementById('new-user-password').value;
   const role = document.getElementById('new-user-role').value;
-  
+
   if (!username || !password) {
     showToast('Username and password are required', 'error');
     return;
   }
-  
+
   try {
     const res = await fetch('/api/users', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
       body: JSON.stringify({ username, password, role })
     });
-    
+
     if (res.status === 409) {
       showToast('Username already exists', 'error');
       return;
     }
     if (!res.ok) throw new Error('Failed to create user');
-    
+
     showToast(`User ${username} created successfully`, 'success');
     closeAddUserModal();
     await loadUsers();
@@ -3241,14 +3263,14 @@ async function createNewUser() {
 
 async function changeUserRole(username, role) {
   if (!confirm(`Change ${username}'s role to ${role}?`)) return;
-  
+
   try {
     const res = await fetch(`/api/users/${encodeURIComponent(username)}/role`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
       body: JSON.stringify({ role })
     });
-    
+
     if (!res.ok) throw new Error('Failed to change role');
     showToast(`Role updated for ${username}`, 'success');
     await loadUsers();
@@ -3278,14 +3300,14 @@ async function submitResetPassword() {
     showToast('Password cannot be empty', 'error');
     return;
   }
-  
+
   try {
     const res = await fetch(`/api/users/${encodeURIComponent(currentResetUsername)}/reset-password`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
       body: JSON.stringify({ password: newPassword })
     });
-    
+
     if (!res.ok) throw new Error('Failed to reset password');
     showToast(`Password reset for ${currentResetUsername}`, 'success');
     closeResetPasswordModal();
@@ -3300,13 +3322,13 @@ async function resetUserPassword(username) {
 
 async function deleteUser(username) {
   if (!confirm(`Are you sure you want to delete ${username}?\n\nThis will permanently remove the user account. This cannot be undone.`)) return;
-  
+
   try {
     const res = await fetch(`/api/users/${encodeURIComponent(username)}`, {
       method: 'DELETE',
       headers: { 'X-CSRF-Token': getCsrfToken() }
     });
-    
+
     if (!res.ok) throw new Error('Failed to delete user');
     showToast(`User ${username} deleted`, 'success');
     await loadUsers();
@@ -3348,21 +3370,21 @@ async function handleHomepageImageUpload(input, panel) {
 async function handlePortraitUpload(input) {
   const file = input.files[0];
   if (!file) return;
-  
+
   // Validate file size (max 5MB)
   if (file.size > 5 * 1024 * 1024) {
     showToast('Image too large. Max 5MB.', 'error');
     return;
   }
-  
+
   const form = new FormData();
   form.append('cover', file);
   form.append('bookId', 'about-portrait');
-  
+
   try {
     const res = await fetch('/upload-cover', { method: 'POST', headers: { 'X-CSRF-Token': getCsrfToken() }, body: form });
     const data = await res.json();
-    
+
     // Update the input and preview
     document.getElementById('about-portrait-input').value = data.path;
     siteContent.about.portrait = data.path;
@@ -3379,7 +3401,7 @@ async function handlePortraitUpload(input) {
 function updateAboutPortraitPreview(path) {
   const preview = document.getElementById('about-portrait-preview');
   if (!preview) return;
-  
+
   if (path) {
     preview.innerHTML = `<img src="${path}" style="width:100%;height:100%;object-fit:cover;">`;
   } else {
@@ -3396,7 +3418,7 @@ async function loadHomepageSettings() {
     if (!res.ok) throw new Error('Failed to load: ' + res.status);
     homepageSettings = await res.json();
     console.log('>>> Got settings:', homepageSettings);
-    
+
     // Populate form
     const xanreanInput = document.getElementById('homepage-xanrean-bg');
     const standaloneInput = document.getElementById('homepage-standalone-bg');
@@ -3404,7 +3426,7 @@ async function loadHomepageSettings() {
     const xanreanPreview = document.getElementById('homepage-xanrean-preview');
     const standalonePreview = document.getElementById('homepage-standalone-preview');
     const communityPreview = document.getElementById('homepage-community-preview');
-    
+
     if (xanreanInput) {
       xanreanInput.value = homepageSettings.xanrean_bg || '/covers/homepage-cover-xanrean.webp';
       xanreanPreview.style.backgroundImage = `url('${xanreanInput.value}')`;
@@ -3496,7 +3518,7 @@ async function loadXanreanSettings() {
     if (!res.ok) throw new Error('Failed to load: ' + res.status);
     xanreanSettings = await res.json();
     console.log('>>> Got Xanrean settings:', xanreanSettings);
-    
+
     const panels = ['books', 'characters', 'lore', 'game'];
     panels.forEach(panel => {
       const input = document.getElementById(`xanrean-${panel}-bg`);
