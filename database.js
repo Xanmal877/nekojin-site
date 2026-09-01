@@ -124,31 +124,35 @@ class ContentDB {
     }
 
     async _initialize() {
-        // Ensure directory exists
-        if (!fs.existsSync(DB_DIR)) {
-            fs.mkdirSync(DB_DIR, { recursive: true });
-        }
+        try {
+            if (!fs.existsSync(DB_DIR)) {
+                fs.mkdirSync(DB_DIR, { recursive: true });
+            }
 
-        // Open database
-        await new Promise((resolve, reject) => {
-            this.db = new sqlite3.Database(DB_PATH, (err) => {
-                if (err) {
-                    console.error('Failed to open database:', err);
-                    reject(err);
-                } else {
-                    console.log('ContentDB: Connected to', DB_PATH);
-                    resolve();
-                }
+            await new Promise((resolve, reject) => {
+                this.db = new sqlite3.Database(DB_PATH, (err) => {
+                    if (err) {
+                        console.error('Failed to open database:', err);
+                        reject(err);
+                    } else {
+                        console.log('ContentDB: Connected to', DB_PATH);
+                        resolve();
+                    }
+                });
             });
-        });
 
-        // Enable foreign keys
-        await this._run('PRAGMA foreign_keys = ON');
-        this.isOpen = true;
-
-        // Create tables
-        await this._CreateTables();
-        console.log('ContentDB: Tables created');
+            await this._run('PRAGMA foreign_keys = ON');
+            await this._CreateTables();
+            this.isOpen = true;
+            console.log('ContentDB: Tables created');
+        } catch (err) {
+            const db = this.db;
+            this.db = null;
+            this.isOpen = false;
+            this.initPromise = null;
+            if (db) await new Promise(resolve => db.close(() => resolve()));
+            throw err;
+        }
     }
 
     /**
@@ -383,7 +387,7 @@ class ContentDB {
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         `);
-        
+
         // Insert default row if not exists
         await this._run(`
             INSERT OR IGNORE INTO xanrean_settings (id) VALUES (1)
@@ -455,7 +459,7 @@ class ContentDB {
         } catch (e) {
             // Column likely already exists, ignore
         }
-        
+
         // Timeline Events table
         await this._run(`
             CREATE TABLE IF NOT EXISTS timeline_events (
@@ -675,7 +679,7 @@ class ContentDB {
             row.cover = row.cover_path;
             row.volume = row.volume || '';
             row.ctaPlatform = row.cta_platform || 'kdp';
-            
+
             // Load platforms and normalize field names
             row.platforms = await this.SelectBookPlatforms(row.id);
             // Map platform fields for compatibility
@@ -685,7 +689,7 @@ class ContentDB {
                 url: p.url,
                 ...p
             }));
-            
+
             books.push(row);
         }
         return books;
@@ -751,7 +755,7 @@ class ContentDB {
         return { id: data.id || 'main' };
     }
 
-    
+
     async SelectGames() {
         const rows = await this._all('SELECT * FROM game ORDER BY created_at DESC');
         if (!rows || rows.length === 0) return [];
@@ -788,6 +792,12 @@ class ContentDB {
     }
 
     async ReorderGames(gameIds) {
+        const operation = this.saveQueue.then(() => this._reorderGames(gameIds));
+        this.saveQueue = operation.catch(() => {});
+        return operation;
+    }
+
+    async _reorderGames(gameIds) {
         if (!gameIds || !Array.isArray(gameIds)) return { success: false, error: 'Invalid game IDs' };
 
         const rows = await this._all('SELECT * FROM game');
@@ -1027,6 +1037,12 @@ class ContentDB {
     }
 
     async UpdateBookSequence(seriesId, bookIds) {
+        const operation = this.saveQueue.then(() => this._updateBookSequence(seriesId, bookIds));
+        this.saveQueue = operation.catch(() => {});
+        return operation;
+    }
+
+    async _updateBookSequence(seriesId, bookIds) {
         if (!bookIds || !Array.isArray(bookIds)) return { success: false, error: 'Invalid book IDs' };
 
         try {

@@ -17,49 +17,116 @@ const USERS_FILE = path.join(__dirname, 'users.json');
 const USER_KEYS_FILE = path.join(__dirname, 'user-keys.json');
 const SESSIONS_FILE = path.join(__dirname, 'sessions.json');
 
-// Ensure files exist
-if (!fs.existsSync(SESSIONS_FILE)) fs.writeFileSync(SESSIONS_FILE, '{}');
+// ── ATOMIC WRITE HELPERS ────────────────────────────────
+/**
+ * Write JSON atomically using temp file + rename pattern (synchronous).
+ * Validates the JSON before committing the write.
+ * Logs detailed errors for observability.
+ * @param {string} filePath - Target file path
+ * @param {object} data - Data to serialize
+ * @returns {boolean} - True if write succeeded
+ */
+function atomicWriteSync(filePath, data) {
+    try {
+        // Serialize and validate
+        const json = JSON.stringify(data, null, 2);
+        const parsed = JSON.parse(json); // Verify roundtrip
+        if (!parsed) throw new Error('Deserialized data is falsy');
+
+        // Atomic write via temp + rename
+        const tempPath = `${filePath}.tmp.${crypto.randomBytes(4).toString('hex')}`;
+        fs.writeFileSync(tempPath, json, { flag: 'w' });
+
+        // Chmod before rename for consistency
+        try {
+            fs.chmodSync(tempPath, 0o600);
+        } catch (e) {
+            console.warn(`[PERSISTENCE] Failed to chmod ${tempPath}:`, e.message);
+        }
+
+        // Atomic rename
+        fs.renameSync(tempPath, filePath);
+        return true;
+    } catch (err) {
+        const msg = `Atomic write failed for ${path.basename(filePath)}: ${err.message}`;
+        console.error(`[PERSISTENCE] ${msg}`);
+        return false;
+    }
+}
+
+/**
+ * Read and validate JSON with graceful fallback (synchronous).
+ * Returns both the data and whether the file was valid.
+ * @param {string} filePath - File to read
+ * @param {object} fallback - Default to return if parsing fails
+ * @returns {{data: object, valid: boolean, error?: string}}
+ */
+function readJsonWithFallbackSync(filePath, fallback = {}) {
+    try {
+        if (!fs.existsSync(filePath)) {
+            return { data: fallback, valid: true, created: true };
+        }
+        const raw = fs.readFileSync(filePath, 'utf8');
+        const data = JSON.parse(raw);
+        return { data, valid: true };
+    } catch (err) {
+        const msg = `Malformed JSON in ${path.basename(filePath)}: ${err.message}`;
+        console.error(`[PERSISTENCE] ${msg}`);
+        console.error(`[PERSISTENCE] Falling back to default state to avoid lockout`);
+        return { data: fallback, valid: false, error: msg };
+    }
+}
+
+// Ensure files exist with initial state
+if (!fs.existsSync(SESSIONS_FILE)) {
+    atomicWriteSync(SESSIONS_FILE, {});
+}
 
 // ── SESSIONS ────────────────────────────────────────────
 const sessions = new Map();
 
 function loadSessions() {
-    try {
-        const raw = JSON.parse(fs.readFileSync(SESSIONS_FILE, 'utf8'));
-        const now = Date.now();
-        let cleaned = false;
-        for (const [id, s] of Object.entries(raw)) {
-            if (now - s.createdAt < SESSION_TTL) {
-                sessions.set(id, s);
-            } else {
-                cleaned = true;
-            }
+    const result = readJsonWithFallbackSync(SESSIONS_FILE, {});
+    const now = Date.now();
+    let cleaned = false;
+    for (const [id, s] of Object.entries(result.data)) {
+        if (now - s.createdAt < SESSION_TTL) {
+            sessions.set(id, s);
+        } else {
+            cleaned = true;
         }
-        // Save cleaned file if we removed expired sessions
-        if (cleaned) saveSessions();
-    } catch {}
+    }
+    // Save cleaned file if we removed expired sessions
+    if (cleaned) saveSessions();
+    if (!result.valid) {
+        console.warn('[PERSISTENCE] Recovered from malformed sessions.json, cleaned state loaded');
+    }
 }
 
 function cleanupExpiredSessions() {
     try {
-        const raw = JSON.parse(fs.readFileSync(SESSIONS_FILE, 'utf8'));
+        const result = readJsonWithFallbackSync(SESSIONS_FILE, {});
         const now = Date.now();
         let removed = 0;
-        
-        for (const [id, s] of Object.entries(raw)) {
+
+        for (const [id, s] of Object.entries(result.data)) {
             if (now - s.createdAt > SESSION_TTL) {
-                delete raw[id];
+                delete result.data[id];
                 sessions.delete(id);
                 removed++;
             }
         }
-        
+
         if (removed > 0) {
-            fs.writeFileSync(SESSIONS_FILE, JSON.stringify(raw, null, 2));
-            console.log(`Session cleanup: removed ${removed} expired sessions`);
+            const written = atomicWriteSync(SESSIONS_FILE, result.data);
+            if (written) {
+                console.log(`[PERSISTENCE] Session cleanup: removed ${removed} expired sessions`);
+            } else {
+                console.error(`[PERSISTENCE] Failed to persist session cleanup`);
+            }
         }
     } catch (e) {
-        console.error('Session cleanup error:', e);
+        console.error('[PERSISTENCE] Session cleanup error:', e);
     }
 }
 
@@ -67,10 +134,11 @@ function cleanupExpiredSessions() {
 setInterval(cleanupExpiredSessions, 60 * 60 * 1000);
 
 function saveSessions() {
-    try {
-        fs.writeFileSync(SESSIONS_FILE, JSON.stringify(Object.fromEntries(sessions), null, 2));
-        fs.chmodSync(SESSIONS_FILE, 0o600);
-    } catch {}
+    const data = Object.fromEntries(sessions);
+    const written = atomicWriteSync(SESSIONS_FILE, data);
+    if (!written) {
+        console.error(`[PERSISTENCE] Failed to save sessions to disk (in-memory state preserved)`);
+    }
 }
 
 function createSession(username) {
@@ -136,14 +204,56 @@ function invalidateUserSessions(username) {
 }
 
 // ── USERS ───────────────────────────────────────────────
-function loadUsers() {
-    try { return JSON.parse(fs.readFileSync(USERS_FILE, 'utf8')); }
-    catch { return { users: {} }; }
+/**
+ * Read the users file and report its state.
+ * @returns {{data: object, absent: boolean, valid: boolean}}
+ *   - data: the parsed users structure ({ users: {...} }) when valid
+ *   - absent: true only when the file genuinely does not exist
+ *   - valid: false when the file exists but is malformed or structurally invalid
+ */
+function readUsersState() {
+    const result = readJsonWithFallbackSync(USERS_FILE, { users: {} });
+    const data = result.data;
+
+    // Validate structure: must have a "users" key with object value
+    if (!data.users || typeof data.users !== 'object' || Array.isArray(data.users)) {
+        console.error(`[PERSISTENCE] Invalid users.json structure detected`);
+        return { data: null, absent: false, valid: false };
+    }
+
+    if (!result.valid) {
+        console.warn('[PERSISTENCE] Recovered from malformed users.json');
+    }
+    return { data, absent: !!result.created, valid: result.valid };
 }
 
+/**
+ * Load users with validation and fallback.
+ * Ensures the structure is { users: {...} } even if malformed.
+ */
+function loadUsers() {
+    const state = readUsersState();
+    return state.data || { users: {} };
+}
+
+/**
+ * Save users atomically and log failures.
+ * If write fails, logs the error with full context for debugging.
+ * In-memory state is always preserved even if disk write fails.
+ */
 function saveUsers(users) {
-    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
-    try { fs.chmodSync(USERS_FILE, 0o600); } catch {}
+    // Validate before write
+    if (!users || typeof users !== 'object' || !users.users || typeof users.users !== 'object') {
+        console.error(`[PERSISTENCE] Cannot save invalid users structure:`, users);
+        return false;
+    }
+
+    const written = atomicWriteSync(USERS_FILE, users);
+    if (!written) {
+        console.error(`[PERSISTENCE] Failed to save users to disk (in-memory state preserved)`);
+        return false;
+    }
+    return true;
 }
 
 function findUser(username) {
@@ -159,7 +269,11 @@ function createUser(username, password, role = 'user') {
         role: role,
         createdAt: Date.now()
     };
-    saveUsers(db);
+    if (!saveUsers(db)) {
+        // Write failed: roll back the in-memory change so we don't report success.
+        delete db.users[username];
+        return false;
+    }
     return true;
 }
 
@@ -181,7 +295,18 @@ function isAdmin(req) {
 }
 
 function ensureAdminUser() {
-    const db = loadUsers();
+    const state = readUsersState();
+
+    // Fail closed: if users.json exists but is malformed or structurally invalid,
+    // do NOT overwrite it. Preserve the file and refuse to bootstrap, so a corrupt
+    // file cannot silently wipe existing accounts or mint a fresh admin.
+    if (!state.valid) {
+        console.error('[PERSISTENCE] users.json is malformed or structurally invalid; refusing to modify it. ' +
+            'Fix or remove the file manually to recover.');
+        return;
+    }
+
+    const db = state.data;
     let migrated = false;
     for (const [name, u] of Object.entries(db.users)) {
         if (!u.role) {
@@ -193,7 +318,7 @@ function ensureAdminUser() {
     // Only bootstrap an admin account on a genuinely fresh install (no users at all).
     // No hardcoded credentials: use ADMIN_BOOTSTRAP_USER/ADMIN_BOOTSTRAP_PASSWORD env vars,
     // or fall back to a randomly generated password printed once to the console.
-    if (Object.keys(db.users).length === 0) {
+    if (state.absent && Object.keys(db.users).length === 0) {
         const bootstrapUser = process.env.ADMIN_BOOTSTRAP_USER || 'admin';
         const usedEnvPassword = !!process.env.ADMIN_BOOTSTRAP_PASSWORD;
         const bootstrapPassword = process.env.ADMIN_BOOTSTRAP_PASSWORD || crypto.randomBytes(12).toString('base64url');
@@ -234,8 +359,13 @@ function listAllUsers() {
 function deleteUser(username) {
     const db = loadUsers();
     if (!db.users[username]) return false;
+    const original = db.users[username];
     delete db.users[username];
-    saveUsers(db);
+    if (!saveUsers(db)) {
+        // Write failed: roll back the in-memory change so we don't report success.
+        db.users[username] = original;
+        return false;
+    }
     invalidateUserSessions(username);
     return true;
 }
@@ -243,8 +373,13 @@ function deleteUser(username) {
 function resetPassword(username, newPassword) {
     const db = loadUsers();
     if (!db.users[username]) return false;
+    const originalHash = db.users[username].passwordHash;
     db.users[username].passwordHash = bcrypt.hashSync(newPassword, SALT_ROUNDS);
-    saveUsers(db);
+    if (!saveUsers(db)) {
+        // Write failed: roll back the in-memory change so we don't report success.
+        db.users[username].passwordHash = originalHash;
+        return false;
+    }
     invalidateUserSessions(username);
     return true;
 }
@@ -252,8 +387,13 @@ function resetPassword(username, newPassword) {
 function setUserRole(username, role) {
     const db = loadUsers();
     if (!db.users[username]) return false;
+    const originalRole = db.users[username].role;
     db.users[username].role = role;
-    saveUsers(db);
+    if (!saveUsers(db)) {
+        // Write failed: roll back the in-memory change so we don't report success.
+        db.users[username].role = originalRole;
+        return false;
+    }
     invalidateUserSessions(username);
     return true;
 }
@@ -271,13 +411,20 @@ function isLastAdmin(username) {
 
 // ── USER KEYS ───────────────────────────────────────────
 function loadUserKeys() {
-    try { return JSON.parse(fs.readFileSync(USER_KEYS_FILE, 'utf8')); }
-    catch { return {}; }
+    const result = readJsonWithFallbackSync(USER_KEYS_FILE, {});
+    if (!result.valid) {
+        console.warn('[PERSISTENCE] Recovered from malformed user-keys.json');
+    }
+    return result.data;
 }
 
 function saveUserKeys(data) {
-    fs.writeFileSync(USER_KEYS_FILE, JSON.stringify(data, null, 2));
-    try { fs.chmodSync(USER_KEYS_FILE, 0o600); } catch {}
+    const written = atomicWriteSync(USER_KEYS_FILE, data);
+    if (!written) {
+        console.error(`[PERSISTENCE] Failed to save user keys to disk (in-memory state preserved)`);
+        return false;
+    }
+    return true;
 }
 
 function getUserKeys(username) {
@@ -288,8 +435,18 @@ function getUserKeys(username) {
 function setUserKey(username, provider, key) {
     const all = loadUserKeys();
     if (!all[username]) all[username] = {};
+    const original = all[username][provider];
     all[username][provider] = key;
-    saveUserKeys(all);
+    if (!saveUserKeys(all)) {
+        // Write failed: roll back the in-memory change so we don't report success.
+        if (original === undefined) {
+            delete all[username][provider];
+        } else {
+            all[username][provider] = original;
+        }
+        return false;
+    }
+    return true;
 }
 
 // ── REQUEST HELPERS ─────────────────────────────────────

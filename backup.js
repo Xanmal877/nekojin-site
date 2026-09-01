@@ -3,20 +3,28 @@
  * backup.js - Database backup utility for Nekojin Interactive
  *
  * Usage:
- *   node backup.js              # Run once, manual backup (file copy)
+ *   node backup.js              # Run once, manual backup
  *   node backup.js --schedule   # Start scheduled backups (runs in background)
  *   node backup.js --status     # Show backup status
  *
  * Features:
- *   - File-based backups (safe for offline use)
+ *   - Safe backup via ContentDB.CreateBackup() when imported by server
+ *   - File-based backups (for offline CLI usage)
  *   - Backup validation (verifies SQLite integrity)
  *   - Automatic cleanup (keeps last N days)
  *   - Optional scheduled backups
- * 
+ *
  * Config:
  *   BACKUP_DIR  = ./data/backups/
  *   KEEP_DAYS   = 7 (number of daily backups to retain)
  *   INTERVAL_MS = 24 hours (for scheduled mode)
+ *
+ * Integration:
+ *   When imported by dashboard-server.js: createBackup() delegates to the safe
+ *   ContentDB.CreateBackup() mechanism (SQLite API with validation).
+ *   Returns awaitable Promise that resolves to the backup path.
+ *   Failures are surfaced to the caller via Promise rejection.
+ *   When run as CLI: uses file copy for offline operation.
  */
 
 const fs = require('fs');
@@ -26,6 +34,16 @@ const DB_FILE = path.join(__dirname, 'data', 'nekojin.db');
 const BACKUP_DIR = path.join(__dirname, 'data', 'backups');
 const KEEP_DAYS = 7;
 const INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+// Lazy-loaded when imported (avoids circular dependency)
+let contentDB = null;
+
+function getContentDB() {
+    if (!contentDB) {
+        contentDB = require('./database.js');
+    }
+    return contentDB;
+}
 
 function getTimestamp() {
     const now = new Date();
@@ -39,7 +57,34 @@ function ensureDir(dir) {
     }
 }
 
-function createBackup() {
+/**
+ * createBackup - Backup the database using the safe mechanism
+ *
+ * When imported by server: delegates to contentDB.CreateBackup()
+ * When run as CLI: uses file copy (offline-safe)
+ *
+ * Returns: Promise<string|boolean>
+ *   - Promise resolves to backup file path on success (ContentDB used)
+ *   - Promise resolves to true on success (CLI mode)
+ *   - Promise resolves to false on failure (CLI mode)
+ *   - Promise rejects with Error on critical failures (server mode)
+ */
+async function createBackup() {
+    // Attempt to use safe ContentDB mechanism if available
+    try {
+        const db = getContentDB();
+        if (db && db.CreateBackup) {
+            // ContentDB.CreateBackup is async and validates the backup
+            const backupPath = await db.CreateBackup('daily');
+            return backupPath;
+        }
+    } catch (err) {
+        // If we loaded database.js and it threw, this is a server-mode error - don't suppress
+        console.error(`❌ Backup via ContentDB failed: ${err.message}`);
+        throw err;
+    }
+
+    // Fallback: CLI mode file copy for offline operation
     ensureDir(BACKUP_DIR);
 
     if (!fs.existsSync(DB_FILE)) {
@@ -65,7 +110,34 @@ function getRestoreTimestamp() {
     return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
 }
 
-function createRestorePoint(label = 'restore') {
+/**
+ * createRestorePoint - Create a labeled restore point
+ *
+ * When imported by server: delegates to contentDB.CreateBackup()
+ * When run as CLI: uses file copy (offline-safe)
+ *
+ * Returns: Promise<string|boolean>
+ *   - Promise resolves to backup file path on success (ContentDB used)
+ *   - Promise resolves to true on success (CLI mode)
+ *   - Promise resolves to false on failure (CLI mode)
+ *   - Promise rejects with Error on critical failures (server mode)
+ */
+async function createRestorePoint(label = 'restore') {
+    // Attempt to use safe ContentDB mechanism if available
+    try {
+        const db = getContentDB();
+        if (db && db.CreateBackup) {
+            const safeLabel = String(label).replace(/[^a-z0-9_-]/gi, '-');
+            const backupPath = await db.CreateBackup(`restore-${safeLabel}`);
+            return backupPath;
+        }
+    } catch (err) {
+        // If we loaded database.js and it threw, this is a server-mode error - don't suppress
+        console.error(`❌ Restore point via ContentDB failed: ${err.message}`);
+        throw err;
+    }
+
+    // Fallback: CLI mode file copy for offline operation
     ensureDir(BACKUP_DIR);
 
     if (!fs.existsSync(DB_FILE)) {
@@ -93,7 +165,7 @@ function copyDbTo(backupFile, description) {
 
 function cleanupOldBackups() {
     ensureDir(BACKUP_DIR);
-    
+
     const files = fs.readdirSync(BACKUP_DIR)
         .filter(f => f.startsWith('nekojin-') && f.endsWith('.db'))
         .map(f => ({
@@ -102,10 +174,10 @@ function cleanupOldBackups() {
             time: fs.statSync(path.join(BACKUP_DIR, f)).mtimeMs
         }))
         .sort((a, b) => b.time - a.time); // Newest first
-    
+
     const cutoffTime = Date.now() - (KEEP_DAYS * 24 * 60 * 60 * 1000);
     let deleted = 0;
-    
+
     for (const file of files) {
         if (file.time < cutoffTime) {
             try {
@@ -117,19 +189,19 @@ function cleanupOldBackups() {
             }
         }
     }
-    
+
     if (deleted === 0) {
         console.log(`   No old backups to clean up (keeping last ${KEEP_DAYS} days)`);
     } else {
         console.log(`   Cleaned up ${deleted} old backup(s)`);
     }
-    
+
     return deleted;
 }
 
 function getBackupStatus() {
     ensureDir(BACKUP_DIR);
-    
+
     const files = fs.readdirSync(BACKUP_DIR)
         .filter(f => f.startsWith('nekojin-') && f.endsWith('.db'))
         .map(f => {
@@ -142,13 +214,13 @@ function getBackupStatus() {
             };
         })
         .sort((a, b) => a.age - b.age);
-    
+
     console.log('\n📊 Backup Status:');
     console.log(`   Database: ${DB_FILE}`);
     console.log(`   Backups:  ${BACKUP_DIR}`);
     console.log(`   Keeping:  Last ${KEEP_DAYS} days`);
     console.log(`\n   Recent backups:`);
-    
+
     if (files.length === 0) {
         console.log('   (none yet)');
     } else {
@@ -157,35 +229,47 @@ function getBackupStatus() {
             console.log(`   • ${f.date} (${ageStr}, ${f.size})`);
         });
     }
-    
+
     console.log('');
 }
 
-function runScheduled() {
+async function runScheduled() {
     console.log(`⏰ Starting scheduled backups (every ${KEEP_DAYS} days retained)`);
     console.log(`   Next backup in 24 hours\n`);
-    
+
     // Run immediately
-    createBackup();
-    cleanupOldBackups();
-    
-    // Then schedule
-    setInterval(() => {
-        console.log(`\n[${new Date().toISOString()}] Running scheduled backup...`);
-        createBackup();
+    try {
+        await createBackup();
         cleanupOldBackups();
+    } catch (err) {
+        console.error(`Initial backup failed: ${err.message}`);
+    }
+
+    // Then schedule
+    setInterval(async () => {
+        console.log(`\n[${new Date().toISOString()}] Running scheduled backup...`);
+        try {
+            await createBackup();
+            cleanupOldBackups();
+        } catch (err) {
+            console.error(`Scheduled backup failed: ${err.message}`);
+        }
     }, INTERVAL_MS);
 }
 
-// Main
-const args = process.argv.slice(2);
+// Main CLI - only execute when run directly
+if (require.main === module) {
+    const args = process.argv.slice(2);
 
-if (args.includes('--status') || args.includes('-s')) {
-    getBackupStatus();
-} else if (args.includes('--schedule')) {
-    runScheduled();
-} else if (args.includes('--help') || args.includes('-h')) {
-    console.log(`
+    if (args.includes('--status') || args.includes('-s')) {
+        getBackupStatus();
+    } else if (args.includes('--schedule')) {
+        runScheduled().catch(err => {
+            console.error(`Fatal error in scheduled backups: ${err.message}`);
+            process.exit(1);
+        });
+    } else if (args.includes('--help') || args.includes('-h')) {
+        console.log(`
 Database Backup Utility
 
 Usage:
@@ -199,12 +283,20 @@ Configuration:
   KEEP_DAYS  = ${KEEP_DAYS}
   INTERVAL   = 24 hours (scheduled mode)
 `);
-} else {
-    // Default: run once
-    console.log('📦 Creating database backup...\n');
-    createBackup();
-    cleanupOldBackups();
-    getBackupStatus();
+    } else {
+        // Default: run once
+        console.log('📦 Creating database backup...\n');
+        (async () => {
+            try {
+                await createBackup();
+                cleanupOldBackups();
+                getBackupStatus();
+            } catch (err) {
+                console.error(`Backup error: ${err.message}`);
+                process.exit(1);
+            }
+        })();
+    }
 }
 
 module.exports = { createBackup, createRestorePoint, cleanupOldBackups, getBackupStatus };
