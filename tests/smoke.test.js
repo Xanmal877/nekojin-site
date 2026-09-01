@@ -13,6 +13,7 @@ const WORKDIR = fs.mkdtempSync(path.join(os.tmpdir(), 'nekojin-smoke-'));
 const PORT = 7781;
 const BASE = `http://127.0.0.1:${PORT}`;
 const ADMIN_PASSWORD = 'SmokeTestPass1234';
+const GUMROAD_WEBHOOK_SECRET = 'smoke-webhook-secret';
 
 let serverProcess;
 let serverStderr = '';
@@ -68,6 +69,7 @@ before(async () => {
         env: {
             ...process.env,
             ADMIN_BOOTSTRAP_PASSWORD: ADMIN_PASSWORD,
+            GUMROAD_WEBHOOK_SECRET,
             PORT: String(PORT),
         },
         stdio: 'pipe',
@@ -412,7 +414,7 @@ test('book sequence reordering persists', async () => {
     const content = await (await fetch(`${BASE}/content`)).json();
     const bookA = content.books.find(b => b.id === 'book-a');
     const bookB = content.books.find(b => b.id === 'book-b');
-    
+
     // Book B should now be 1, Book A should be 2
     assert.strictEqual(bookB.volume_number, 1);
     assert.strictEqual(bookA.volume_number, 2);
@@ -629,11 +631,11 @@ test('Gumroad webhook persists sales and handles duplicates', async () => {
         body: JSON.stringify({ gumroad_seller_id: 'test_seller' }),
     });
     assert.strictEqual(settingsRes.status, 200);
-    
+
     // First ping
     const res1 = await fetch(`${BASE}/webhook/gumroad`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Gumroad-Webhook-Secret': GUMROAD_WEBHOOK_SECRET },
         body: ping,
     });
     assert.strictEqual(res1.status, 200);
@@ -641,7 +643,7 @@ test('Gumroad webhook persists sales and handles duplicates', async () => {
     // Duplicate ping
     const res2 = await fetch(`${BASE}/webhook/gumroad`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Gumroad-Webhook-Secret': GUMROAD_WEBHOOK_SECRET },
         body: ping,
     });
     assert.strictEqual(res2.status, 200);
@@ -736,7 +738,7 @@ test('character relationships round-trip', async () => {
     const getRes = await fetch(`${BASE}/api/characters/${charSlug}`);
     assert.strictEqual(getRes.status, 200);
     const body = await getRes.json();
-    
+
     assert.ok(Array.isArray(body.relationships));
     assert.strictEqual(body.relationships.length, 2);
     assert.ok(body.relationships.some(r => r.character_slug === 'tama' && r.relationship_type === 'Friend'));

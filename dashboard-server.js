@@ -87,11 +87,11 @@ function checkRateLimit(req, endpoint) {
     // Check limit
     if (record.count >= config.max) {
         const retryAfter = Math.ceil((record.resetTime - now) / 1000);
-        return { 
-            allowed: false, 
-            status: 429, 
+        return {
+            allowed: false,
+            status: 429,
             message: config.message,
-            retryAfter 
+            retryAfter
         };
     }
 
@@ -129,15 +129,6 @@ if (MANUSCRIPTS_ENABLED && !fs.existsSync(MANUSCRIPTS_DIR)) fs.mkdirSync(MANUSCR
 // Open database connection
 contentDB.Open();
 console.log('Database connection opened');
-
-// Start automatic backups (runs immediately, then daily)
-backup.createBackup();
-backup.cleanupOldBackups();
-setInterval(() => {
-    console.log(`[${new Date().toISOString()}] Running scheduled backup...`);
-    backup.createBackup();
-    backup.cleanupOldBackups();
-}, 24 * 60 * 60 * 1000); // 24 hours
 
 // ── MANUSCRIPT PARSING (.docx → chapters) ──────────────────
 const MANUSCRIPT_CACHE = new Map();
@@ -504,55 +495,120 @@ async function handleRequest(req, res) {
         '.html', '.css', '.js', '.xml', '.txt', '.json', '.md',
         '.png', '.jpg', '.jpeg', '.ico', '.svg', '.webp', '.gif'
     ]);
-    
+
     const ALLOWED_DIRECTORIES = [
         '/covers/',
         '/assets/',
         '/images/',
-        '/fonts/',
-        '/data/'
+        '/fonts/'
     ];
-    
+
+    const ROOT_ASSETS = new Set([
+        '/style.css',
+        '/common.js',
+        '/manifest.json',
+        '/robots.txt',
+        '/sitemap.xml',
+        '/rss.xml'
+    ]);
+
     if (req.method === 'GET') {
-        // Decode URL to handle spaces and special characters
-        const decodedUrl = decodeURIComponent(url);
-        const ext = path.extname(decodedUrl).toLowerCase();
+        let decodedUrl;
+        try {
+            decodedUrl = decodeURIComponent(url);
+        } catch {
+            res.writeHead(400, { 'Content-Type': 'text/plain' });
+            return res.end('Bad Request');
+        }
+        if (decodedUrl.includes('\0')) {
+            res.writeHead(400, { 'Content-Type': 'text/plain' });
+            return res.end('Bad Request');
+        }
+
+        const resolvedPath = path.resolve(PUBLIC_DIR, `.${decodedUrl}`);
+        const isPathSafe = resolvedPath.startsWith(PUBLIC_DIR + path.sep);
+        const relativeUrl = isPathSafe
+            ? '/' + path.relative(PUBLIC_DIR, resolvedPath).split(path.sep).join('/')
+            : '';
+        const ext = path.extname(relativeUrl).toLowerCase();
         const isAllowedExt = ALLOWED_EXTENSIONS.has(ext);
-        const isAllowedDir = ALLOWED_DIRECTORIES.some(dir => decodedUrl.startsWith(dir));
-        
-        // Block path traversal attempts
-        const resolvedPath = path.resolve(path.join(PUBLIC_DIR, decodedUrl));
-        const isPathSafe = resolvedPath.startsWith(PUBLIC_DIR);
-        
-        if ((isAllowedExt || isAllowedDir) && isPathSafe) {
+        const isAllowedDir = ALLOWED_DIRECTORIES.some(dir => relativeUrl.startsWith(dir));
+        const isRootAsset = ROOT_ASSETS.has(relativeUrl);
+
+        if (isPathSafe && isAllowedExt && (isAllowedDir || isRootAsset)) {
             return serveFile(res, resolvedPath);
-        } else if (isAllowedExt && !isPathSafe) {
-            // Path traversal attempt detected
+        }
+        if (isAllowedExt || decodedUrl.startsWith('/covers/') || decodedUrl.startsWith('/assets/') ||
+            decodedUrl.startsWith('/images/') || decodedUrl.startsWith('/fonts/')) {
             res.writeHead(403, { 'Content-Type': 'text/plain' });
             return res.end('Forbidden: Invalid path');
         }
     }
 
+    // Wiki Markdown is exposed through narrow APIs rather than reopening
+    // /public/data/ as a static directory.
+    if (req.method === 'GET' && url === '/api/compendium') {
+        return serveFile(res, path.join(PUBLIC_DIR, 'data', 'lore', 'compendium.md'));
+    }
+    if (req.method === 'GET' && /^\/api\/wiki\/[a-z0-9-]+$/.test(url)) {
+        const file = url.slice('/api/wiki/'.length);
+        return serveFile(res, path.join(PUBLIC_DIR, 'data', 'characters', `${file}.md`));
+    }
+
     // Gumroad Webhook (PUBLIC, CSRF-exempt)
-    if (req.method === 'POST' && url === '/webhook/gumroad') {
-        const limit = checkRateLimit(req, '/webhook/gumroad');
-        if (!limit.allowed) {
-            res.writeHead(429);
-            return res.end(limit.message);
-        }
+     if (req.method === 'POST' && url === '/webhook/gumroad') {
+         const limit = checkRateLimit(req, '/webhook/gumroad');
+         if (!limit.allowed) {
+             res.writeHead(429);
+             return res.end(limit.message);
+         }
 
-        try {
-            const body = await readRawBody(req, 512 * 1024);
-            const ping = gumroad.parsePingBody(body);
-            
-            const settings = await contentDB.SelectXanreanSettings();
-            const sellerId = settings.gumroad_seller_id || process.env.GUMROAD_SELLER_ID;
+         try {
+             // Validate webhook signature (cryptographically strong authentication)
+             // Gumroad's ping requests cannot be signed. Configure its ping URL
+             // as /webhook/gumroad?secret=<GUMROAD_WEBHOOK_SECRET>; the header
+             // form also supports a reverse proxy that injects the secret.
+             const providedSecret = req.headers['x-gumroad-webhook-secret'] || query.get('secret');
+             const configuredSecret = process.env.GUMROAD_WEBHOOK_SECRET;
 
-            const pingErrors = gumroad.validatePing(ping);
-            if (!sellerId || pingErrors.length || !gumroad.validateSellerId(ping, sellerId)) {
-                res.writeHead(403);
-                return res.end('Forbidden: Invalid webhook');
-            }
+             if (!configuredSecret) {
+                 console.error('[Gumroad Webhook] GUMROAD_WEBHOOK_SECRET not configured');
+                 res.writeHead(403);
+                 return res.end('Forbidden: Webhook secret not configured');
+             }
+
+             if (!providedSecret) {
+                 console.warn('[Gumroad Webhook] Missing webhook secret');
+                 res.writeHead(403);
+                 return res.end('Forbidden: Missing webhook secret header');
+             }
+
+             let secretValid = false;
+             try {
+                 secretValid = gumroad.validateWebhookSignature(configuredSecret, providedSecret);
+             } catch (err) {
+                 console.error('[Gumroad Webhook] Signature comparison error:', err);
+                 res.writeHead(403);
+                 return res.end('Forbidden: Invalid webhook secret');
+             }
+
+             if (!secretValid) {
+                 console.warn('[Gumroad Webhook] Invalid webhook secret');
+                 res.writeHead(403);
+                 return res.end('Forbidden: Invalid webhook secret');
+             }
+
+             const body = await readRawBody(req, 512 * 1024);
+             const ping = gumroad.parsePingBody(body);
+
+             const settings = await contentDB.SelectXanreanSettings();
+             const sellerId = settings.gumroad_seller_id || process.env.GUMROAD_SELLER_ID;
+
+             const pingErrors = gumroad.validatePing(ping);
+             if (!sellerId || pingErrors.length || !gumroad.validateSellerId(ping, sellerId)) {
+                 res.writeHead(403);
+                 return res.end('Forbidden: Invalid webhook');
+             }
 
             // Convert and validate price strictly as integer (cents)
             const priceCents = gumroad.parsePriceInCents(ping.price);
@@ -611,7 +667,7 @@ async function handleRequest(req, res) {
             }));
         } catch (err) {
             res.writeHead(503, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ ok: false, dbConnected: false, error: err.message }));
+            return res.end(JSON.stringify({ ok: false, dbConnected: false, error: 'Service unavailable' }));
         }
     }
 
@@ -640,8 +696,8 @@ async function handleRequest(req, res) {
         try {
             if (req.method === 'GET' && url === '/api/characters') {
                 const characters = await contentDB.SelectCharacters();
-                const filtered = accounts.isAdmin(req) 
-                    ? characters 
+                const filtered = accounts.isAdmin(req)
+                    ? characters
                     : characters.filter(c => c.visible === 1);
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 return res.end(JSON.stringify(filtered));
@@ -659,7 +715,7 @@ async function handleRequest(req, res) {
         } catch (err) {
             console.error('Character API error:', err);
             res.writeHead(500);
-            return res.end(JSON.stringify({ error: err.message }));
+            return res.end(JSON.stringify({ error: 'Failed to load characters' }));
         }
     }
 
@@ -668,8 +724,8 @@ async function handleRequest(req, res) {
         try {
             if (req.method === 'GET' && url === '/api/timeline') {
                 const events = await contentDB.SelectTimelineEvents();
-                const filtered = accounts.isAdmin(req) 
-                    ? events 
+                const filtered = accounts.isAdmin(req)
+                    ? events
                     : events.filter(e => e.visible === 1);
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 return res.end(JSON.stringify(filtered));
@@ -687,7 +743,7 @@ async function handleRequest(req, res) {
         } catch (err) {
             console.error('Timeline API error:', err);
             res.writeHead(500);
-            return res.end(JSON.stringify({ error: err.message }));
+            return res.end(JSON.stringify({ error: 'Failed to load timeline' }));
         }
     }
 
@@ -718,7 +774,7 @@ async function handleRequest(req, res) {
         } catch (err) {
             console.error('Lore API error:', err);
             res.writeHead(500);
-            return res.end(JSON.stringify({ error: err.message }));
+            return res.end(JSON.stringify({ error: 'Failed to load lore topics' }));
         }
     }
 
@@ -884,7 +940,7 @@ async function handleRequest(req, res) {
             res.writeHead(429, { 'Content-Type': 'text/plain', 'Retry-After': limit.retryAfter });
             return res.end(limit.message);
         }
-        
+
         const body = await readRawBody(req, 16 * 1024);
         const params = parseFormBody(body);
         if (accounts.verifyUser(params.username, params.password)) {
@@ -966,35 +1022,35 @@ async function handleRequest(req, res) {
             res.writeHead(429, { 'Content-Type': 'application/json', 'Retry-After': limit.retryAfter });
             return res.end(JSON.stringify({ error: limit.message }));
         }
-        
+
         try {
             const body = await readRawBody(req, 16 * 1024);
             const { email } = JSON.parse(body.toString());
-            if (!email || !email.includes('@')) { 
-                res.writeHead(400); 
+            if (!email || !email.includes('@')) {
+                res.writeHead(400);
                 return res.end(JSON.stringify({ error: 'Invalid email' }));
             }
-            
+
             // Use database instead of JSON file
             const result = await contentDB.InsertSubscriber(email, 'website');
             if (!result.success) {
                 res.writeHead(500, { 'Content-Type': 'application/json' });
                 return res.end(JSON.stringify({ error: result.error }));
             }
-            
-            // Fire-and-forget call to external provider. 
-            // We do not await this to ensure the user gets an immediate response 
+
+            // Fire-and-forget call to external provider.
+            // We do not await this to ensure the user gets an immediate response
             // and doesn't suffer latency from 3rd party API calls.
             // Internal try/catch and timeout in subscribeToProvider handle errors.
-            subscribeToProvider(email, 'website').catch(err => 
+            subscribeToProvider(email, 'website').catch(err =>
                 console.error('[Newsletter] Critical failure in provider call:', err)
             );
-            
+
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end('{"ok":true}');
-        } catch (e) { 
-            res.writeHead(500); 
-            return res.end(e.message); 
+        } catch (e) {
+            res.writeHead(500);
+            return res.end(e.message);
         }
     }
 
@@ -1155,7 +1211,10 @@ async function handleRequest(req, res) {
                 const body = await readRawBody(req, 16 * 1024);
                 const data = JSON.parse(body.toString('utf8'));
                 for (const [provider, key] of Object.entries(data)) {
-                    accounts.setUserKey(username, provider, key || '');
+                    if (!accounts.setUserKey(username, provider, key || '')) {
+                        res.writeHead(500, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ error: 'Failed to persist API key' }));
+                    }
                 }
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 return res.end('{"ok":true}');
@@ -1418,10 +1477,10 @@ async function handleRequest(req, res) {
     if (req.method === 'POST' && url === '/api/backup') {
         if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
         try {
-            const success = backup.createBackup();
+            const backupPath = await backup.createBackup();
             const cleaned = backup.cleanupOldBackups();
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ ok: success, cleaned }));
+            return res.end(JSON.stringify({ ok: !!backupPath, cleaned }));
         } catch (e) { res.writeHead(500); return res.end(e.message); }
     }
 
@@ -1442,12 +1501,12 @@ async function handleRequest(req, res) {
                     };
                 })
                 .sort((a, b) => b.created - a.created);
-            
+
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ backups: files, count: files.length }));
-        } catch (e) { 
-            res.writeHead(500); 
-            return res.end(JSON.stringify({ error: e.message })); 
+        } catch (e) {
+            res.writeHead(500);
+            return res.end(JSON.stringify({ error: e.message }));
         }
     }
 
@@ -1493,14 +1552,14 @@ async function handleRequest(req, res) {
     // List all users (admin only)
     if (req.method === 'GET' && url === '/api/users') {
         if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
-        
+
         // Rate limit check
         const limit = checkRateLimit(req, '/api/users');
         if (!limit.allowed) {
             res.writeHead(429, { 'Content-Type': 'application/json', 'Retry-After': limit.retryAfter });
             return res.end(JSON.stringify({ error: limit.message }));
         }
-        
+
         try {
             const users = accounts.listAllUsers();
             res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -1511,14 +1570,14 @@ async function handleRequest(req, res) {
     // Create new user (admin only)
     if (req.method === 'POST' && url === '/api/users') {
         if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
-        
+
         // Rate limit check
         const limit = checkRateLimit(req, '/api/users');
         if (!limit.allowed) {
             res.writeHead(429, { 'Content-Type': 'application/json', 'Retry-After': limit.retryAfter });
             return res.end(JSON.stringify({ error: limit.message }));
         }
-        
+
         try {
             const body = await readRawBody(req, 16 * 1024);
             const { username, password, role } = JSON.parse(body.toString());
@@ -1624,6 +1683,19 @@ server.listen(PORT, '0.0.0.0', async () => {
     // content tables are empty but cover uploads still exist on disk.
     try {
         await contentDB.Open();
+        const runScheduledBackup = async () => {
+            try {
+                await backup.createBackup();
+                backup.cleanupOldBackups();
+            } catch (err) {
+                console.error('Scheduled backup failed:', err.message);
+            }
+        };
+        void runScheduledBackup();
+        setInterval(() => {
+            console.log(`[${new Date().toISOString()}] Running scheduled backup...`);
+            void runScheduledBackup();
+        }, 24 * 60 * 60 * 1000);
         const { series, books, game, about } = await contentDB.GetAllContent();
         const hasContent = (series && series.length > 0) ||
                            (books && books.length > 0) ||

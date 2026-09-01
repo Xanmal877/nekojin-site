@@ -11,6 +11,7 @@ const WORKDIR = fs.mkdtempSync(path.join(os.tmpdir(), 'nekojin-security-'));
 const PORT = 7790 + Math.floor(Math.random() * 500);
 const BASE = `http://127.0.0.1:${PORT}`;
 const ADMIN_PASSWORD = 'RegressionAdminPass123';
+const GUMROAD_WEBHOOK_SECRET = 'regression-webhook-secret';
 let serverProcess;
 
 function copyRepoFiles() {
@@ -59,7 +60,7 @@ before(async () => {
     copyRepoFiles();
     serverProcess = spawn(process.execPath, ['dashboard-server.js'], {
         cwd: WORKDIR,
-        env: { ...process.env, PORT: String(PORT), ADMIN_BOOTSTRAP_PASSWORD: ADMIN_PASSWORD },
+        env: { ...process.env, PORT: String(PORT), ADMIN_BOOTSTRAP_PASSWORD: ADMIN_PASSWORD, GUMROAD_WEBHOOK_SECRET },
         stdio: 'ignore'
     });
     await waitForServer();
@@ -113,8 +114,16 @@ test('invalid Gumroad payloads are rejected and save creates a backup', async ()
     const settings = await fetch(`${BASE}/api/settings`, { method: 'POST', headers: admin.headers,
         body: JSON.stringify({ gumroad_seller_id: 'seller-regression' }) });
     assert.equal(settings.status, 200);
+
+    const missingSecret = await fetch(`${BASE}/webhook/gumroad`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'product_name=Forged&price=1000&currency=USD&sale_id=forged-1&seller_id=seller-regression'
+    });
+    assert.equal(missingSecret.status, 403);
+
     const invalid = await fetch(`${BASE}/webhook/gumroad`, {
-        method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Gumroad-Webhook-Secret': GUMROAD_WEBHOOK_SECRET },
         body: 'product_name=Bad&price=not-cents&currency=USD&sale_id=bad-1&seller_id=seller-regression'
     });
     assert.equal(invalid.status, 403);
@@ -126,4 +135,19 @@ test('invalid Gumroad payloads are rejected and save creates a backup', async ()
     const backups = await status.json();
     assert.ok(backups.count >= 1, 'save-content should leave a recoverable backup');
     assert.ok(backups.backups.some(file => file.name.endsWith('.db')));
+});
+
+test('static paths cannot use encoded traversal to reach private data', async () => {
+    const res = await fetch(`${BASE}/covers/%2e%2e/data/lore/compendium.md`);
+    assert.equal(res.status, 403);
+});
+
+test('wiki sources remain available only through their approved APIs', async () => {
+    const compendium = await fetch(`${BASE}/api/compendium`);
+    assert.equal(compendium.status, 200);
+    assert.match(await compendium.text(), /Xanrea Lore Compendium/);
+
+    const character = await fetch(`${BASE}/api/wiki/tama`);
+    assert.equal(character.status, 200);
+    assert.ok((await character.text()).length > 0);
 });
