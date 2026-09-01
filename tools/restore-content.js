@@ -74,7 +74,7 @@ async function login() {
 async function restore() {
     // ── SAFETY: BACKUP BEFORE BULK IMPORT ────────────────────────────────
     console.log('Creating pre-import restore point...');
-    const backedUp = createRestorePoint('content-import');
+    const backedUp = await createRestorePoint('content-import');
     if (!backedUp) {
         throw new Error('Failed to create pre-import backup; aborting to avoid data loss.');
     }
@@ -145,6 +145,7 @@ async function restore() {
         id: 'her-majesty-tamaneko',
         slug: 'her-majesty-tamaneko',
         title: 'Her Majesty, Tamaneko',
+        series_id: seriesId,
         description: 'Tama is a ninja. She speaks in the third person, hates wearing clothes, and thinks her pet boar Jiggle is the best thing since burnt fish. She is also, apparently, the lost princess of a kingdom she\'s never heard of and the living avatar of the Goddess of Creation. She\'d rather fight goblins. Saki is a Kitsune who thought she was beyond caring about anyone. Then she met Tama. A progression fantasy about found family, the cost of strength, and learning that sometimes the person you needed was trying to find you too.',
         blurb: 'Tama is a ninja who speaks in the third person and would rather fight goblins than be a princess. Saki is a traumatized Kitsune who thought she was beyond caring about anyone. Together they stumble through goblin armies, undead liches, ancient dragons, and the worst enemy of all: paperwork.',
         volume: 'Full Novel',
