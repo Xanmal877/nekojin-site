@@ -120,6 +120,27 @@
     .theme-toggle:hover {
       background: rgba(124,58,237,0.1);
     }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .nav-calendar {
+      color: var(--text);
+      text-decoration: none;
+      font-size: 0.92rem;
+      font-weight: 600;
+      padding: 0.45rem 1rem;
+      border: 1.5px solid rgba(124,58,237,0.35);
+      border-radius: 999px;
+      transition: all 0.2s;
+    }
+    .nav-calendar:hover {
+      background: rgba(124,58,237,0.1);
+      color: var(--royal);
+      border-color: var(--royal);
+    }
     
     /* Full-height split choice - THREE VERTICAL PANELS */
     .split-choice {
@@ -330,9 +351,12 @@
     <div class="nav-tama"></div>
     Nekojin Interactive
   </a>
-  <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
-    <span id="theme-icon">☀️</span>
-  </button>
+  <div class="nav-right">
+    <a href="/publishing-calendar" class="nav-calendar">📅 Release Calendar</a>
+    <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+      <span id="theme-icon">☀️</span>
+    </button>
+  </div>
 </nav>
 
 <main class="split-choice">
@@ -360,6 +384,61 @@
     </div>
   </a>
 </main>
+
+<section class="calendar-cta" aria-label="Release calendar">
+  <div class="calendar-cta-text">
+    <span class="calendar-cta-eyebrow">Never Miss a Chapter</span>
+    <strong class="calendar-cta-title">See what's releasing next</strong>
+  </div>
+  <a href="/publishing-calendar" class="calendar-cta-btn">📅 View Release Calendar →</a>
+</section>
+
+
+<style>
+  .calendar-cta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 1.6rem 2.4rem;
+    width: min(1100px, calc(100% - 3rem));
+    margin: 1.5rem auto 2.5rem;
+    background: linear-gradient(135deg, rgba(124,58,237,0.1), rgba(37,17,84,0.12));
+    border: 1px solid rgba(124,58,237,0.25);
+    border-radius: 18px;
+    color: var(--text);
+  }
+  .calendar-cta-eyebrow {
+    display: block;
+    font-size: 0.74rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--royal);
+    margin-bottom: 0.2rem;
+  }
+  .calendar-cta-title { font-family: var(--font-display); font-size: 1.25rem; }
+  .calendar-cta-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.8rem 1.6rem;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #7c3aed, #6d28d9);
+    color: #fff;
+    font-weight: 600;
+    text-decoration: none;
+    box-shadow: 0 4px 18px rgba(124,58,237,0.4);
+    transition: all 0.25s;
+  }
+  .calendar-cta-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 26px rgba(124,58,237,0.5);
+  }
+  @media (max-width: 720px) {
+    .calendar-cta { width: calc(100% - 2rem); margin: 1rem auto 1.5rem; padding: 1.2rem 1.4rem; }
+  }
+</style>
 
 
 <script>

@@ -19,6 +19,9 @@ npm install
 # Start development server
 npm start
 
+# Build the admin publishing dashboard after frontend changes
+npm run build:dashboard
+
 # Server runs on http://localhost:7771
 ```
 
@@ -79,6 +82,15 @@ nekojin-site/
 - User management (create, delete, reset passwords)
 - Image uploads with WebP optimization
 - Newsletter subscriber management
+- Read-only publishing analytics at `/admin/publishing`
+- Public release calendar at `/publishing-calendar`
+- Admin-managed manual calendar entries at `/admin/publishing-calendar`
+
+### 📈 **Publishing Dashboard**
+- Admin-only release, series, platform, calendar, and data-health views
+- Reads `/home/xanmal/Downloads/Xanmal_Publishing_Database.sqlite` read-only by default
+- Override the source with `PUBLISHING_DB_PATH`
+- Build the nested React dashboard with `npm run build:dashboard`
 
 ---
 
@@ -126,6 +138,8 @@ pm2 restart nekojin-site
 | `ALLOW_PUBLIC_REGISTRATION` | `false` | Set `true` to re-enable the public `/register` page. Off by default, since this is a single-author site, not a multi-tenant app. |
 | `TRUST_PROXY` | `false` | Set `true` only if the server sits behind a reverse proxy (nginx, etc.) that sets `X-Forwarded-For`/`X-Real-IP`. Otherwise those headers are client-controlled and must not be trusted for rate limiting. |
 | `ALLOWED_ORIGINS` | `https://worldofxanrea.com` | Comma-separated list of origins allowed to make credentialed cross-origin requests. Same-origin browser requests (the normal case) don't need this at all. |
+| `PUBLISHING_DB_PATH` | `~/Downloads/Xanmal_Publishing_Database.sqlite` | Read-only SQLite source for the admin publishing dashboard. |
+| `PUBLISHING_CALENDAR_DB_PATH` | `./data/publishing-calendar.db` | SQLite store for admin-managed public calendar entries. |
 | `NEWSLETTER_PROVIDER` | `none` | External provider to use: `none` (default), `buttondown`, `mailerlite`, `convertkit`, or `generic_webhook`. |
 | `BUTTONDOWN_API_KEY` | `null` | API key for Buttondown. |
 | `MAILERLITE_API_KEY` | `null` | API key for MailerLite. |

@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Publishing Calendar Admin - Nekojin Interactive</title>
+  <link rel="stylesheet" href="/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Darumadrop+One&family=Zen+Kaku+Gothic+New:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <script>
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+  </script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-body, 'Zen Kaku Gothic New', sans-serif);
+      background: var(--bg, #fff);
+      color: var(--text, #374151);
+      min-height: 100vh;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.7rem;
+      padding: 0.9rem 2rem;
+      background: var(--surface, rgba(255,255,255,0.92));
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(124,58,237,0.12);
+    }
+    header h1 {
+      font-family: var(--font-display, 'Darumadrop One', cursive);
+      font-size: 1.25rem;
+      color: var(--royal, #7c3aed);
+    }
+    .head-links { display: flex; gap: 0.9rem; align-items: center; }
+    .head-links a {
+      color: var(--text, #374151);
+      text-decoration: none;
+      font-size: 0.86rem;
+      font-weight: 600;
+    }
+    .head-links a:hover { color: var(--royal, #7c3aed); }
+
+    main {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 4rem;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+    .btn {
+      border: 1px solid rgba(124,58,237,0.2);
+      border-radius: 9px;
+      padding: 0.55rem 1.1rem;
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #7c3aed, #6d28d9);
+      color: #fff;
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(124,58,237,0.4); }
+    .btn-ghost { background: transparent; color: var(--text, #374151); }
+    .btn-ghost:hover { background: rgba(124,58,237,0.08); }
+    .btn-danger {
+      background: rgba(224,80,80,0.1);
+      border-color: rgba(224,80,80,0.35);
+      color: #e08080;
+    }
+    .btn-danger:hover { background: rgba(224,80,80,0.18); }
+
+    .message {
+      padding: 0.7rem 1rem;
+      border-radius: 9px;
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+      display: none;
+    }
+    .message.ok { display: block; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); color: #047857; }
+    .message.err { display: block; background: rgba(224,80,80,0.08); border: 1px solid rgba(224,80,80,0.3); color: #e08080; }
+
+    /* ── FORM ── */
+    #form-panel {
+      border: 1px solid var(--border, rgba(0,0,0,0.08));
+      border-radius: 14px;
+      background: var(--surface, #f8f9fa);
+      padding: 1.4rem;
+      margin-bottom: 1.8rem;
+      display: none;
+    }
+    #form-panel.open { display: block; }
+    #form-panel h2 { font-size: 1.1rem; color: var(--ink, #111827); margin-bottom: 1rem; }
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.9rem 1.1rem;
+    }
+    .form-field label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--muted, #6b7280);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 0.3rem;
+    }
+    .form-field input, .form-field select, .form-field textarea {
+      width: 100%;
+      padding: 0.6rem 0.8rem;
+      border: 1.5px solid rgba(124,58,237,0.18);
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      color: var(--text, #374151);
+      background: var(--bg, #fff);
+    }
+    .form-field input:focus, .form-field select:focus, .form-field textarea:focus {
+      border-color: var(--royal, #7c3aed);
+      outline: none;
+    }
+    .form-field.full { grid-column: 1 / -1; }
+    .form-actions { grid-column: 1 / -1; display: flex; gap: 0.6rem; margin-top: 0.4rem; flex-wrap: wrap; }
+
+    /* ── TABLE ── */
+    .table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--border, rgba(0,0,0,0.08)); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.86rem; min-width: 720px; }
+    th {
+      background: var(--surface2, #e9ecef);
+      color: var(--muted, #6b7280);
+      text-align: left;
+      font-size: 0.74rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.65rem 0.8rem;
+    }
+    td {
+      padding: 0.65rem 0.8rem;
+      border-top: 1px solid var(--border, rgba(0,0,0,0.07));
+      vertical-align: top;
+    }
+    tr:hover td { background: rgba(124,58,237,0.04); }
+    .row-actions { display: flex; gap: 0.4rem; white-space: nowrap; }
+    .row-actions button {
+      border: 1px solid var(--border2, rgba(0,0,0,0.15));
+      background: var(--bg, #fff);
+      color: var(--text, #374151);
+      border-radius: 6px;
+      padding: 0.3rem 0.6rem;
+      font-size: 0.78rem;
+      cursor: pointer;
+    }
+    .row-actions button.edit:hover { color: var(--royal, #7c3aed); border-color: var(--royal, #7c3aed); }
+    .row-actions button.del:hover { color: #e08080; border-color: #e08080; }
+
+    .badge {
+      display: inline-block;
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 0.2rem 0.5rem;
+      border-radius: 999px;
+    }
+    .badge-RR { background: #eef2ff; color: #3730a3; border: 1px solid #4f46e5; }
+    .badge-SH { background: #fff7ed; color: #9a3412; border: 1px solid #ea8a1a; }
+    .badge-Other { background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; }
+    [data-theme="dark"] .badge-RR { background: rgba(79,70,229,0.18); color: #a5b4fc; }
+    [data-theme="dark"] .badge-SH { background: rgba(154,52,18,0.18); color: #fdba74; }
+    [data-theme="dark"] .badge-Other { background: rgba(79,70,229,0.14); color: #a5b4fc; }
+
+    .empty { color: var(--muted, #6b7280); padding: 1.2rem; font-size: 0.9rem; }
+    .muted { color: var(--muted, #6b7280); font-size: 0.85rem; }
+
+    @media (max-width: 700px) {
+      main { padding: 1.2rem 0.9rem 3rem; }
+      header { padding: 0.8rem 1rem; }
+      .form-grid { grid-template-columns: 1fr; }
+      .form-field.full { grid-column: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Publishing Calendar</h1>
+  <div class="head-links">
+    <a href="/admin">← Admin</a>
+    <a href="/admin/publishing">Publishing Dashboard</a>
+    <a href="/publishing-calendar" target="_blank" rel="noopener">View Public Calendar ↗</a>
+    <a href="/logout">Logout</a>
+  </div>
+</header>
+
+<main>
+  <div class="toolbar">
+    <p class="muted">Manage manually added public release entries. Imported platform releases are read-only.</p>
+    <button class="btn btn-primary" id="new-entry">+ Add Entry</button>
+  </div>
+
+  <div id="message" class="message"></div>
+
+  <div id="form-panel">
+    <h2 id="form-title">Add Entry</h2>
+    <form id="entry-form">
+      <input type="hidden" id="f-id">
+      <div class="form-grid">
+        <div class="form-field full">
+          <label for="f-title">Title *</label>
+          <input type="text" id="f-title" maxlength="255" required>
+        </div>
+        <div class="form-field full">
+          <label for="f-series">Series *</label>
+          <input type="text" id="f-series" maxlength="255" required>
+        </div>
+        <div class="form-field">
+          <label for="f-platform">Platform *</label>
+          <select id="f-platform" required>
+            <option value="Royal Road">Royal Road</option>
+            <option value="ScribbleHub">ScribbleHub</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label for="f-date">Date (YYYY-MM-DD) *</label>
+          <input type="date" id="f-date" required>
+        </div>
+        <div class="form-field">
+          <label for="f-time">Time (HH:MM, 24h)</label>
+          <input type="time" id="f-time">
+        </div>
+        <div class="form-field">
+          <label for="f-timezone">Timezone</label>
+          <input type="text" id="f-timezone" value="America/Phoenix" maxlength="50">
+        </div>
+        <div class="form-field full">
+          <label for="f-url">Platform URL</label>
+          <input type="url" id="f-url" placeholder="https://..." maxlength="1024">
+        </div>
+        <div class="form-field full">
+          <label for="f-notes">Notes</label>
+          <textarea id="f-notes" rows="2" maxlength="2000"></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary" id="form-save">Save</button>
+          <button type="button" class="btn btn-ghost" id="form-cancel">Cancel</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Title</th>
+          <th>Series</th>
+          <th>Platform</th>
+          <th>Time / TZ</th>
+          <th>URL</th>
+          <th style="width:120px">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+</main>
+
+<script>
+  let entries = [];
+  let editingId = null;
+
+  function getCsrfToken() {
+    const m = document.cookie.match(/(?:^|;\s*)nki_csrf=([^;]+)/);
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+
+  function showMessage(ok, text) {
+    const el = document.getElementById('message');
+    el.className = 'message ' + (ok ? 'ok' : 'err');
+    el.textContent = text;
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function platformBadge(p) {
+    const n = (p || '').toLowerCase();
+    const k = n === 'royal road' ? 'RR' : (n === 'scribblehub' ? 'SH' : 'Other');
+    return `<span class="badge badge-${k}">${k}</span>`;
+  }
+
+  async function loadEntries() {
+    const res = await fetch('/api/admin/publishing-calendar', {
+      headers: { Accept: 'application/json' },
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      showMessage(false, `Failed to load entries: ${body.error || res.status}`);
+      return;
+    }
+    const data = await res.json();
+    entries = data.entries || [];
+    renderRows();
+  }
+
+  function renderRows() {
+    const tbody = document.getElementById('rows');
+    if (!entries.length) {
+      tbody.innerHTML = `<tr><td colspan="7" class="empty">No manual entries yet. Click "+ Add Entry" to create one.</td></tr>`;
+      return;
+    }
+    entries.sort((a, b) =>
+      (b.release_date || '').localeCompare(a.release_date || '') ||
+      (b.release_time || '').localeCompare(a.release_time || '')
+    );
+    let html = '';
+    entries.forEach(e => {
+      html += `<tr>
+        <td>${escapeHtml(e.release_date)}</td>
+        <td>${escapeHtml(e.title)}</td>
+        <td>${escapeHtml(e.series)}</td>
+        <td>${platformBadge(e.platform)}</td>
+        <td>${escapeHtml(e.release_time || '—')}<br><span class="muted">${escapeHtml(e.timezone || '')}</span></td>
+        <td>${e.url ? `<a href="${escapeHtml(e.url)}" target="_blank" rel="noopener noreferrer">link</a>` : '—'}</td>
+        <td class="row-actions">
+          <button class="edit" data-id="${escapeHtml(e.id)}" onclick="editEntry('${escapeHtml(e.id)}')">Edit</button>
+          <button class="del" data-id="${escapeHtml(e.id)}" onclick="deleteEntry('${escapeHtml(e.id)}')">Delete</button>
+        </td>
+      </tr>`;
+    });
+    tbody.innerHTML = html;
+  }
+
+  function openForm(entry) {
+    editingId = entry ? entry.id : null;
+    document.getElementById('form-title').textContent = entry ? 'Edit Entry' : 'Add Entry';
+    document.getElementById('f-id').value = entry ? entry.id : '';
+    document.getElementById('f-title').value = entry ? (entry.title || '') : '';
+    document.getElementById('f-series').value = entry ? (entry.series || '') : '';
+    const plat = entry ? (entry.platform || 'Other') : 'Royal Road';
+    document.getElementById('f-platform').value = platformName(plat);
+    document.getElementById('f-date').value = entry ? (entry.release_date || '') : '';
+    document.getElementById('f-time').value = entry ? (entry.release_time || '') : '';
+    document.getElementById('f-timezone').value = entry ? (entry.timezone || 'America/Phoenix') : 'America/Phoenix';
+    document.getElementById('f-url').value = entry ? (entry.url || '') : '';
+    document.getElementById('f-notes').value = entry ? (entry.notes || '') : '';
+    document.getElementById('form-panel').classList.add('open');
+    document.getElementById('form-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function platformName(p) {
+    const n = (p || '').toLowerCase();
+    if (n === 'royal road') return 'Royal Road';
+    if (n === 'scribblehub') return 'ScribbleHub';
+    return 'Other';
+  }
+
+  function closeForm() {
+    editingId = null;
+    document.getElementById('form-panel').classList.remove('open');
+  }
+
+  function collectPayload() {
+    return {
+      id: document.getElementById('f-id').value || undefined,
+      title: document.getElementById('f-title').value.trim(),
+      series: document.getElementById('f-series').value.trim(),
+      platform: document.getElementById('f-platform').value,
+      release_date: document.getElementById('f-date').value,
+      release_time: document.getElementById('f-time').value || undefined,
+      timezone: document.getElementById('f-timezone').value.trim() || 'America/Phoenix',
+      url: document.getElementById('f-url').value.trim() || undefined,
+      notes: document.getElementById('f-notes').value.trim() || undefined,
+    };
+  }
+
+  document.getElementById('new-entry').addEventListener('click', () => openForm(null));
+  document.getElementById('form-cancel').addEventListener('click', closeForm);
+
+  document.getElementById('entry-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const payload = collectPayload();
+    // Validate basics client-side
+    if (!payload.title) { showMessage(false, 'Title is required.'); return; }
+    if (!payload.series) { showMessage(false, 'Series is required.'); return; }
+    if (!payload.release_date) { showMessage(false, 'Date is required.'); return; }
+
+    const res = await fetch('/api/admin/publishing-calendar', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': getCsrfToken(),
+      },
+      body: JSON.stringify(payload),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      showMessage(false, `Save failed: ${body.error || res.status}`);
+      return;
+    }
+    showMessage(true, 'Entry saved.');
+    closeForm();
+    await loadEntries();
+  });
+
+  async function editEntry(id) {
+    const entry = entries.find(e => e.id === id);
+    if (entry) openForm(entry);
+  }
+
+  async function deleteEntry(id) {
+    if (!confirm('Delete this calendar entry?')) return;
+    const res = await fetch(`/api/admin/publishing-calendar/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: { 'X-CSRF-Token': getCsrfToken() },
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      showMessage(false, `Delete failed: ${body.error || res.status}`);
+      return;
+    }
+    showMessage(true, 'Entry deleted.');
+    await loadEntries();
+  }
+
+  loadEntries();
+</script>
+</body>
+</html>

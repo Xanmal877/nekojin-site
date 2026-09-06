@@ -7,7 +7,8 @@
     "start": "node dashboard-server.js",
     "meta": "node generate-meta.js",
     "test": "node --test",
-    "dev": "node --watch dashboard-server.js"
+    "dev": "node --watch dashboard-server.js",
+    "build:dashboard": "npm --prefix tools/publishing-dashboard run build"
   },
   "keywords": [],
   "author": "Purple Xanmal",

@@ -130,6 +130,257 @@ if (MANUSCRIPTS_ENABLED && !fs.existsSync(MANUSCRIPTS_DIR)) fs.mkdirSync(MANUSCR
 contentDB.Open();
 console.log('Database connection opened');
 
+// Publishing dashboard database (read-only). Loaded lazily on first request so
+// the server still boots in environments that don't ship publishing-db.js
+// (e.g. the smoke-test harness, which copies a fixed file list).
+let publishingDB = null;
+function getPublishingDB() {
+    if (!publishingDB) {
+        const PublishingDB = require('./publishing-db.js');
+        publishingDB = new PublishingDB();
+    }
+    return publishingDB;
+}
+
+// Publishing calendar store (manual public release entries). Loaded lazily on
+// first request; opened only when a calendar endpoint is actually hit so the
+// server still boots if publishing-calendar.js isn't shipped.
+let publishingCalendar = null;
+function getPublishingCalendar() {
+    if (!publishingCalendar) {
+        const PublishingCalendar = require('./publishing-calendar.js');
+        publishingCalendar = new PublishingCalendar();
+    }
+    return publishingCalendar;
+}
+
+// ── CALENDAR HELPERS ──────────────────────────────────────
+// Valid YYYY-MM-DD local date (checked against a real calendar date, not just
+// the regex) so bad strings like "2025-02-30" are rejected up front.
+function isValidDateStr(str) {
+    if (typeof str !== 'string') return false;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(str)) return false;
+    const d = new Date(str + 'T00:00:00Z');
+    return d instanceof Date && !isNaN(d) && d.toISOString().startsWith(str);
+}
+
+// Map a source platform name to the display key used by the badge, falling back
+// to 'Other' for anything that isn't Royal Road or ScribbleHub.
+function platformKey(name) {
+    const n = String(name || '').trim().toLowerCase();
+    if (n === 'rr' || n.includes('royal')) return 'RR';
+    if (n === 'sh' || n.includes('scribble')) return 'SH';
+    return 'Other';
+}
+
+// Preserve the source platform name for display (Royal Road, ScribbleHub, ...),
+// normalizing unknowns to a readable value.
+function platformDisplay(name) {
+    const n = String(name || '').trim();
+    if (!n) return 'Other';
+    const k = platformKey(n);
+    if (k === 'RR') return 'Royal Road';
+    if (k === 'SH') return 'ScribbleHub';
+    return n;
+}
+
+// Build a UTC-range datetime string for the read-only publishing DB's
+// releaseWindow(). The public calendar only ever exposes / consumes local dates,
+// so we over-fetch in UTC and filter by local date afterwards (see below).
+function utcWindowStart(dateStr) {
+    const d = new Date(dateStr + 'T00:00:00Z');
+    d.setUTCDate(d.getUTCDate() - 1);
+    return d.toISOString();
+}
+function utcWindowEnd(dateStr) {
+    const d = new Date(dateStr + 'T00:00:00Z');
+    d.setUTCDate(d.getUTCDate() + 1);
+    return d.toISOString();
+}
+
+// Normalize a manual calendar row to the public-safe shape (notes and any
+// internal/db fields are deliberately stripped).
+function normalizeManualRelease(e) {
+    return {
+        id: e.id,
+        source: 'manual',
+        date: e.release_date,
+        time: e.release_time || null,
+        title: e.title,
+        series: e.series,
+        platform: platformDisplay(e.platform),
+        platformKey: platformKey(e.platform),
+        url: e.url || null,
+        timezone: e.timezone || 'America/Phoenix'
+    };
+}
+
+// Normalize an imported release (from PublishingDB) to the public-safe shape.
+// Dates/times stay as the source's local strings; they are never reinterpreted
+// through the browser's timezone.
+function normalizeImportedRelease(r) {
+    const localDt = r.releaseDateTime; // "YYYY-MM-DD HH:MM:SS" (Phoenix local)
+    const date = typeof localDt === 'string' && /^\d{4}-\d{2}-\d{2}/.test(localDt)
+        ? localDt.slice(0, 10) : null;
+    const time = typeof localDt === 'string' && localDt.length >= 16
+        ? localDt.slice(11, 16) : null;
+    return {
+        id: `import-${r.releaseId}`,
+        source: 'import',
+        date,
+        time,
+        title: r.title || 'Untitled Release',
+        series: r.series || 'Unknown Series',
+        platform: platformDisplay(r.platform),
+        platformKey: platformKey(r.platform),
+        url: r.url || null,
+        timezone: r.releaseTimezone || 'America/Phoenix'
+    };
+}
+
+// Serve the public publishing calendar: combines read-only imported releases
+// with manual entries, both bucketed by local (YYYY-MM-DD) date with a
+// half-open [start, end) boundary. Failures degrade safely without crashing.
+async function handlePublicPublishingCalendar(req, res, query) {
+    const start = query.get('start');
+    const end = query.get('end');
+
+    if (!isValidDateStr(start) || !isValidDateStr(end)) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ error: 'start and end must be valid YYYY-MM-DD dates' }));
+    }
+    if (start >= end) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ error: 'start must be before end' }));
+    }
+
+    // Manual entries come from the calendar store (already local-date, half-open).
+    let manual = [];
+    try {
+        const calendar = getPublishingCalendar();
+        await calendar.Open();
+        manual = (await calendar.ListPublic(start, end)) || [];
+    } catch (err) {
+        console.error('[Public Calendar] Manual entries unavailable:', err.message);
+        manual = [];
+    }
+
+    // Imported entries come from the read-only publishing DB. We over-fetch a
+    // UTC window that covers every possible local date in [start, end), then
+    // keep only rows whose LOCAL date falls in the half-open range.
+    let imported = [];
+    try {
+        const db = getPublishingDB();
+        const window = {
+            startUtc: utcWindowStart(start),
+            endUtc: utcWindowEnd(end),
+            limit: 500
+        };
+        const [published, scheduled] = await Promise.all([
+            db.releaseWindow({ ...window, status: 'Published' }),
+            db.releaseWindow({ ...window, status: 'Scheduled' })
+        ]);
+        const rows = [...published, ...scheduled];
+        imported = (rows || [])
+            .filter(r => {
+                const localDate = typeof r.releaseDateTime === 'string'
+                    ? r.releaseDateTime.slice(0, 10) : null;
+                return !!localDate && localDate >= start && localDate < end;
+            })
+            .map(normalizeImportedRelease);
+    } catch (err) {
+        console.error('[Public Calendar] Imported releases unavailable:', err.message);
+        imported = [];
+    }
+
+    const entries = manual.map(normalizeManualRelease).concat(imported);
+    entries.sort((a, b) =>
+        (a.date || '').localeCompare(b.date || '') ||
+        (a.time || '').localeCompare(b.time || '') ||
+        (a.platform || '').localeCompare(b.platform || '')
+    );
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ start, end, entries }));
+}
+
+const ADMIN_CALENDAR_RATE_KEY = '/api/admin/publishing-calendar';
+
+// Serve the admin publishing calendar API. Only reachable past the auth + CSRF
+// gates and requires an admin role (caller enforces the former two).
+async function handleAdminPublishingCalendar(req, res, url) {
+    const isList = url === '/api/admin/publishing-calendar';
+    const delMatch = url.match(/^\/api\/admin\/publishing-calendar\/([^/]+)$/);
+
+    if (req.method !== 'GET' && req.method !== 'POST' && req.method !== 'DELETE') {
+        res.writeHead(405, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ error: 'Method not allowed' }));
+    }
+    if (req.method === 'GET' && !isList) {
+        res.writeHead(405, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ error: 'Method not allowed' }));
+    }
+    if (req.method === 'POST' && !isList) {
+        res.writeHead(405, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ error: 'Method not allowed' }));
+    }
+    if (req.method === 'DELETE' && !delMatch) {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ error: 'Not found' }));
+    }
+
+    const limit = checkRateLimit(req, ADMIN_CALENDAR_RATE_KEY);
+    if (!limit.allowed) {
+        res.writeHead(429, { 'Content-Type': 'application/json', 'Retry-After': limit.retryAfter });
+        return res.end(JSON.stringify({ error: limit.message }));
+    }
+
+    try {
+        const calendar = getPublishingCalendar();
+
+        if (req.method === 'GET') {
+            await calendar.Open();
+            const entries = await calendar.ListAll();
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ entries }));
+        }
+
+        if (req.method === 'POST') {
+            const body = await readRawBody(req, 64 * 1024);
+            const data = JSON.parse(body.toString());
+            if (!data || typeof data !== 'object') {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ error: 'Invalid JSON body' }));
+            }
+            await calendar.Open();
+            const entry = await calendar.Upsert(data);
+            if (!entry) {
+                res.writeHead(404, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ error: 'Entry not found for update' }));
+            }
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ ok: true, entry }));
+        }
+
+        // DELETE /api/admin/publishing-calendar/:id
+        const deleted = await calendar.Delete(delMatch[1]);
+        if (!deleted) {
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ error: 'Entry not found' }));
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ ok: true }));
+    } catch (err) {
+        const msg = err && err.message ? err.message : 'Admin calendar error';
+        let status = 500;
+        if (err instanceof SyntaxError || /json/i.test(msg)) status = 400;
+        else if (/^Entry /.test(msg) || /must |required|format|be exactly/i.test(msg)) status = 400;
+        else if (/not found/i.test(msg)) status = 404;
+        res.writeHead(status, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ error: msg }));
+    }
+}
+
 // ── MANUSCRIPT PARSING (.docx → chapters) ──────────────────
 const MANUSCRIPT_CACHE = new Map();
 
@@ -386,6 +637,7 @@ const PUBLIC_ROUTES = {
     '/read': path.join(PUBLIC_DIR, 'read.html'),
     '/games': path.join(PUBLIC_DIR, 'games.html'),
     '/about': path.join(PUBLIC_DIR, 'about.html'),
+    '/publishing-calendar': path.join(PUBLIC_DIR, 'publishing-calendar.html'),
     '/xanrean': path.join(PUBLIC_DIR, 'xanrean.html'),
     '/xanrean/books': path.join(PUBLIC_DIR, 'xanrean', 'books.html'),
     '/xanrean/characters': path.join(PUBLIC_DIR, 'xanrean', 'characters.html'),
@@ -500,7 +752,8 @@ async function handleRequest(req, res) {
         '/covers/',
         '/assets/',
         '/images/',
-        '/fonts/'
+        '/fonts/',
+        '/publishing/'
     ];
 
     const ROOT_ASSETS = new Set([
@@ -532,7 +785,9 @@ async function handleRequest(req, res) {
             : '';
         const ext = path.extname(relativeUrl).toLowerCase();
         const isAllowedExt = ALLOWED_EXTENSIONS.has(ext);
-        const isAllowedDir = ALLOWED_DIRECTORIES.some(dir => relativeUrl.startsWith(dir));
+        const isPublishingAsset = relativeUrl.startsWith('/publishing/') && ext !== '.html';
+        const isAllowedDir = ALLOWED_DIRECTORIES.some(dir => relativeUrl.startsWith(dir)) &&
+            (!relativeUrl.startsWith('/publishing/') || isPublishingAsset);
         const isRootAsset = ROOT_ASSETS.has(relativeUrl);
 
         if (isPathSafe && isAllowedExt && (isAllowedDir || isRootAsset)) {
@@ -1077,6 +1332,15 @@ async function handleRequest(req, res) {
             res.writeHead(500);
             return res.end(JSON.stringify({ error: e.message }));
         }
+    }
+
+    // ── PUBLIC PUBLISHING CALENDAR API ────────────────────
+    // Intentional before the auth gate: this is deliberately public. It only
+    // ever returns safe public fields (title, series, platform, local date/time,
+    // optional platform URL) — never notes or the underlying DB path. Uses the
+    // half-open [start, end) local-date window.
+    if (req.method === 'GET' && url === '/api/public/publishing-calendar') {
+        return handlePublicPublishingCalendar(req, res, query);
     }
 
     // ── AUTH GATE ─────────────────────────────────────────
@@ -1643,6 +1907,114 @@ async function handleRequest(req, res) {
         } catch (e) { res.writeHead(500); return res.end(e.message); }
     }
 
+    // ── PUBLISHING CALENDAR (ADMIN) ───────────────────────
+    // Admin-only. The page is served at /admin/publishing-calendar and the API
+    // lives under /api/admin/publishing-calendar. The auth gate above redirects
+    // unauthenticated requests to login; these require an admin role. POST and
+    // DELETE are additionally protected by the CSRF gate that runs earlier.
+
+    // Admin calendar page (admin only)
+    if (req.method === 'GET' && url === '/admin/publishing-calendar') {
+        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        return serveFile(res, path.join(PUBLIC_DIR, 'publishing-calendar-admin.html'));
+    }
+
+    // Admin calendar API (admin only)
+    if (url.startsWith('/api/admin/publishing-calendar')) {
+        if (!accounts.isAdmin(req)) {
+            res.writeHead(403, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ error: 'Forbidden' }));
+        }
+        return handleAdminPublishingCalendar(req, res, url);
+    }
+
+    // ── PUBLISHING DASHBOARD ───────────────────────────────
+    // Admin-only. The page is served at /admin/publishing and the read-only
+    // API lives under /api/publishing/*. Unauthenticated browser requests are
+    // redirected to login by the auth gate above; non-admins get 403 here.
+
+    // Admin page (admin only)
+    if (req.method === 'GET' && url === '/admin/publishing') {
+        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        return serveFile(res, path.join(PUBLIC_DIR, 'publishing', 'index.html'));
+    }
+
+    // Publishing API (admin only)
+    if (url.startsWith('/api/publishing')) {
+        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        if (req.method !== 'GET') { res.writeHead(405); return res.end('Method Not Allowed'); }
+
+        try {
+            const db = getPublishingDB();
+            const send = (data) => {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify(data));
+            };
+
+            if (url === '/api/publishing/health') {
+                return send(await db.health());
+            }
+            if (url === '/api/publishing/overview') {
+                const [kpis, cadence, series, platforms, upcoming] = await Promise.all([
+                    db.overview(),
+                    db.cadence(),
+                    db.seriesComparison(),
+                    db.platformComparison(),
+                    db.upcoming(12),
+                ]);
+                return send({ kpis, cadence, series, platforms, upcoming });
+            }
+            if (url === '/api/publishing/catalog') {
+                const page = parseInt(query.get('page') || '1', 10);
+                const pageSize = parseInt(query.get('pageSize') || '50', 10);
+                const result = await db.catalog({
+                    q: query.get('q') || undefined,
+                    series: query.get('series') || undefined,
+                    platform: query.get('platform') || undefined,
+                    status: query.get('status') || undefined,
+                    page,
+                    pageSize,
+                });
+                return send(result);
+            }
+            if (url === '/api/publishing/filters') {
+                return send(await db.filters());
+            }
+            if (url === '/api/publishing/series') {
+                const rows = await db.seriesAnalytics();
+                return send({ rows });
+            }
+            if (url === '/api/publishing/health-checks') {
+                return send(await db.healthChecks());
+            }
+            if (url === '/api/publishing/freshness') {
+                return send(await db.freshness());
+            }
+            if (url === '/api/publishing/releases') {
+                const startUtc = query.get('startUtc');
+                const endUtc = query.get('endUtc');
+                if (!startUtc || !endUtc) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ error: 'startUtc and endUtc are required' }));
+                }
+                const releases = await db.releaseWindow({
+                    startUtc,
+                    endUtc,
+                    status: query.get('status') || undefined,
+                    limit: parseInt(query.get('limit') || '500', 10),
+                });
+                return send({ releases });
+            }
+
+            res.writeHead(404);
+            return res.end('Not found');
+        } catch (err) {
+            console.error('Publishing API error:', err);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ error: err.message }));
+        }
+    }
+
     // ── 404 ────────────────────────────────────────────────
     res.writeHead(404);
     res.end('Not found');
@@ -1664,12 +2036,16 @@ process.on('unhandledRejection', err => {
 process.on('SIGTERM', async () => {
     console.log('\nSIGTERM received, closing database...');
     await contentDB.Close();
+    if (publishingDB) await publishingDB.close();
+    if (publishingCalendar) await publishingCalendar.Close();
     process.exit(0);
 });
 
 process.on('SIGINT', async () => {
     console.log('\nSIGINT received, closing database...');
     await contentDB.Close();
+    if (publishingDB) await publishingDB.close();
+    if (publishingCalendar) await publishingCalendar.Close();
     process.exit(0);
 });
 
