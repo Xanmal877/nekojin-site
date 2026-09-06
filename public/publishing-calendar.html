@@ -366,7 +366,7 @@
     }
     const data = await res.json();
     const byDate = {};
-    (data.entries || []).forEach(e => {
+    mergeReleases(data.entries || []).forEach(e => {
       const key = e.date || '';
       if (!byDate[key]) byDate[key] = [];
       byDate[key].push(e);
@@ -405,9 +405,45 @@
   }
 
   function badgeFor(e) {
-    const k = e.platformKey === 'SH' ? 'SH' : (e.platformKey === 'RR' ? 'RR' : 'Other');
-    const label = k === 'RR' ? 'RR' : k === 'SH' ? 'SH' : 'Other';
-    return `<span class="badge badge-${k}">${label}</span>`;
+    const keys = e.platformKeys || [e.platformKey];
+    return keys.map(k => {
+      const key = k === 'SH' ? 'SH' : (k === 'RR' ? 'RR' : 'Other');
+      const label = key === 'RR' ? 'RR' : key === 'SH' ? 'SH' : 'Other';
+      return `<span class="badge badge-${key}">${label}</span>`;
+    }).join(' ');
+  }
+
+  function mergeReleases(entries) {
+    const grouped = new Map();
+    entries.forEach(entry => {
+      const key = [entry.date, entry.time || '', entry.title || '', entry.series || ''].join('\u001f');
+      const platformKey = entry.platformKey === 'SH' ? 'SH' : (entry.platformKey === 'RR' ? 'RR' : 'Other');
+      const existing = grouped.get(key);
+      if (!existing) {
+        grouped.set(key, {
+          ...entry,
+          platformKeys: [platformKey],
+          urls: entry.url ? [{ platformKey, url: entry.url }] : []
+        });
+        return;
+      }
+      if (!existing.platformKeys.includes(platformKey)) existing.platformKeys.push(platformKey);
+      if (entry.url && !existing.urls.some(link => link.url === entry.url)) {
+        existing.urls.push({ platformKey, url: entry.url });
+      }
+    });
+    return Array.from(grouped.values()).map(entry => {
+      entry.platformKeys.sort((a, b) => ({ RR: 0, SH: 1, Other: 2 }[a] ?? 3) - ({ RR: 0, SH: 1, Other: 2 }[b] ?? 3));
+      return entry;
+    });
+  }
+
+  function releaseLinks(entry) {
+    const links = entry.urls || (entry.url ? [{ platformKey: entry.platformKey, url: entry.url }] : []);
+    return links.map(link => {
+      const label = link.platformKey === 'RR' ? 'View RR' : link.platformKey === 'SH' ? 'View SH' : 'View';
+      return `<a class="rel-link" href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer">${label} →</a>`;
+    }).join(' ');
   }
 
   function render(y, m) {
@@ -438,9 +474,12 @@
         const t = escapeHtml(r.title || 'Untitled');
         const s = escapeHtml(r.series || '');
         const timeSuffix = localTimeLabel(r) ? ` · ${escapeHtml(localTimeLabel(r))}` : '';
-        const platformKey = r.platformKey === 'SH' ? 'SH' : (r.platformKey === 'RR' ? 'RR' : 'Other');
-        const platformLabel = platformKey === 'Other' ? 'Other' : platformKey;
-        html += `<div class="cal-release"><span class="t"><span class="platform-mark ${platformKey}">${platformLabel}</span>${t}${timeSuffix}</span><span class="s">${s}</span></div>`;
+        const platformKeys = r.platformKeys || [r.platformKey];
+        const platformMarks = platformKeys.map(platformKey => {
+          const platformLabel = platformKey === 'Other' ? 'Other' : platformKey;
+          return `<span class="platform-mark ${platformKey}">${platformLabel}</span>`;
+        }).join(' ');
+        html += `<div class="cal-release"><span class="t">${platformMarks}${t}${timeSuffix}</span><span class="s">${s}</span></div>`;
       });
       if (rels.length > 3) {
         html += `<div class="cal-release more">+${rels.length - 3} more</div>`;
@@ -499,7 +538,7 @@
           <span class="badge badge-manual" style="display:none;" data-manual="${r.source === 'manual' ? '1' : '0'}">Manual</span>
           ${r.source === 'manual' ? '<span class="badge badge-manual">Manual</span>' : ''}
         </div>
-        ${r.url ? `<a class="rel-link" href="${escapeHtml(r.url)}" target="_blank" rel="noopener noreferrer">View →</a>` : ''}
+          ${releaseLinks(r)}
       </div>`;
     });
     listEl.innerHTML = html;
