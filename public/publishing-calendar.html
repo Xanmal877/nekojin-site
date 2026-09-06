@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Release Calendar - Nekojin Interactive</title>
+  <link rel="stylesheet" href="/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Darumadrop+One&family=Zen+Kaku+Gothic+New:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <script>
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+  </script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-body, 'Zen Kaku Gothic New', sans-serif);
+      background: var(--bg, #fff);
+      color: var(--text, #374151);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Nav consistent with the homepage */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.9rem 2rem;
+      background: var(--surface, rgba(255,255,255,0.9));
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(124,58,237,0.12);
+    }
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: var(--font-display, 'Darumadrop One', cursive);
+      font-size: 1.3rem;
+      color: var(--royal, #7c3aed);
+      text-decoration: none;
+    }
+    .nav-links { display: flex; align-items: center; gap: 1rem; }
+    .nav-links a {
+      color: var(--text, #374151);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      opacity: 0.85;
+    }
+    .nav-links a:hover { opacity: 1; color: var(--royal, #7c3aed); }
+    .theme-toggle {
+      background: transparent;
+      border: 1px solid rgba(124,58,237,0.3);
+      border-radius: 8px;
+      padding: 0.45rem 0.55rem;
+      cursor: pointer;
+      font-size: 1.05rem;
+      color: var(--text, #374151);
+    }
+    .theme-toggle:hover { background: rgba(124,58,237,0.1); }
+
+    main {
+      flex: 1;
+      width: 100%;
+      max-width: 1600px;
+      width: calc(100% - 3rem);
+      margin: 0 auto;
+      padding: 2rem 1.5rem 4rem;
+    }
+
+    .page-head h1 {
+      font-family: var(--font-display, 'Darumadrop One', cursive);
+      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      color: var(--royal, #7c3aed);
+      margin-bottom: 0.3rem;
+    }
+    .page-head p { color: var(--muted, #6b7280); font-size: 0.95rem; }
+
+    .cal-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin: 1.6rem 0 1rem;
+    }
+    .cal-nav { display: flex; align-items: center; gap: 0.5rem; }
+    .cal-nav button, .cal-today {
+      background: var(--surface2, #e9ecef);
+      border: 1px solid rgba(124,58,237,0.18);
+      color: var(--text, #374151);
+      padding: 0.55rem 1rem;
+      border-radius: 9px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .cal-nav button:hover, .cal-today:hover {
+      background: rgba(124,58,237,0.12);
+      color: var(--royal, #7c3aed);
+    }
+    .cal-title {
+      font-family: var(--font-display, 'Darumadrop One', cursive);
+      font-size: 1.4rem;
+      color: var(--ink, #111827);
+      min-width: 150px;
+      text-align: center;
+    }
+
+    /* ── CALENDAR GRID ── */
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 10px;
+      border: 1px solid var(--border, rgba(0,0,0,0.08));
+      border-radius: 14px;
+      padding: 14px;
+      background: var(--surface, #f8f9fa);
+    }
+    .cal-dow {
+      text-align: center;
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted, #6b7280);
+      padding: 8px 0;
+    }
+    .cal-cell {
+      min-width: 0;
+      min-height: 180px;
+      border-radius: 9px;
+      padding: 12px 13px;
+      background: var(--bg, #fff);
+      border: 1px solid var(--border, rgba(0,0,0,0.06));
+      color: var(--text, #374151);
+      position: relative;
+      overflow: hidden;
+    }
+    .cal-cell.heading { visibility: hidden; }
+    .cal-daynum { font-size: 1.1rem; font-weight: 700; opacity: 0.75; margin-bottom: 8px; }
+    .cal-cell.is-today .cal-daynum {
+      color: var(--royal, #7c3aed);
+    }
+    .cal-cell.is-today { box-shadow: inset 0 0 0 1.5px var(--royal, #7c3aed); }
+    .cal-release { min-width: 0; font-size: 0.94rem; line-height: 1.4; margin-top: 6px; }
+    .cal-release .t { display: block; font-weight: 600; color: var(--ink, #111827); overflow-wrap: anywhere; }
+    .cal-release .s { display: block; color: var(--muted, #6b7280); font-size: 0.82rem; overflow-wrap: anywhere; }
+    .platform-mark { display: inline-block; font-size: 0.7rem; line-height: 1; font-weight: 800; letter-spacing: 0.04em; padding: 0.2rem 0.35rem; margin-right: 0.3rem; border-radius: 3px; vertical-align: 0.08rem; }
+    .platform-mark.RR { color: #3730a3; background: #e0e7ff; }
+    .platform-mark.SH { color: #9a3412; background: #ffedd5; }
+    .platform-mark.Other { color: #4f46e5; background: #e0e7ff; }
+    [data-theme="dark"] .platform-mark.RR { color: #c7d2fe; background: rgba(79,70,229,0.3); }
+    [data-theme="dark"] .platform-mark.SH { color: #fed7aa; background: rgba(234,138,26,0.25); }
+    [data-theme="dark"] .platform-mark.Other { color: #c7d2fe; background: rgba(79,70,229,0.25); }
+    .cal-release.more { color: var(--royal, #7c3aed); font-weight: 600; }
+
+    /* ── RELEASE LIST ── */
+    .release-list { margin-top: 2.5rem; }
+    .release-list h2 { font-size: 1.4rem; color: var(--ink, #111827); margin-bottom: 1rem; }
+    .release-card {
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+      padding: 1rem 1.2rem;
+      border: 1px solid var(--border, rgba(0,0,0,0.08));
+      border-radius: 12px;
+      background: var(--surface, #f8f9fa);
+      margin-bottom: 0.6rem;
+      flex-wrap: wrap;
+    }
+    .rel-date {
+      min-width: 116px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--royal, #7c3aed);
+      white-space: nowrap;
+    }
+    .rel-main { flex: 1 1 200px; min-width: 0; }
+    .rel-title { font-size: 1rem; font-weight: 700; color: var(--ink, #111827); }
+    .rel-series { font-size: 0.9rem; color: var(--muted, #6b7280); }
+    .rel-badges { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 0.22rem 0.55rem;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .badge-RR  { background: #eef2ff; color: #3730a3; border: 1px solid #4f46e5; }
+    .badge-SH  { background: #fff7ed; color: #9a3412; border: 1px solid #ea8a1a; }
+    .badge-Other { background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; }
+    .badge-manual {
+      background: #ecfdf5;
+      color: #047857;
+      border: 1px solid #10b981;
+    }
+    [data-theme="dark"] .badge-RR { background: rgba(79,70,229,0.18); color: #a5b4fc; }
+    [data-theme="dark"] .badge-SH { background: rgba(154,52,18,0.18); color: #fdba74; }
+    [data-theme="dark"] .badge-Other { background: rgba(79,70,229,0.14); color: #a5b4fc; }
+    [data-theme="dark"] .badge-manual { background: rgba(16,185,129,0.16); color: #6ee7b7; }
+
+    .rel-link {
+      display: inline-flex;
+      align-items: center;
+      text-decoration: none;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #fff;
+      background: linear-gradient(135deg, #7c3aed, #6d28d9);
+      padding: 0.4rem 0.85rem;
+      border-radius: 999px;
+      transition: all 0.2s;
+    }
+    .rel-link:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(124,58,237,0.4); }
+
+    .empty { color: var(--muted, #6b7280); font-size: 0.9rem; padding: 1rem 0; }
+    .error-banner {
+      background: rgba(224,80,80,0.08);
+      border: 1px solid rgba(224,80,80,0.3);
+      color: #e08080;
+      padding: 0.7rem 1rem;
+      border-radius: 9px;
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+    }
+    .foot-note { margin-top: 2rem; font-size: 0.78rem; color: var(--faint, #9ca3af); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 720px) {
+      main { width: 100%; padding: 1.2rem 0.9rem 3rem; }
+      nav { padding: 0.8rem 1rem; }
+      .cal-grid { gap: 3px; padding: 6px; }
+      .cal-cell { min-height: 48px; font-size: 0.7rem; }
+      .cal-cell.release-cell { font-size: 0.58rem; }
+      .cal-release { display: none; }
+      .rel-date { width: 100%; }
+      .release-card { flex-direction: column; align-items: flex-start; }
+    }
+    @media (max-width: 460px) {
+      .cal-dow { font-size: 0.6rem; }
+      .cal-toolbar { justify-content: center; }
+      .nav-links a.home-link { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo">
+    <div class="nav-tama" style="width:28px;height:28px;background:var(--royal);-webkit-mask:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 3a2 2 0 1 0 0 .01M12 2a2 2 0 0 0 0 4 2 2 0 0 0 0-4Zm-6 8a2 2 0 1 0 0 .01M6 9a2 2 0 0 0 0 4 2 2 0 0 0 0-4Zm12 0a2 2 0 1 0 0 .01M18 9a2 2 0 0 0 0 4 2 2 0 0 0 0-4ZM12 8a5 5 0 0 0-5 5c0 3 2.5 5 5 5s5-2 5-5a5 5 0 0 0-5-5Z'/%3E%3C/svg%3E&quot;) center/contain no-repeat;mask:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 3a2 2 0 1 0 0 .01M12 2a2 2 0 0 0 0 4 2 2 0 0 0 0-4Zm-6 8a2 2 0 1 0 0 .01M6 9a2 2 0 0 0 0 4 2 2 0 0 0 0-4Zm12 0a2 2 0 1 0 0 .01M18 9a2 2 0 0 0 0 4 2 2 0 0 0 0-4ZM12 8a5 5 0 0 0-5 5c0 3 2.5 5 5 5s5-2 5-5a5 5 0 0 0-5-5Z'/%3E%3C/svg%3E&quot;) center/contain no-repeat;"></div>
+    Nekojin Interactive
+  </a>
+  <div class="nav-links">
+    <a class="home-link" href="/">Home</a>
+    <a href="/publishing-calendar" style="color:var(--royal);opacity:1;font-weight:700;">Release Calendar</a>
+    <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+      <span id="theme-icon">☀️</span>
+    </button>
+  </div>
+</nav>
+
+<main>
+  <div class="page-head">
+    <h1>Release Calendar</h1>
+    <p>Upcoming and recent releases for Xanrean Chronicle series across platforms.</p>
+  </div>
+
+  <div class="cal-toolbar">
+    <div class="cal-nav">
+      <button id="prev-month" aria-label="Previous month">← Prev</button>
+      <button id="next-month" aria-label="Next month">Next →</button>
+    </div>
+    <div class="cal-title" id="cal-title"></div>
+    <button class="cal-today" id="cal-today">Today</button>
+  </div>
+
+  <div id="error-banner" class="error-banner" style="display:none;"></div>
+
+  <div id="calendar"></div>
+
+  <section class="release-list">
+    <h2>Release List</h2>
+    <div id="release-list"></div>
+  </section>
+
+  <p class="foot-note">
+    Times are shown in your browser's local timezone. Platform links open the release on its home platform when available.
+    Manually added events are marked <span class="badge badge-manual">Manual</span>.
+  </p>
+</main>
+
+<script>
+  // ── STATE ──
+  function phoenixTodayParts() {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Phoenix', year: 'numeric', month: 'numeric', day: 'numeric'
+    }).formatToParts(new Date());
+    return {
+      year: Number(parts.find(p => p.type === 'year').value),
+      month: Number(parts.find(p => p.type === 'month').value) - 1,
+      day: Number(parts.find(p => p.type === 'day').value)
+    };
+  }
+  const todayParts = phoenixTodayParts();
+  let viewYear = todayParts.year;
+  let viewMonth = todayParts.month; // 0-indexed
+
+  const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const MONTHS = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
+  // Month's first day as YYYY-MM-DD (local, no TZ reinterpretation)
+  function firstOfMonth(y, m) {
+    return `${y}-${String(m + 1).padStart(2, '0')}-01`;
+  }
+  function nextFirst(y, m) {
+    if (m === 11) return `${y + 1}-01-01`;
+    return `${y}-${String(m + 2).padStart(2, '0')}-01`;
+  }
+  function fmt(y, m, d) {
+    return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  }
+  function daysInMonth(y, m) {
+    return new Date(y, m + 1, 0).getDate();
+  }
+
+  let cachedData = { start: null, end: null, byDate: {} };
+
+  async function loadMonth(y, m) {
+    const start = firstOfMonth(y, m);
+    const end = nextFirst(y, m);
+
+    // Use a cache for the range so back/forth is snappy; refetch on change.
+    if (cachedData.start === start && cachedData.end === end) {
+      render(y, m);
+      return;
+    }
+
+    const res = await fetch(`/api/public/publishing-calendar?start=${start}&end=${end}`);
+    if (!res.ok) {
+      showError(`Couldn't load the calendar (server responded ${res.status}). Please try again.`);
+      cachedData = { start: null, end: null, byDate: {} };
+      return;
+    }
+    const data = await res.json();
+    const byDate = {};
+    (data.entries || []).forEach(e => {
+      const key = e.date || '';
+      if (!byDate[key]) byDate[key] = [];
+      byDate[key].push(e);
+    });
+    cachedData = { start, end, byDate };
+    hideError();
+    render(y, m);
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  // Convert the source's local wall-clock time to an instant, then format it
+  // in the browser's timezone. This keeps the calendar useful internationally.
+  function localTimeLabel(r) {
+    if (!r.time || !r.date) return '';
+    try {
+      const [year, month, day] = r.date.split('-').map(Number);
+      const [hour, minute] = r.time.split(':').map(Number);
+      const guess = Date.UTC(year, month - 1, day, hour, minute);
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: r.timezone || 'America/Phoenix',
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+      }).formatToParts(new Date(guess));
+      const values = Object.fromEntries(parts.filter(p => p.type !== 'literal').map(p => [p.type, Number(p.value)]));
+      const sourceAsUtc = Date.UTC(values.year, values.month - 1, values.day, values.hour, values.minute);
+      const instant = new Date(guess - (sourceAsUtc - guess));
+      return new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(instant);
+    } catch (_) {
+      return r.time;
+    }
+  }
+
+  function badgeFor(e) {
+    const k = e.platformKey === 'SH' ? 'SH' : (e.platformKey === 'RR' ? 'RR' : 'Other');
+    const label = k === 'RR' ? 'RR' : k === 'SH' ? 'SH' : 'Other';
+    return `<span class="badge badge-${k}">${label}</span>`;
+  }
+
+  function render(y, m) {
+    document.getElementById('cal-title').textContent = `${MONTHS[m]} ${y}`;
+    const todayStr = fmt(todayParts.year, todayParts.month, todayParts.day);
+
+    let html = `<div class="cal-grid">`;
+    DOW.forEach(d => html += `<div class="cal-dow">${d}</div>`);
+
+    // Leading blanks based on first-of-month weekday (local)
+    const firstWeekday = new Date(y, m, 1).getDay();
+    for (let i = 0; i < firstWeekday; i++) {
+      html += `<div class="cal-cell heading"></div>`;
+    }
+
+    const dim = daysInMonth(y, m);
+    for (let d = 1; d <= dim; d++) {
+      const dateKey = fmt(y, m, d);
+      const rels = cachedData.byDate[dateKey] || [];
+      const isToday = dateKey === todayStr;
+      let cellClass = 'cal-cell' + (rels.length ? ' release-cell' : '') +
+        (isToday ? ' is-today' : '');
+      html += `<div class="${cellClass}">
+        <div class="cal-daynum">${d}</div>`;
+      // Show up to 3 on desktop grid; "+n more" for the rest
+      const shown = rels.slice(0, 3);
+      shown.forEach(r => {
+        const t = escapeHtml(r.title || 'Untitled');
+        const s = escapeHtml(r.series || '');
+        const timeSuffix = localTimeLabel(r) ? ` · ${escapeHtml(localTimeLabel(r))}` : '';
+        const platformKey = r.platformKey === 'SH' ? 'SH' : (r.platformKey === 'RR' ? 'RR' : 'Other');
+        const platformLabel = platformKey === 'Other' ? 'Other' : platformKey;
+        html += `<div class="cal-release"><span class="t"><span class="platform-mark ${platformKey}">${platformLabel}</span>${t}${timeSuffix}</span><span class="s">${s}</span></div>`;
+      });
+      if (rels.length > 3) {
+        html += `<div class="cal-release more">+${rels.length - 3} more</div>`;
+      }
+      html += `</div>`;
+    }
+
+    // Trailing blanks
+    const lastWeekday = new Date(y, m, dim).getDay();
+    for (let i = lastWeekday + 1; i < 7; i++) {
+      html += `<div class="cal-cell heading"></div>`;
+    }
+
+    html += `</div>`;
+    document.getElementById('calendar').innerHTML = html;
+    renderReleaseList(m);
+  }
+
+  function renderReleaseList(m) {
+    const listEl = document.getElementById('release-list');
+    // Collect all entries for this month, sorted by date/time
+    const all = [];
+    Object.entries(cachedData.byDate).forEach(([date, rels]) => {
+      rels.forEach(r => all.push({ ...r, date }));
+    });
+    all.sort((a, b) =>
+      a.date.localeCompare(b.date) ||
+      (a.time || '').localeCompare(b.time || '') ||
+      a.platform.localeCompare(b.platform)
+    );
+
+    // Only show entries within the viewed month
+    const start = firstOfMonth(viewYear, viewMonth);
+    const end = nextFirst(viewYear, viewMonth);
+    const filtered = all.filter(r => r.date >= start && r.date < end);
+
+    if (!filtered.length) {
+      listEl.innerHTML = `<div class="empty">No releases showing for ${MONTHS[m]} ${viewYear}.</div>`;
+      return;
+    }
+
+    let html = '';
+    filtered.forEach(r => {
+      const dateParts = r.date.split('-');
+      const dateLabel = r.date; // YYYY-MM-DD
+       const timeLabel = localTimeLabel(r) ? ` · ${escapeHtml(localTimeLabel(r))}` : '';
+      const platformLabel = `${r.platformKey === 'SH' ? 'ScribbleHub' : (r.platformKey === 'RR' ? 'Royal Road' : r.platform)}`;
+      html += `<div class="release-card">
+        <div class="rel-date">${dateLabel}${timeLabel}</div>
+        <div class="rel-main">
+          <div class="rel-title">${escapeHtml(r.title)}</div>
+          <div class="rel-series">${escapeHtml(r.series)}</div>
+        </div>
+        <div class="rel-badges">
+          ${badgeFor(r)}
+          <span class="badge badge-manual" style="display:none;" data-manual="${r.source === 'manual' ? '1' : '0'}">Manual</span>
+          ${r.source === 'manual' ? '<span class="badge badge-manual">Manual</span>' : ''}
+        </div>
+        ${r.url ? `<a class="rel-link" href="${escapeHtml(r.url)}" target="_blank" rel="noopener noreferrer">View →</a>` : ''}
+      </div>`;
+    });
+    listEl.innerHTML = html;
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('error-banner');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+  function hideError() {
+    document.getElementById('error-banner').style.display = 'none';
+  }
+
+  document.getElementById('prev-month').addEventListener('click', () => {
+    viewMonth--;
+    if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+    loadMonth(viewYear, viewMonth);
+  });
+  document.getElementById('next-month').addEventListener('click', () => {
+    viewMonth++;
+    if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+    loadMonth(viewYear, viewMonth);
+  });
+  document.getElementById('cal-today').addEventListener('click', () => {
+    viewYear = todayParts.year;
+    viewMonth = todayParts.month;
+    loadMonth(viewYear, viewMonth);
+  });
+
+  // ── THEME ──
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme') || 'light';
+    const next = current === 'light' ? 'dark' : 'light';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    document.getElementById('theme-icon').textContent = next === 'dark' ? '🌙' : '☀️';
+  }
+  document.getElementById('theme-icon').textContent =
+    (localStorage.getItem('theme') || 'light') === 'dark' ? '🌙' : '☀️';
+
+  loadMonth(viewYear, viewMonth);
+</script>
+</body>
+</html>
