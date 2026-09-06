@@ -23,7 +23,7 @@ const os = require('os');
 
 // Configuration
 const PUBLISHING_DB_PATH = process.env.PUBLISHING_DB_PATH ||
-    path.join(process.env.HOME || os.homedir(), 'Downloads', 'Xanmal_Publishing_Database.sqlite');
+    path.join(__dirname, 'data', 'Xanmal_Publishing_Database.sqlite');
 
 const DEFAULT_PAGE_SIZE = 50;
 const MAX_PAGE_SIZE = 100;
