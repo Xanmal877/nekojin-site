@@ -9,7 +9,6 @@ nekojin.db
 
 # Dependencies
 node_modules/
-package-lock.json
 
 # Runtime data
 *.pid
