@@ -117,9 +117,9 @@ setInterval(() => {
 // ── CONFIG ────────────────────────────────────────────────
 const PORT = Number(process.env.PORT) || 7771;
 
-// OPTION 1: Manuscript system disabled (can re-enable later)
-// Set to true to re-enable .docx reading and /read page
-const MANUSCRIPTS_ENABLED = false;
+// Disabled by default; set MANUSCRIPTS_ENABLED=true to enable .docx reading
+// and the /read page in a deployment that has reviewed the upload surface.
+const MANUSCRIPTS_ENABLED = process.env.MANUSCRIPTS_ENABLED === 'true';
 
 // Conditionally import mammoth only if manuscripts enabled
 const mammoth = MANUSCRIPTS_ENABLED ? require('mammoth') : null;
@@ -552,16 +552,23 @@ function serveFile(res, filePath) {
     }
 }
 
-// ── LOGIN/REGISTER PAGES ─────────────────────────────────
-// Resolve a post-login redirect target to a safe local path. Rejects
-// protocol-relative URLs (//host) and any CRLF/control characters that could
-// smuggle extra headers, falling back to /admin.
+// ── LOGIN/REGISTER PAGES ─────────────────────────────
+// Resolve a post-login redirect target to a safe local path.
+// Rejects:
+//   - protocol-relative URLs (//host)
+//   - backslash characters (\) anywhere in the path
+//   - CRLF/control characters that could smuggle extra headers
+//   - non-local paths (not starting with /)
+// Falls back to /admin on any suspicious input.
 function safeRedirectPath(next) {
     if (typeof next !== 'string' || !next) return '/admin';
-    if (next.startsWith('//') || /[\r\n]/.test(next)) return '/admin';
+    // Reject protocol-relative, backslash (anywhere), CRLF, and control chars
+    if (next.startsWith('//') || next.includes('\\') || /[\r\n\x00-\x1f]/.test(next)) return '/admin';
+    // Reject non-local paths
     if (!next.startsWith('/')) return '/admin';
     return next;
 }
+
 
 function loginPage(nextUrl = '/admin', error = '') {
     const safeNext = safeRedirectPath(nextUrl);
@@ -840,21 +847,26 @@ async function handleRequest(req, res) {
         return serveFile(res, path.join(PUBLIC_DIR, 'data', 'characters', `${file}.md`));
     }
 
-    // Gumroad Webhook (PUBLIC, CSRF-exempt)
-     if (req.method === 'POST' && url === '/webhook/gumroad') {
-         const limit = checkRateLimit(req, '/webhook/gumroad');
-         if (!limit.allowed) {
-             res.writeHead(429);
-             return res.end(limit.message);
-         }
+     // Gumroad Webhook (PUBLIC, CSRF-exempt)
+      if (req.method === 'POST' && url === '/webhook/gumroad') {
+          const limit = checkRateLimit(req, '/webhook/gumroad');
+          if (!limit.allowed) {
+              res.writeHead(429);
+              return res.end(limit.message);
+          }
 
-         try {
-             // Validate webhook signature (cryptographically strong authentication)
-             // Gumroad's ping requests cannot be signed. Configure its ping URL
-             // as /webhook/gumroad?secret=<GUMROAD_WEBHOOK_SECRET>; the header
-             // form also supports a reverse proxy that injects the secret.
-             const providedSecret = req.headers['x-gumroad-webhook-secret'] || query.get('secret');
-             const configuredSecret = process.env.GUMROAD_WEBHOOK_SECRET;
+          try {
+              // Validate webhook signature (cryptographically strong authentication)
+              // Gumroad's ping requests cannot be signed. In production, ONLY accept
+              // the secret via the X-Gumroad-Webhook-Secret header (set by reverse proxy).
+              // Query-string secrets are unsafe as they appear in logs/referrers.
+              // For local development, query-string fallback is allowed if not in production.
+              let providedSecret = req.headers['x-gumroad-webhook-secret'];
+              const isProduction = process.env.NODE_ENV === 'production' || process.env.TRUST_PROXY === 'true';
+              if (!providedSecret && !isProduction) {
+                  providedSecret = query.get('secret'); // Fallback only in dev
+              }
+              const configuredSecret = process.env.GUMROAD_WEBHOOK_SECRET;
 
              if (!configuredSecret) {
                  console.error('[Gumroad Webhook] GUMROAD_WEBHOOK_SECRET not configured');
@@ -1230,19 +1242,19 @@ async function handleRequest(req, res) {
 
         const body = await readRawBody(req, 16 * 1024);
         const params = parseFormBody(body);
-        if (accounts.verifyUser(params.username, params.password)) {
-            const sid = accounts.createSession(params.username);
-            const csrfToken = accounts.getSessionCsrfToken(sid);
-            const next = safeRedirectPath(params.next);
-            res.writeHead(302, {
-                Location: next,
-                'Set-Cookie': [
-                    `nki_session=${sid}; HttpOnly; SameSite=Strict; Max-Age=${accounts.SESSION_TTL / 1000}; Path=/`,
-                    `nki_csrf=${csrfToken}; SameSite=Strict; Max-Age=${accounts.SESSION_TTL / 1000}; Path=/`,
-                ],
-            });
-            return res.end();
-        }
+         if (accounts.verifyUser(params.username, params.password)) {
+             const sid = accounts.createSession(params.username);
+             const csrfToken = accounts.getSessionCsrfToken(sid);
+             const next = safeRedirectPath(params.next);
+             res.writeHead(302, {
+                 Location: next,
+                 'Set-Cookie': [
+                     accounts.setCookieHeader('nki_session', sid, { sameSite: 'Strict' }),
+                     accounts.setCookieHeader('nki_csrf', csrfToken, { sameSite: 'Strict' }),
+                 ],
+             });
+             return res.end();
+         }
         res.writeHead(200, { 'Content-Type': 'text/html' });
         return res.end(loginPage(params.next || '/admin', 'Incorrect username or password.'));
     }
@@ -1288,18 +1300,18 @@ async function handleRequest(req, res) {
         return res.end(registerPage('', 'Account created. You can now log in.'));
     }
 
-    if (req.method === 'GET' && url === '/logout') {
-        const sid = accounts.getSessionId(req);
-        if (sid) accounts.deleteSession(sid);
-        res.writeHead(302, {
-            Location: '/login',
-            'Set-Cookie': [
-                'nki_session=; HttpOnly; SameSite=Strict; Max-Age=0; Path=/',
-                'nki_csrf=; SameSite=Strict; Max-Age=0; Path=/',
-            ],
-        });
-        return res.end();
-    }
+     if (req.method === 'GET' && url === '/logout') {
+         const sid = accounts.getSessionId(req);
+         if (sid) accounts.deleteSession(sid);
+         res.writeHead(302, {
+             Location: '/login',
+             'Set-Cookie': [
+                 accounts.setCookieHeader('nki_session', '', { maxAge: 0, sameSite: 'Strict' }),
+                 accounts.setCookieHeader('nki_csrf', '', { maxAge: 0, sameSite: 'Strict' }),
+             ],
+         });
+         return res.end();
+     }
 
     // ── PUBLIC NEWSLETTER ─────────────────────────────────
     if (req.method === 'POST' && url === '/newsletter') {
