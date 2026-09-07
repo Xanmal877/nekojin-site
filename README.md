@@ -3,13 +3,12 @@
 > **Stories and games where characters think for themselves.**
 
 [![Website](https://img.shields.io/badge/Website-worldofxanrea.com-8b5cf6?style=flat-square)](https://worldofxanrea.com)
-[![Node.js](https://img.shields.io/badge/Node.js-18%2B-339933?style=flat-square&logo=node.js)](https://nodejs.org)
+[![Node.js](https://img.shields.io/badge/Node.js-20.19%2B-339933?style=flat-square&logo=node.js)](https://nodejs.org)
 [![SQLite](https://img.shields.io/badge/SQLite-3-003B57?style=flat-square&logo=sqlite)](https://sqlite.org)
 
 Official website for **Nekojin Interactive**, a solo indie studio building the Xanrea universe. One system, one story at a time.
 
-The server runs on Node.js 18+, while building the publishing dashboard requires
-Node.js 20.19+ because of its Vite toolchain.
+The server and publishing dashboard require Node.js 20.19+.
 
 ---
 
@@ -47,7 +46,7 @@ nekojin-site/
 │   ├── about.html         # About page
 │   └── style.css          # Shared styles
 ├── TASKS.md               # Roadmap, issues, changelog (all-in-one)
-└── scraper/               # Stats scraper (optional)
+└── tools/scraper/         # Stats scraper (optional)
 ```
 
 ---
@@ -91,7 +90,7 @@ nekojin-site/
 
 ### 📈 **Publishing Dashboard**
 - Admin-only release, series, platform, calendar, and data-health views
-- Reads `/home/xanmal/Downloads/Xanmal_Publishing_Database.sqlite` read-only by default
+- Reads `data/Xanmal_Publishing_Database.sqlite` read-only by default
 - Override the source with `PUBLISHING_DB_PATH`
 - Build the nested React dashboard with `npm run build:dashboard`
 
@@ -120,6 +119,10 @@ nekojin-site/
 
 ## 🚀 Deployment (Raspberry Pi)
 
+Install Node.js 20.19 or newer on the Pi before deploying. The current
+`sqlite3`, `sharp`, and Vite dependencies no longer support the old Node.js 18
+runtime.
+
 ```bash
 # Pull latest
 git pull origin main
@@ -127,8 +130,8 @@ git pull origin main
 # Install dependencies
 npm install
 
-# Restart server
-pm2 restart nekojin-site
+# Restart server (systemd)
+sudo systemctl restart nekojin.service
 ```
 
 ### Environment Variables
@@ -141,8 +144,9 @@ pm2 restart nekojin-site
 | `ALLOW_PUBLIC_REGISTRATION` | `false` | Set `true` to re-enable the public `/register` page. Off by default, since this is a single-author site, not a multi-tenant app. |
 | `TRUST_PROXY` | `false` | Set `true` only if the server sits behind a reverse proxy (nginx, etc.) that sets `X-Forwarded-For`/`X-Real-IP`. Otherwise those headers are client-controlled and must not be trusted for rate limiting. |
 | `ALLOWED_ORIGINS` | `https://worldofxanrea.com` | Comma-separated list of origins allowed to make credentialed cross-origin requests. Same-origin browser requests (the normal case) don't need this at all. |
-| `PUBLISHING_DB_PATH` | `~/Downloads/Xanmal_Publishing_Database.sqlite` | Read-only SQLite source for the admin publishing dashboard. |
+| `PUBLISHING_DB_PATH` | `./data/Xanmal_Publishing_Database.sqlite` | Read-only SQLite source for the admin publishing dashboard. |
 | `PUBLISHING_CALENDAR_DB_PATH` | `./data/publishing-calendar.db` | SQLite store for admin-managed public calendar entries. |
+| `MANUSCRIPTS_ENABLED` | `false` | Enable the reviewed manuscript upload/reading subsystem. |
 | `NEWSLETTER_PROVIDER` | `none` | External provider to use: `none` (default), `buttondown`, `mailerlite`, `convertkit`, or `generic_webhook`. |
 | `BUTTONDOWN_API_KEY` | `null` | API key for Buttondown. |
 | `MAILERLITE_API_KEY` | `null` | API key for MailerLite. |
@@ -156,9 +160,10 @@ pm2 restart nekojin-site
 
 ## 🧪 Development
 
-> The one-time `migrate-to-sqlite.js` / `migrate-newsletter.js` scripts have been removed:
-> the site has run entirely on SQLite (`data/nekojin.db`) since the July 2026 migration.
-> They're still in git history if a fresh JSON→SQLite migration is ever needed again.
+> The legacy `migrate-to-sqlite.js` and `migrate-newsletter.js` scripts remain in
+> the repository for recovery or one-time migrations. Do not run them against
+> production without a backup and an explicit migration plan; the site now runs
+> entirely on SQLite (`data/nekojin.db`).
 
 ### Testing
 

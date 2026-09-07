@@ -17,9 +17,9 @@ server owns both the page and the API.
 
 ## Requirements
 
-- Node.js 18+ (the root server uses the `sqlite3` npm package).
+- Node.js 20.19+ (required by the root server dependencies and Vite toolchain).
 - The publishing database at the configured `PUBLISHING_DB_PATH` (defaults to
-  `~/Downloads/Xanmal_Publishing_Database.sqlite`). The database is opened
+  `data/Xanmal_Publishing_Database.sqlite`). The database is opened
   read-only and is never copied into the project.
 
 ## Setup

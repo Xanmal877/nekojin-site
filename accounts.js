@@ -77,9 +77,31 @@ function readJsonWithFallbackSync(filePath, fallback = {}) {
     }
 }
 
-// Ensure files exist with initial state
+// Ensure files exist with initial state and restrictive permissions
 if (!fs.existsSync(SESSIONS_FILE)) {
     atomicWriteSync(SESSIONS_FILE, {});
+}
+
+// Enforce restrictive permissions on sensitive account files
+// These files contain session tokens and password hashes, so they must be owner-only.
+try {
+    fs.chmodSync(SESSIONS_FILE, 0o600);
+} catch (e) {
+    console.warn('[PERSISTENCE] Could not set restrictive permissions on sessions.json:', e.message);
+}
+if (fs.existsSync(USERS_FILE)) {
+    try {
+        fs.chmodSync(USERS_FILE, 0o600);
+    } catch (e) {
+        console.warn('[PERSISTENCE] Could not set restrictive permissions on users.json:', e.message);
+    }
+}
+if (fs.existsSync(USER_KEYS_FILE)) {
+    try {
+        fs.chmodSync(USER_KEYS_FILE, 0o600);
+    } catch (e) {
+        console.warn('[PERSISTENCE] Could not set restrictive permissions on user-keys.json:', e.message);
+    }
 }
 
 // ── SESSIONS ────────────────────────────────────────────
@@ -142,12 +164,33 @@ function saveSessions() {
 }
 
 function createSession(username) {
-    const id = crypto.randomBytes(32).toString('hex');
-    const csrfToken = crypto.randomBytes(24).toString('hex');
-    sessions.set(id, { createdAt: Date.now(), username, csrfToken });
-    saveSessions();
-    return id;
-}
+     const id = crypto.randomBytes(32).toString('hex');
+     const csrfToken = crypto.randomBytes(24).toString('hex');
+     sessions.set(id, { createdAt: Date.now(), username, csrfToken });
+     saveSessions();
+     return id;
+ }
+
+  /**
+   * Generate secure Set-Cookie header value with production awareness.
+   * Secure flag only set in production (https) or when explicitly required.
+   * @param {string} name - Cookie name
+   * @param {string} value - Cookie value
+   * @param {object} options - {maxAge, secure, sameSite}
+   * @returns {string}
+   */
+  function setCookieHeader(name, value, options = {}) {
+      const isProduction = process.env.NODE_ENV === 'production' || process.env.TRUST_PROXY === 'true';
+      const secure = options.secure !== undefined ? options.secure : isProduction;
+      const maxAge = options.maxAge !== undefined ? options.maxAge : SESSION_TTL;
+      const sameSite = options.sameSite || 'Strict';
+
+      let header = `${name}=${encodeURIComponent(value)}; Path=/; HttpOnly; SameSite=${sameSite}; Max-Age=${Math.floor(maxAge / 1000)}`;
+      if (secure) {
+          header += '; Secure';
+      }
+      return header;
+  }
 
 function getSessionCsrfToken(id) {
     const s = sessions.get(id);
@@ -492,35 +535,36 @@ ensureAdminUser();
 
 // ── EXPORTS ───────────────────────────────────────────
 module.exports = {
-    // Sessions
-    createSession,
-    isValidSession,
-    getSessionUser,
-    deleteSession,
-    invalidateUserSessions,
-    cleanupExpiredSessions,
-    getSessionCsrfToken,
-    isValidCsrfToken,
-    // Users
-    findUser,
-    createUser,
-    verifyUser,
-    getUserRole,
-    isAdmin,
-    // User management
-    listAllUsers,
-    deleteUser,
-    resetPassword,
-    setUserRole,
-    isLastAdmin,
-    // User keys
-    getUserKeys,
-    setUserKey,
-    // Request helpers
-    parseCookies,
-    getSessionId,
-    isAuthenticated,
-    getUsername,
-    // Constants
-    SESSION_TTL
-};
+     // Sessions
+     createSession,
+     isValidSession,
+     getSessionUser,
+     deleteSession,
+     invalidateUserSessions,
+     cleanupExpiredSessions,
+     getSessionCsrfToken,
+     isValidCsrfToken,
+     setCookieHeader,
+     // Users
+     findUser,
+     createUser,
+     verifyUser,
+     getUserRole,
+     isAdmin,
+     // User management
+     listAllUsers,
+     deleteUser,
+     resetPassword,
+     setUserRole,
+     isLastAdmin,
+     // User keys
+     getUserKeys,
+     setUserKey,
+     // Request helpers
+     parseCookies,
+     getSessionId,
+     isAuthenticated,
+     getUsername,
+     // Constants
+     SESSION_TTL
+ };

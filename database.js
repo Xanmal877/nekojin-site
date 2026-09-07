@@ -12,8 +12,8 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
-const os = require('os');
 const crypto = require('node:crypto');
+const { isSafeHttpUrl } = require('./lib/url');
 
 // Database location - single file like your Godot project
 const DB_DIR = path.join(__dirname, 'data');
@@ -680,10 +680,16 @@ class ContentDB {
             publishAt
         ]);
 
-        // Insert platforms with normalized field names
+        // Insert platforms with normalized field names. Only http/https URLs are
+        // persisted; unsafe schemes (javascript:, data:, protocol-relative, or
+        // malformed) are dropped at the persistence boundary so they can never
+        // reach the database or be emitted into generated RSS.
         const platforms = data.platforms || [];
+        let sortOrder = 0;
         for (let i = 0; i < platforms.length; i++) {
             const p = platforms[i];
+            const url = p.url;
+            if (url && !isSafeHttpUrl(url)) continue;
             await this._run(`
                 INSERT INTO book_platforms (book_id, platform_type, platform_name, url, sort_order)
                 VALUES (?, ?, ?, ?, ?)
@@ -691,8 +697,8 @@ class ContentDB {
                 data.id,
                 p.type || p.platform_type,
                 p.name || p.platform_name,
-                p.url,
-                i
+                url || null,
+                sortOrder++
             ]);
         }
 
@@ -1226,6 +1232,18 @@ class ContentDB {
     }
 
     async ReplaceCharacterAppearances(characterId, appearances) {
+        // Route through the single operationQueue like every other mutation and
+        // backup. Opening the transaction directly here would let this write
+        // overlap a concurrent SaveAllContent/CreateBackup, which the queue is
+        // precisely there to prevent.
+        const operation = this.operationQueue.then(() =>
+            this._replaceCharacterAppearances(characterId, appearances)
+        );
+        this.operationQueue = operation.catch(() => {});
+        return operation;
+    }
+
+    async _replaceCharacterAppearances(characterId, appearances) {
         await this._run('BEGIN TRANSACTION');
         try {
             await this._run('DELETE FROM character_appearances WHERE character_id = ?', [characterId]);
@@ -1498,6 +1516,16 @@ class ContentDB {
 
         await this._run('BEGIN TRANSACTION');
         try {
+            // Snapshot character appearances before the bulk delete. The series
+            // table is deleted below and character_appearances.series_id has
+            // ON DELETE CASCADE, so the delete would otherwise silently wipe
+            // every appearance. Characters themselves are not deleted here, so
+            // the character_id foreign keys stay valid and the rows can be
+            // reinserted once the series are recreated.
+            const appearancesSnapshot = await this._all(
+                'SELECT character_id, series_id, cast_group, is_home, sort_order FROM character_appearances'
+            );
+
             // Clear existing data
             await this._run('DELETE FROM book_platforms');
             await this._run('DELETE FROM books');
@@ -1611,6 +1639,24 @@ class ContentDB {
                     description3: about.description3 || '',
                     universeBlurb: about.universe_blurb || about.universeBlurb || ''
                 });
+            }
+
+            // Restore character appearances. Only rows whose series_id still
+            // exists after the reinsert survive (a series that was removed from
+            // the payload is intentionally dropped, matching the cascade that
+            // would have occurred). Rows referencing a series that no longer
+            // exists are skipped rather than failing the whole save.
+            for (const a of appearancesSnapshot) {
+                const seriesExists = await this._get(
+                    'SELECT 1 FROM series WHERE id = ?',
+                    [a.series_id]
+                );
+                if (!seriesExists) continue;
+                await this._run(
+                    `INSERT INTO character_appearances (character_id, series_id, cast_group, is_home, sort_order)
+                     VALUES (?, ?, ?, ?, ?)`,
+                    [a.character_id, a.series_id, a.cast_group, a.is_home, a.sort_order]
+                );
             }
 
             await this._run('COMMIT');

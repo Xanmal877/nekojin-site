@@ -299,3 +299,162 @@ test('Backup and save operations serialize through the single operationQueue', a
         'Operations should serialize in submission order'
     );
 });
+
+// Test 10: ReplaceCharacterAppearances must route through the same single
+// operationQueue as every other mutation. It used to open its transaction
+// directly, which let an appearance write overlap a concurrent SaveAllContent
+// or CreateBackup. This drives the real queue wiring with the DB-touching
+// workhorses stubbed out (same technique as Test 9) and verifies that firing
+// an appearance replacement concurrently with a bulk save never runs two
+// operations at once.
+test('ReplaceCharacterAppearances serializes with saves through the single operationQueue', async () => {
+    const contentDB = require('../database.js');
+
+    let active = 0;
+    let maxActive = 0;
+    const order = [];
+
+    contentDB._replaceCharacterAppearances = async (characterId, appearances) => {
+        active++;
+        maxActive = Math.max(maxActive, active);
+        order.push(`appearances-${characterId}`);
+        await new Promise(r => setTimeout(r, 2));
+        active--;
+        return [];
+    };
+    contentDB._saveAllContent = async (label) => {
+        active++;
+        maxActive = Math.max(maxActive, active);
+        order.push(`save-${label}`);
+        await new Promise(r => setTimeout(r, 2));
+        active--;
+    };
+
+    // Fire the appearance replacement and a bulk save concurrently, exactly the
+    // interleaving the old direct-transaction implementation could race on.
+    await Promise.all([
+        contentDB.ReplaceCharacterAppearances('char-1', [{ series_id: 's1' }]),
+        contentDB.SaveAllContent('1'),
+        contentDB.ReplaceCharacterAppearances('char-2', [{ series_id: 's2' }]),
+        contentDB.SaveAllContent('2'),
+    ]);
+
+    assert.strictEqual(order.length, 4, 'All appearance and save operations should complete');
+    assert.strictEqual(maxActive, 1, 'Appearance replacement and save must never run concurrently');
+    assert.deepStrictEqual(
+        order,
+        ['appearances-char-1', 'save-1', 'appearances-char-2', 'save-2'],
+        'Appearance replacement should serialize in submission order through the single queue'
+    );
+});
+
+// Test 11: A bulk SaveAllContent must not silently wipe character appearances.
+// character_appearances.series_id has ON DELETE CASCADE and the bulk save
+// deletes the series table, so without a snapshot-and-restore the cascade would
+// erase every appearance on every save. This drives the real implementation
+// against an in-memory database: seed a series, a character, and an appearance,
+// run a full bulk save, and confirm the appearance survives.
+test('SaveAllContent preserves character_appearances across a bulk save', async () => {
+    const contentDB = require('../database.js');
+
+    // Test 10 stubbed the private workhorses on the singleton; drop those own
+    // properties so the real prototype methods run against the in-memory DB.
+    delete contentDB._replaceCharacterAppearances;
+    delete contentDB._saveAllContent;
+
+    // Point the singleton at a fresh in-memory database and build the schema.
+    const memDb = new sqlite3.Database(':memory:');
+    const prevDb = contentDB.db;
+    contentDB.db = memDb;
+    try {
+        await new Promise((resolve, reject) => {
+            memDb.serialize(() => {
+                memDb.run('PRAGMA foreign_keys = ON', (err) => {
+                    if (err) return reject(err);
+                    resolve();
+                });
+            });
+        });
+        await contentDB._CreateTables();
+
+        // Seed a series, a character, and an appearance linking them.
+        await contentDB.InsertSeries({
+            id: 's1', name: 'Series One', sort_order: 0
+        });
+        await contentDB.InsertCharacter({
+            id: 'char-1', slug: 'char-1', name: 'Char One', content: 'bio', sort_order: 0, visible: true
+        });
+        await contentDB.ReplaceCharacterAppearances('char-1', [
+            { series_id: 's1', cast_group: 'Main Cast', is_home: true }
+        ]);
+
+        const before = await contentDB.SelectCharacterAppearances('char-1');
+        assert.strictEqual(before.length, 1, 'Seed should create one appearance');
+
+        // Run a full bulk save that recreates the series (and other content).
+        await contentDB._saveAllContent({
+            series: [{ id: 's1', name: 'Series One', sort_order: 0 }],
+            books: [],
+            game: [],
+            about: {}
+        });
+
+        const after = await contentDB.SelectCharacterAppearances('char-1');
+        assert.strictEqual(after.length, 1, 'Appearance must survive the bulk save');
+        assert.strictEqual(after[0].series_id, 's1', 'Appearance should still point at the series');
+        assert.strictEqual(after[0].is_home, 1, 'Appearance is_home flag should be preserved');
+        assert.strictEqual(after[0].cast_group, 'Main Cast', 'Appearance cast_group should be preserved');
+    } finally {
+        contentDB.db = prevDb;
+        await new Promise(resolve => memDb.close(() => resolve()));
+    }
+});
+
+// Test 12: A bulk save that removes a series should drop that series'
+// appearances (matching the cascade that would have occurred) but keep the
+// appearances of series that still exist.
+test('SaveAllContent drops appearances only for series removed from the payload', async () => {
+    const contentDB = require('../database.js');
+
+    // Ensure no stubbed workhorses leak in from earlier tests.
+    delete contentDB._replaceCharacterAppearances;
+    delete contentDB._saveAllContent;
+
+    const memDb = new sqlite3.Database(':memory:');
+    const prevDb = contentDB.db;
+    contentDB.db = memDb;
+    try {
+        await new Promise((resolve, reject) => {
+            memDb.serialize(() => {
+                memDb.run('PRAGMA foreign_keys = ON', (err) => {
+                    if (err) return reject(err);
+                    resolve();
+                });
+            });
+        });
+        await contentDB._CreateTables();
+
+        await contentDB.InsertSeries({ id: 's1', name: 'Series One', sort_order: 0 });
+        await contentDB.InsertSeries({ id: 's2', name: 'Series Two', sort_order: 1 });
+        await contentDB.InsertCharacter({ id: 'char-1', slug: 'char-1', name: 'Char One', content: 'bio', sort_order: 0, visible: true });
+        await contentDB.ReplaceCharacterAppearances('char-1', [
+            { series_id: 's1', cast_group: 'Home', is_home: true },
+            { series_id: 's2', cast_group: 'Guest', is_home: false }
+        ]);
+
+        // Bulk save keeps s1 but drops s2.
+        await contentDB._saveAllContent({
+            series: [{ id: 's1', name: 'Series One', sort_order: 0 }],
+            books: [],
+            game: [],
+            about: {}
+        });
+
+        const after = await contentDB.SelectCharacterAppearances('char-1');
+        assert.strictEqual(after.length, 1, 'Only the surviving series appearance should remain');
+        assert.strictEqual(after[0].series_id, 's1', 'Remaining appearance should be for the kept series');
+    } finally {
+        contentDB.db = prevDb;
+        await new Promise(resolve => memDb.close(() => resolve()));
+    }
+});

@@ -60,37 +60,49 @@ class PublishingCalendar {
         return this.initPromise;
     }
 
-    async _initialize() {
-        try {
-            if (!fs.existsSync(DB_DIR)) {
-                fs.mkdirSync(DB_DIR, { recursive: true });
+     async _initialize() {
+         try {
+             if (!fs.existsSync(DB_DIR)) {
+                 fs.mkdirSync(DB_DIR, { recursive: true, mode: 0o700 });
+             }
+
+             await new Promise((resolve, reject) => {
+                 this.db = new sqlite3.Database(DB_PATH, (err) => {
+                     if (err) {
+                         console.error('Failed to open publishing calendar database:', err);
+                         reject(err);
+                     } else {
+                         console.log('PublishingCalendar: Connected to', DB_PATH);
+                         resolve();
+                     }
+                 });
+             });
+
+            // Enforce restrictive permissions on database directory and file
+            try {
+                fs.chmodSync(DB_DIR, 0o700);
+            } catch (e) {
+                console.warn('PublishingCalendar: Could not set restrictive permissions on directory:', e.message);
+            }
+            try {
+                fs.chmodSync(DB_PATH, 0o600);
+            } catch (e) {
+                console.warn('PublishingCalendar: Could not set restrictive permissions on database:', e.message);
             }
 
-            await new Promise((resolve, reject) => {
-                this.db = new sqlite3.Database(DB_PATH, (err) => {
-                    if (err) {
-                        console.error('Failed to open publishing calendar database:', err);
-                        reject(err);
-                    } else {
-                        console.log('PublishingCalendar: Connected to', DB_PATH);
-                        resolve();
-                    }
-                });
-            });
-
-            await this._run('PRAGMA foreign_keys = ON');
-            await this._CreateTables();
-            this.isOpen = true;
-            console.log('PublishingCalendar: Tables created');
-        } catch (err) {
-            const db = this.db;
-            this.db = null;
-            this.isOpen = false;
-            this.initPromise = null;
-            if (db) await new Promise(resolve => db.close(() => resolve()));
-            throw err;
-        }
-    }
+             await this._run('PRAGMA foreign_keys = ON');
+             await this._CreateTables();
+             this.isOpen = true;
+             console.log('PublishingCalendar: Tables created');
+         } catch (err) {
+             const db = this.db;
+             this.db = null;
+             this.isOpen = false;
+             this.initPromise = null;
+             if (db) await new Promise(resolve => db.close(() => resolve()));
+             throw err;
+         }
+     }
 
     /**
      * Close the database connection

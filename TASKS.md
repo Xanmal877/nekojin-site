@@ -1136,9 +1136,11 @@ High-level reminders:
 
 ### 🚀 Deployment Status
 
-**Environment:** Local working copy (not a git repo here).  
-**Local test status:** `npm test` → 16/16 passing.  
-**Next step:** Verify production/Pi `data/nekojin.db` and backups, or continue with roadmap items in the [Planned Features](#planned-features--nekojin-interactive-website) section.
+**Environment:** Local git working copy on `dev`; `main` is an ancestor of the
+current branch.
+**Local test status:** `npm test` → 93/93 passing.
+**Next step:** Verify production/Pi `data/nekojin.db` and backups, then review
+the remaining content gaps before moving `dev` to `main`.
 
 ---
 

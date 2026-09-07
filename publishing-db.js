@@ -19,7 +19,6 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
-const os = require('os');
 
 // Configuration
 const PUBLISHING_DB_PATH = process.env.PUBLISHING_DB_PATH ||

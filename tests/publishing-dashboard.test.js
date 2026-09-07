@@ -16,8 +16,9 @@ const BASE = `http://127.0.0.1:${PORT}`;
 const ADMIN_PASSWORD = 'PublishDashAdminPass123';
 const GUMROAD_WEBHOOK_SECRET = 'pub-dashboard-webhook';
 
-// Use the actual publishing DB from Downloads, but test without it too
-const PUBLISHING_DB_PATH = '/home/xanmal/Downloads/Xanmal_Publishing_Database.sqlite';
+// Use the configured publishing DB, but allow the suite to run without it.
+const PUBLISHING_DB_PATH = process.env.PUBLISHING_DB_PATH ||
+    path.join(ROOT, 'data', 'Xanmal_Publishing_Database.sqlite');
 const HAS_REAL_DB = fs.existsSync(PUBLISHING_DB_PATH);
 
 let serverProcess;

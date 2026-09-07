@@ -6,6 +6,7 @@
 const fs = require('fs');
 const path = require('path');
 const contentDB = require('./database.js');
+const { isSafeHttpUrl } = require('./lib/url');
 
 const BASE_URL = 'https://worldofxanrea.com';
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -114,7 +115,7 @@ function createEntryXml(item, type) {
     const description = book.description || '';
     summaryText = description.slice(0, 300);
     
-    const platforms = (book.platforms || []).map(p =>
+    const platforms = (book.platforms || []).filter(p => isSafeHttpUrl(p.url)).map(p =>
       `<a href="${esc(p.url)}">${esc(p.name || p.type)}</a>`
     ).join(' · ');
     
