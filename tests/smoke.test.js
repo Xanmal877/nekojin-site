@@ -485,6 +485,17 @@ test('authenticated POST /api/characters WITH CSRF succeeds and persists', async
     assert.strictEqual(checkBody.name, 'Saki');
 });
 
+test('POST /api/characters rejects slugs that could break out of markup', async () => {
+    const res = await fetch(`${BASE}/api/characters`, {
+        method: 'POST',
+        headers: sharedAuth.headers,
+        body: JSON.stringify({ id: 'bad-char', slug: '"><img src=x onerror=alert(1)>', name: 'Bad Char' }),
+    });
+    assert.strictEqual(res.status, 400);
+    const body = await res.json();
+    assert.match(body.error, /Invalid character slug/);
+});
+
 // ── LORE TOPICS API TESTS ──────────────────────────────────
 
 test('GET /api/lore-topics returns visible topics', async () => {
@@ -554,10 +565,20 @@ test('authenticated POST /api/lore-topics WITH CSRF succeeds and persists', asyn
         body: JSON.stringify(loreData),
     });
     assert.strictEqual(res.status, 200);
-
     const checkRes = await fetch(`${BASE}/api/lore-topics/test-lore`);
     const checkBody = await checkRes.json();
     assert.strictEqual(checkBody.title, 'Test Lore');
+});
+
+test('POST /api/lore-topics rejects slugs that could break out of markup', async () => {
+    const res = await fetch(`${BASE}/api/lore-topics`, {
+        method: 'POST',
+        headers: sharedAuth.headers,
+        body: JSON.stringify({ id: 'bad-lore', slug: '"><script>alert(1)</script>', section: 'world', title: 'Bad Lore' }),
+    });
+    assert.strictEqual(res.status, 400);
+    const body = await res.json();
+    assert.match(body.error, /Invalid lore slug/);
 });
 
 // ── TIMELINE API TESTS ──────────────────────────────────

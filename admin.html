@@ -2668,11 +2668,17 @@ async function renderCharacters() {
           <div class="game-list-status">${esc(c.title || 'No title')} • ${c.visible ? 'Visible' : 'Hidden'}${homeSeriesLabel(c)}</div>
         </div>
         <div class="game-list-actions">
-          <button class="btn btn-ghost btn-sm" onclick="editCharacter('${esc(c.slug)}')" title="Edit">✏️</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteCharacter('${esc(c.id)}')" title="Delete">🗑️</button>
+          <button class="btn btn-ghost btn-sm" data-action="edit" data-slug="${esc(c.slug)}" title="Edit">✏️</button>
+          <button class="btn btn-danger btn-sm" data-action="delete" data-id="${esc(c.id)}" title="Delete">🗑️</button>
         </div>
       </div>
     `).join('');
+    container.querySelectorAll('[data-action]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (btn.dataset.action === 'edit') editCharacter(btn.dataset.slug);
+        else if (btn.dataset.action === 'delete') deleteCharacter(btn.dataset.id);
+      });
+    });
   } catch(e) {
     container.innerHTML = `<p style="color:var(--red);">Error loading characters: ${e.message}</p>`;
   }
@@ -2698,11 +2704,17 @@ async function renderLoreTopics() {
           <div class="game-list-status">${esc(t.section)} • ${t.visible ? 'Visible' : 'Hidden'}</div>
         </div>
         <div class="game-list-actions">
-          <button class="btn btn-ghost btn-sm" onclick="editLoreTopic('${esc(t.slug)}')" title="Edit">✏️</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteLoreTopic('${esc(t.id)}')" title="Delete">🗑️</button>
+          <button class="btn btn-ghost btn-sm" data-action="edit" data-slug="${esc(t.slug)}" title="Edit">✏️</button>
+          <button class="btn btn-danger btn-sm" data-action="delete" data-id="${esc(t.id)}" title="Delete">🗑️</button>
         </div>
       </div>
     `).join('');
+    container.querySelectorAll('[data-action]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (btn.dataset.action === 'edit') editLoreTopic(btn.dataset.slug);
+        else if (btn.dataset.action === 'delete') deleteLoreTopic(btn.dataset.id);
+      });
+    });
   } catch(e) {
     container.innerHTML = `<p style="color:var(--red);">Error loading lore: ${e.message}</p>`;
   }
@@ -3048,11 +3060,17 @@ function renderTimelineList(events) {
         <div class="game-list-status">${esc(e.era || 'No era')} • ${e.visible ? 'Visible' : 'Hidden'}</div>
       </div>
       <div class="game-list-actions">
-        <button class="btn btn-ghost btn-sm" onclick="editTimelineEvent('${esc(e.id)}')" title="Edit">✏️</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteTimelineEvent('${esc(e.id)}')" title="Delete">🗑️</button>
+        <button class="btn btn-ghost btn-sm" data-action="edit" data-id="${esc(e.id)}" title="Edit">✏️</button>
+        <button class="btn btn-danger btn-sm" data-action="delete" data-id="${esc(e.id)}" title="Delete">🗑️</button>
       </div>
     </div>
   `).join('');
+  container.querySelectorAll('[data-action]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.action === 'edit') editTimelineEvent(btn.dataset.id);
+      else if (btn.dataset.action === 'delete') deleteTimelineEvent(btn.dataset.id);
+    });
+  });
 }
 
 async function renderTimeline() {
@@ -3210,13 +3228,13 @@ function renderUsersPanel() {
         <span class="role-badge ${u.role}" style="padding:0.25rem 0.75rem;border-radius:999px;font-size:0.75rem;font-weight:600;text-transform:uppercase;background:${u.role === 'admin' ? 'rgba(232,176,32,0.15)' : 'rgba(124,58,237,0.15)'};color:${u.role === 'admin' ? 'var(--gold)' : 'var(--royal)'};border:1px solid ${u.role === 'admin' ? 'rgba(232,176,32,0.3)' : 'rgba(124,58,237,0.3)'};">
           ${u.role}
         </span>
-        <select onchange="changeUserRole('${esc(u.username)}', this.value)" style="padding:0.4rem 0.6rem;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:0.8rem;cursor:pointer;"
+        <select data-action="change-role" data-username="${esc(u.username)}" style="padding:0.4rem 0.6rem;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:0.8rem;cursor:pointer;"
           ${u.username === 'xanmal' ? 'disabled title="Cannot modify default admin"' : ''}>
           <option value="user" ${u.role === 'user' ? 'selected' : ''}>User</option>
           <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
         </select>
-        <button class="btn btn-ghost btn-sm" onclick="resetUserPassword('${esc(u.username)}')" ${u.username === 'xanmal' ? 'disabled' : ''}>Reset Password</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteUser('${esc(u.username)}')" ${u.username === 'xanmal' ? 'disabled' : ''}>Delete</button>
+        <button class="btn btn-ghost btn-sm" data-action="reset-password" data-username="${esc(u.username)}" ${u.username === 'xanmal' ? 'disabled' : ''}>Reset Password</button>
+        <button class="btn btn-danger btn-sm" data-action="delete-user" data-username="${esc(u.username)}" ${u.username === 'xanmal' ? 'disabled' : ''}>Delete</button>
       </div>
     </div>
   `).join('');
@@ -3579,6 +3597,29 @@ switchPanel = function(panelName) {
   if (panelName === 'users') loadUsers();
   if (panelName === 'homepage') loadHomepageSettings();
 };
+
+// User panel actions are wired through event listeners reading data attributes
+// rather than inline onclick/onchange handlers that interpolate usernames into
+// JavaScript source. This keeps usernames out of executable code strings.
+const usersListContainer = document.getElementById('users-list-container');
+if (usersListContainer) {
+  usersListContainer.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    const username = btn.getAttribute('data-username');
+    if (!username) return;
+    if (btn.dataset.action === 'reset-password') resetUserPassword(username);
+    if (btn.dataset.action === 'delete-user') deleteUser(username);
+  });
+
+  usersListContainer.addEventListener('change', (e) => {
+    const sel = e.target.closest('[data-action="change-role"]');
+    if (!sel) return;
+    const username = sel.getAttribute('data-username');
+    if (!username) return;
+    changeUserRole(username, sel.value);
+  });
+}
 
 const _origInit = init;
 init = function() {

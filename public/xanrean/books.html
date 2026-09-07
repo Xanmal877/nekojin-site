@@ -472,7 +472,10 @@ function renderBookCard(book) {
   // isn't actually out yet, so badge it as upcoming rather than claiming
   // it's published when there's nowhere to get it.
   const hasLinks = (book.platforms || []).some(p => p.url);
-  const statusClass = !hasLinks ? 'draft' : (book.status || 'draft');
+  const rawStatus = !hasLinks ? 'draft' : (book.status || 'draft');
+  // Map to a fixed allowlist so a stored status string can never inject
+  // markup into the class attribute or the badge label.
+  const statusClass = ['published', 'preview', 'draft'].includes(rawStatus) ? rawStatus : 'draft';
   const statusLabel = { published: 'Published', preview: 'Preview', draft: 'Coming Soon' }[statusClass] || statusClass;
   const words = book.word_count ? `${formatCount(book.word_count)} words` : '';
   const vol = book.volume ? book.volume : (book.volume_number ? `Vol. ${book.volume_number}` : '');
