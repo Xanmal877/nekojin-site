@@ -261,17 +261,29 @@ function findUser(username) {
     return db.users[username] || null;
 }
 
+// Safe username format shared by registration and admin-created accounts.
+// Lowercase letters, numbers, and underscores only, 3-32 characters.
+const USERNAME_RE = /^[a-z0-9_]{3,32}$/;
+
 function createUser(username, password, role = 'user') {
+    // Defense in depth: enforce the safe username format regardless of caller.
+    // Normalize the same way the public registration path does so admin-created
+    // and self-registered accounts are subject to identical rules. Rejecting
+    // malformed usernames here prevents crafted names from ever reaching the
+    // users store even if a future caller skips its own validation.
+    const normalized = String(username || '').trim().toLowerCase();
+    if (!USERNAME_RE.test(normalized)) return false;
+
     const db = loadUsers();
-    if (db.users[username]) return false;
-    db.users[username] = {
+    if (db.users[normalized]) return false;
+    db.users[normalized] = {
         passwordHash: bcrypt.hashSync(password, SALT_ROUNDS),
         role: role,
         createdAt: Date.now()
     };
     if (!saveUsers(db)) {
         // Write failed: roll back the in-memory change so we don't report success.
-        delete db.users[username];
+        delete db.users[normalized];
         return false;
     }
     return true;

@@ -249,7 +249,7 @@ class PublishingCalendar {
     }
 
     /**
-     * Validate URL (basic check)
+     * Validate URL (http/https only)
      * @param {string} url
      * @returns {boolean}
      */
@@ -258,8 +258,11 @@ class PublishingCalendar {
         if (typeof url !== 'string') return false;
         if (url.length > VALIDATION.URL_MAX) return false;
         try {
-            new URL(url);
-            return true;
+            const parsed = new URL(url);
+            // Only http(s) schemes are allowed. This blocks javascript:, data:,
+            // file:, and other schemes that could be used for XSS or local file
+            // access when the URL is rendered as a link on the public calendar.
+            return parsed.protocol === 'http:' || parsed.protocol === 'https:';
         } catch (e) {
             return false;
         }

@@ -1831,6 +1831,14 @@ const revealObs = new IntersectionObserver((entries) => {
 }, { threshold: 0.08, rootMargin: '0px 0px -20px 0px' });
 document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
 
+// Map a stored game status to a fixed allowlist of CSS classes. Unknown or
+// malicious values fall back to the default "in-development" styling so a
+// stored status string can never inject markup into the class attribute.
+function statusClassFor(status) {
+  const s = String(status || '').toLowerCase().replace(/\s+/g, '-');
+  return ['in-development', 'released', 'early-access'].includes(s) ? s : 'in-development';
+}
+
 function formatGameDesc(desc, title) {
   if (!desc) return '';
   const lines = desc.split('\n');
@@ -2011,8 +2019,9 @@ async function loadGame() {
           const isFeatured = index === 0;
           const cardClass = isFeatured ? 'featured' : 'compact';
 
-          // Status badge
-          const statusClass = (game.status || 'in-development').toLowerCase().replace(/\s+/g, '-');
+          // Status badge — map to a fixed allowlist so an arbitrary stored
+          // status string can never inject markup into the class attribute.
+          const statusClass = statusClassFor(game.status);
           const statusPulse = statusClass === 'released' ? '' : '<span class="status-pulse"></span>';
 
           // Cover art
@@ -2031,7 +2040,8 @@ async function loadGame() {
           ].filter(Boolean).join('');
 
           // Platform buttons with smart labeling based on status
-          const isReleased = ['released', 'available', 'launched'].includes(statusClass);
+          const rawStatus = String(game.status || '').toLowerCase().replace(/\s+/g, '-');
+          const isReleased = ['released', 'available', 'launched'].includes(rawStatus);
           const hasDemo = game.demoUrl || (game.platforms?.demo && game.platforms.demo !== '');
 
           // Define button labels based on status
@@ -2259,7 +2269,7 @@ async function loadGame() {
         let progress = typeof firstGame.progress === 'number' ? firstGame.progress : 0;
         if (progress < 0) progress = 0;
         if (progress > 100) progress = 100;
-        const statusClass = (firstGame.status || 'in-development').toLowerCase().replace(/\s+/g, '-');
+        const statusClass = statusClassFor(firstGame.status);
         if (typeof firstGame.progress !== 'number' && statusClass === 'released') progress = 100;
         devlogProgress.innerHTML = `
           <div class="devlog-progress-header">

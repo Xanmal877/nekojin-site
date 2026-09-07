@@ -8,6 +8,13 @@
  * - /upload-cover   POST  → image optimization (auth required)
  */
 
+// ── PERSISTENCE HARDENING: Set restrictive umask at earliest startup ──
+// Prevents inadvertent file creation with world-readable permissions.
+// umask(0o077) = owner-only files (rw-------), owner-only dirs (rwx------)
+// This guards against accidental exposure of sensitive database files, backups,
+// and uploaded content before explicit chmod() calls can restrict them.
+process.umask(0o077);
+
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -210,9 +217,22 @@ function normalizeManualRelease(e) {
         series: e.series,
         platform: platformDisplay(e.platform),
         platformKey: platformKey(e.platform),
-        url: e.url || null,
+        url: safePublicUrl(e.url),
         timezone: e.timezone || 'America/Phoenix'
     };
+}
+
+// Only http(s) URLs are safe to expose on the public calendar. Legacy rows that
+// predate URL validation (or any future bad data) must have their URL dropped
+// at the serialization boundary rather than rendered as a link.
+function safePublicUrl(url) {
+    if (typeof url !== 'string' || !url) return null;
+    try {
+        const parsed = new URL(url);
+        return (parsed.protocol === 'http:' || parsed.protocol === 'https:') ? url : null;
+    } catch (e) {
+        return null;
+    }
 }
 
 // Normalize an imported release (from PublishingDB) to the public-safe shape.
@@ -233,7 +253,7 @@ function normalizeImportedRelease(r) {
         series: r.series || 'Unknown Series',
         platform: platformDisplay(r.platform),
         platformKey: platformKey(r.platform),
-        url: r.url || null,
+        url: safePublicUrl(r.url),
         timezone: r.releaseTimezone || 'America/Phoenix'
     };
 }
@@ -533,8 +553,18 @@ function serveFile(res, filePath) {
 }
 
 // ── LOGIN/REGISTER PAGES ─────────────────────────────────
+// Resolve a post-login redirect target to a safe local path. Rejects
+// protocol-relative URLs (//host) and any CRLF/control characters that could
+// smuggle extra headers, falling back to /admin.
+function safeRedirectPath(next) {
+    if (typeof next !== 'string' || !next) return '/admin';
+    if (next.startsWith('//') || /[\r\n]/.test(next)) return '/admin';
+    if (!next.startsWith('/')) return '/admin';
+    return next;
+}
+
 function loginPage(nextUrl = '/admin', error = '') {
-    const safeNext = (nextUrl && nextUrl.startsWith('/')) ? nextUrl : '/admin';
+    const safeNext = safeRedirectPath(nextUrl);
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -935,7 +965,11 @@ async function handleRequest(req, res) {
             // the full, unfiltered catalog.
             if (!accounts.isAdmin(req)) {
                 const previewRequested = query.get('preview') === '1';
-                data.books = data.books.filter(b => contentDB.isBookPublic(b, previewRequested));
+                // Books must be both explicitly visible and in a public status.
+                data.books = data.books.filter(b =>
+                    b.visible !== false && contentDB.isBookPublic(b, previewRequested));
+                // Games must be explicitly visible.
+                data.game = (data.game || []).filter(g => g.visible !== false);
             }
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify(data));
@@ -1007,9 +1041,7 @@ async function handleRequest(req, res) {
         try {
             if (req.method === 'GET' && url === '/api/lore-topics') {
                 const section = query.get('section');
-                const where = section ? 'section = ?' : '';
-                const params = section ? [section] : [];
-                const topics = await contentDB.SelectLoreTopics(where, params);
+                const topics = await contentDB.SelectLoreTopics(section || null);
                 const filtered = accounts.isAdmin(req)
                     ? topics
                     : topics.filter(t => t.visible === 1);
@@ -1116,7 +1148,7 @@ async function handleRequest(req, res) {
                 return res.end(JSON.stringify({ error: 'Missing slug' }));
             }
             const previewAllowed = query.get('preview') === '1';
-            const rows = await contentDB.SelectBooks('slug = ? OR id = ?', [slug, slug]);
+            const rows = await contentDB.SelectBooks(slug);
             const book = rows.find(b => contentDB.isBookPublic(b, previewAllowed));
             if (!book) {
                 res.writeHead(404, { 'Content-Type': 'application/json' });
@@ -1201,7 +1233,7 @@ async function handleRequest(req, res) {
         if (accounts.verifyUser(params.username, params.password)) {
             const sid = accounts.createSession(params.username);
             const csrfToken = accounts.getSessionCsrfToken(sid);
-            const next = (params.next && params.next.startsWith('/')) ? params.next : '/admin';
+            const next = safeRedirectPath(params.next);
             res.writeHead(302, {
                 Location: next,
                 'Set-Cookie': [
@@ -1326,8 +1358,11 @@ async function handleRequest(req, res) {
     if (req.method === 'GET' && url === '/api/xanrean') {
         try {
             const settings = await contentDB.SelectXanreanSettings();
+            // Public endpoint must never leak the Gumroad access token; it is
+            // only ever returned to admins via /api/settings.
+            const { gumroad_access_token, ...publicSettings } = settings;
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify(settings));
+            return res.end(JSON.stringify(publicSettings));
         } catch (e) {
             res.writeHead(500);
             return res.end(JSON.stringify({ error: e.message }));
@@ -1388,6 +1423,10 @@ async function handleRequest(req, res) {
                     res.writeHead(400);
                     return res.end(JSON.stringify({ error: 'Name and slug are required' }));
                 }
+                if (!/^[a-z0-9_-]+$/.test(String(data.slug))) {
+                    res.writeHead(400);
+                    return res.end(JSON.stringify({ error: 'Invalid character slug' }));
+                }
                 const result = await contentDB.InsertCharacter(data);
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 return res.end(JSON.stringify(result));
@@ -1446,6 +1485,10 @@ async function handleRequest(req, res) {
                 if (!data.title || !data.slug || !data.section) {
                     res.writeHead(400);
                     return res.end(JSON.stringify({ error: 'Title, slug, and section are required' }));
+                }
+                if (!/^[a-z0-9_-]+$/.test(String(data.slug))) {
+                    res.writeHead(400);
+                    return res.end(JSON.stringify({ error: 'Invalid lore slug' }));
                 }
                 const result = await contentDB.InsertLoreTopic(data);
                 res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -1846,6 +1889,9 @@ async function handleRequest(req, res) {
             const body = await readRawBody(req, 16 * 1024);
             const { username, password, role } = JSON.parse(body.toString());
             if (!username || !password) { res.writeHead(400); return res.end('Missing username or password'); }
+            if (!/^[a-z0-9_]{3,32}$/.test(String(username).trim().toLowerCase())) {
+                res.writeHead(400); return res.end('Username must be 3-32 characters: letters, numbers, underscores');
+            }
             if (password.length < 8) { res.writeHead(400); return res.end('Password must be at least 8 characters'); }
             if (role && !['admin', 'user'].includes(role)) { res.writeHead(400); return res.end('Invalid role'); }
             const success = accounts.createUser(username, password, role || 'user');
