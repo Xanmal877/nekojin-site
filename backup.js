@@ -55,6 +55,9 @@ function ensureDir(dir) {
         fs.mkdirSync(dir, { recursive: true });
         console.log(`Created backup directory: ${dir}`);
     }
+    // Enforce restrictive permissions on backup directory (owner only).
+    // Apply to both new and existing directories to ensure consistency.
+    fs.chmodSync(dir, 0o700);
 }
 
 /**
@@ -153,7 +156,15 @@ async function createRestorePoint(label = 'restore') {
 function copyDbTo(backupFile, description) {
     try {
         fs.copyFileSync(DB_FILE, backupFile);
+        // Restrict backup file permissions to owner only
+        fs.chmodSync(backupFile, 0o600);
+
+        // Basic validation: verify it's readable and non-empty
         const stats = fs.statSync(backupFile);
+        if (stats.size < 512) {  // SQLite databases are at least ~512 bytes
+            throw new Error('Backup file too small; may be corrupt');
+        }
+
         const sizeMB = (stats.size / 1024 / 1024).toFixed(2);
         console.log(`✅ ${description ? description[0].toUpperCase() + description.slice(1) : 'Backup'} created: ${backupFile} (${sizeMB} MB)`);
         return true;

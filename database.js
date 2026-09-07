@@ -30,17 +30,22 @@ class ContentDB {
         this.isOpen = false;
         this.initPromise = null;
         this.backupInProgress = false;
-        this.backupQueue = Promise.resolve();
-        this.saveQueue = Promise.resolve();
+        // All mutations and backups share one queue. Separate queues can form
+        // a circular wait when a backup is requested between two saves.
+        this.operationQueue = Promise.resolve();
     }
 
     /**
      * Create a backup file for disaster recovery
      * Uses SQLite backup API when DB is open, file copy for offline backups
+     *
+     * Ensures backups and saves are serialized: a backup will not begin while
+     * a save is in progress, and vice versa. This prevents race conditions where
+     * backup reads half-written data or a save corrupts backup state.
      */
     async CreateBackup(label = 'manual') {
-        const operation = this.backupQueue.then(() => this._createBackup(label));
-        this.backupQueue = operation.catch(() => {});
+        const operation = this.operationQueue.then(() => this._createBackup(label));
+        this.operationQueue = operation.catch(() => {});
         return operation;
     }
 
@@ -48,6 +53,9 @@ class ContentDB {
         if (!fs.existsSync(BACKUP_DIR)) {
             fs.mkdirSync(BACKUP_DIR, { recursive: true });
         }
+        // Backups contain the full database, including stored credentials and
+        // customer data. Enforce owner-only access for existing directories too.
+        fs.chmodSync(BACKUP_DIR, 0o700);
 
         if (!fs.existsSync(DB_PATH)) {
             throw new Error(`Database not found: ${DB_PATH}`);
@@ -68,7 +76,10 @@ class ContentDB {
                 fs.copyFileSync(DB_PATH, backupPath);
             }
 
-            // Validate it's a real SQLite database
+            // Restrict backup file permissions to owner only
+            fs.chmodSync(backupPath, 0o600);
+
+            // Validate it's a real SQLite database with expected schema
             await this._validateBackup(backupPath);
 
             const stats = fs.statSync(backupPath);
@@ -98,13 +109,44 @@ class ContentDB {
                     reject(new Error(`Backup validation failed: ${err.message}`));
                     return;
                 }
-                backup.get('SELECT 1', (getErr) => {
-                    backup.close(() => {
-                        if (getErr) {
-                            reject(new Error(`Backup is not a valid SQLite database`));
-                        } else {
-                            resolve();
-                        }
+
+                // Run PRAGMA integrity_check to detect corruption
+                backup.get('PRAGMA integrity_check', (integrityErr, integrityRow) => {
+                    if (integrityErr) {
+                        backup.close(() => {
+                            reject(new Error(`Backup integrity check failed: ${integrityErr.message}`));
+                        });
+                        return;
+                    }
+
+                    // integrity_check returns 'ok' on success, otherwise a description
+                    const integrityStatus = integrityRow && integrityRow.integrity_check;
+                    if (integrityStatus !== 'ok') {
+                        backup.close(() => {
+                            reject(new Error(`Backup integrity violation: ${integrityStatus || 'unknown'}`));
+                        });
+                        return;
+                    }
+
+                    // Verify expected schema: check for critical tables
+                    const criticalTables = ['books', 'series', 'characters', 'game'];
+                    const checkSql = `
+                        SELECT COUNT(*) as found FROM
+                        (SELECT 1 WHERE EXISTS (SELECT 1 FROM sqlite_master WHERE type='table' AND name='books')
+                         UNION ALL SELECT 1 WHERE EXISTS (SELECT 1 FROM sqlite_master WHERE type='table' AND name='series')
+                         UNION ALL SELECT 1 WHERE EXISTS (SELECT 1 FROM sqlite_master WHERE type='table' AND name='characters')
+                         UNION ALL SELECT 1 WHERE EXISTS (SELECT 1 FROM sqlite_master WHERE type='table' AND name='game'))
+                    `;
+                    backup.get(checkSql, (schemaErr, schemaRow) => {
+                        backup.close(() => {
+                            if (schemaErr) {
+                                reject(new Error(`Backup schema validation error: ${schemaErr.message}`));
+                            } else if (!schemaRow || schemaRow.found < criticalTables.length) {
+                                reject(new Error(`Backup missing expected schema tables`));
+                            } else {
+                                resolve();
+                            }
+                        });
                     });
                 });
             });
@@ -128,6 +170,10 @@ class ContentDB {
             if (!fs.existsSync(DB_DIR)) {
                 fs.mkdirSync(DB_DIR, { recursive: true });
             }
+            // Enforce restrictive permissions on database directory.
+            // Do this for both new and existing directories to ensure consistency
+            // even if permissions were inadvertently loosened.
+            fs.chmodSync(DB_DIR, 0o700);
 
             await new Promise((resolve, reject) => {
                 this.db = new sqlite3.Database(DB_PATH, (err) => {
@@ -140,6 +186,9 @@ class ContentDB {
                     }
                 });
             });
+
+            // Enforce restrictive permissions on database file (owner read/write only)
+            fs.chmodSync(DB_PATH, 0o600);
 
             await this._run('PRAGMA foreign_keys = ON');
             await this._CreateTables();
@@ -562,12 +611,8 @@ class ContentDB {
         return { id: data.id, changes: result.changes };
     }
 
-    async SelectSeries(whereClause = '', params = []) {
-        let sql = 'SELECT * FROM series ORDER BY sort_order, name';
-        if (whereClause) {
-            sql = `SELECT * FROM series WHERE ${whereClause} ORDER BY sort_order, name`;
-        }
-        const rows = await this._all(sql, params);
+    async SelectSeries() {
+        const rows = await this._all('SELECT * FROM series ORDER BY sort_order, name');
         // Admin UI and public pages use "universe"/"universeDesc" field names
         for (const row of rows) {
             row.universe = row.name;
@@ -654,11 +699,11 @@ class ContentDB {
         return { id: data.id };
     }
 
-    async SelectBooks(whereClause = '', params = []) {
-        let sql = 'SELECT * FROM books ORDER BY series_id, volume_number, title';
-        if (whereClause) {
-            sql = `SELECT * FROM books WHERE ${whereClause} ORDER BY series_id, volume_number, title`;
-        }
+    async SelectBooks(slugOrId = null) {
+        const sql = slugOrId === null
+            ? 'SELECT * FROM books ORDER BY series_id, volume_number, title'
+            : 'SELECT * FROM books WHERE slug = ? OR id = ? ORDER BY series_id, volume_number, title';
+        const params = slugOrId === null ? [] : [slugOrId, slugOrId];
         const rows = await this._all(sql, params);
 
         // Parse JSON and load platforms
@@ -792,8 +837,8 @@ class ContentDB {
     }
 
     async ReorderGames(gameIds) {
-        const operation = this.saveQueue.then(() => this._reorderGames(gameIds));
-        this.saveQueue = operation.catch(() => {});
+        const operation = this.operationQueue.then(() => this._reorderGames(gameIds));
+        this.operationQueue = operation.catch(() => {});
         return operation;
     }
 
@@ -1037,8 +1082,8 @@ class ContentDB {
     }
 
     async UpdateBookSequence(seriesId, bookIds) {
-        const operation = this.saveQueue.then(() => this._updateBookSequence(seriesId, bookIds));
-        this.saveQueue = operation.catch(() => {});
+        const operation = this.operationQueue.then(() => this._updateBookSequence(seriesId, bookIds));
+        this.operationQueue = operation.catch(() => {});
         return operation;
     }
 
@@ -1138,12 +1183,8 @@ class ContentDB {
         return { id: data.id, changes: result.changes };
     }
 
-    async SelectCharacters(whereClause = '', params = []) {
-        let sql = 'SELECT * FROM characters ORDER BY sort_order, name';
-        if (whereClause) {
-            sql = `SELECT * FROM characters WHERE ${whereClause} ORDER BY sort_order, name`;
-        }
-        const rows = await this._all(sql, params);
+    async SelectCharacters() {
+        const rows = await this._all('SELECT * FROM characters ORDER BY sort_order, name');
         for (const row of rows) {
             try {
                 row.relationships = row.relationships ? JSON.parse(row.relationships) : [];
@@ -1185,15 +1226,22 @@ class ContentDB {
     }
 
     async ReplaceCharacterAppearances(characterId, appearances) {
-        await this._run('DELETE FROM character_appearances WHERE character_id = ?', [characterId]);
-        for (let i = 0; i < (appearances || []).length; i++) {
-            const a = appearances[i];
-            if (!a.series_id) continue;
-            await this._run(
-                `INSERT INTO character_appearances (character_id, series_id, cast_group, is_home, sort_order)
-                 VALUES (?, ?, ?, ?, ?)`,
-                [characterId, a.series_id, a.cast_group || null, a.is_home ? 1 : 0, i]
-            );
+        await this._run('BEGIN TRANSACTION');
+        try {
+            await this._run('DELETE FROM character_appearances WHERE character_id = ?', [characterId]);
+            for (let i = 0; i < (appearances || []).length; i++) {
+                const a = appearances[i];
+                if (!a.series_id) continue;
+                await this._run(
+                    `INSERT INTO character_appearances (character_id, series_id, cast_group, is_home, sort_order)
+                     VALUES (?, ?, ?, ?, ?)`,
+                    [characterId, a.series_id, a.cast_group || null, a.is_home ? 1 : 0, i]
+                );
+            }
+            await this._run('COMMIT');
+        } catch (err) {
+            await this._run('ROLLBACK').catch(() => {});
+            throw err;
         }
         return await this.SelectCharacterAppearances(characterId);
     }
@@ -1300,12 +1348,11 @@ class ContentDB {
         return { id: data.id, changes: result.changes };
     }
 
-    async SelectLoreTopics(whereClause = '', params = []) {
-        let sql = 'SELECT * FROM lore_topics ORDER BY sort_order, title';
-        if (whereClause) {
-            sql = `SELECT * FROM lore_topics WHERE ${whereClause} ORDER BY sort_order, title`;
-        }
-        return await this._all(sql, params);
+    async SelectLoreTopics(section = null) {
+        const sql = section === null
+            ? 'SELECT * FROM lore_topics ORDER BY sort_order, title'
+            : 'SELECT * FROM lore_topics WHERE section = ? ORDER BY sort_order, title';
+        return await this._all(sql, section === null ? [] : [section]);
     }
 
     async SelectLoreTopicBySlug(slug) {
@@ -1390,8 +1437,8 @@ class ContentDB {
     }
 
     async SaveAllContent(data) {
-        const operation = this.saveQueue.then(() => this._saveAllContent(data));
-        this.saveQueue = operation.catch(() => {});
+        const operation = this.operationQueue.then(() => this._saveAllContent(data));
+        this.operationQueue = operation.catch(() => {});
         return operation;
     }
 
