@@ -3,10 +3,13 @@
 > **Stories and games where characters think for themselves.**
 
 [![Website](https://img.shields.io/badge/Website-worldofxanrea.com-8b5cf6?style=flat-square)](https://worldofxanrea.com)
-[![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=flat-square&logo=node.js)](https://nodejs.org)
+[![Node.js](https://img.shields.io/badge/Node.js-18%2B-339933?style=flat-square&logo=node.js)](https://nodejs.org)
 [![SQLite](https://img.shields.io/badge/SQLite-3-003B57?style=flat-square&logo=sqlite)](https://sqlite.org)
 
 Official website for **Nekojin Interactive**, a solo indie studio building the Xanrea universe. One system, one story at a time.
+
+The server runs on Node.js 18+, while building the publishing dashboard requires
+Node.js 20.19+ because of its Vite toolchain.
 
 ---
 
