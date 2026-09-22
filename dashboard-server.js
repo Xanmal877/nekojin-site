@@ -46,6 +46,55 @@ const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://worldofxanrea.c
 // Set ALLOW_PUBLIC_REGISTRATION=true to let visitors create accounts.
 const PUBLIC_REGISTRATION_ENABLED = process.env.ALLOW_PUBLIC_REGISTRATION === 'true';
 
+// ── RESPONSE HELPERS ──────────────────────────────────────
+// Almost every handler answers with one JSON body, so keep the
+// status/header/body triad in one place instead of spelling it out per route.
+function sendJson(res, data, status = 200) {
+    res.writeHead(status, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(data));
+}
+
+function sendHtml(res, markup, status = 200) {
+    res.writeHead(status, { 'Content-Type': 'text/html' });
+    res.end(markup);
+}
+
+function sendText(res, text, status = 200) {
+    res.writeHead(status, { 'Content-Type': 'text/plain' });
+    res.end(text);
+}
+
+// Every redirect this server issues is a plain 302 to a local path.
+function redirect(res, location) {
+    res.writeHead(302, { Location: location });
+    res.end();
+}
+
+// Short forms for the statuses this server returns constantly without a body.
+const forbidden = res => sendText(res, 'Forbidden', 403);
+const notFound = res => sendText(res, 'Not found', 404);
+
+// Rate-limit gate. Returns true when the caller must stop (the 429 is already
+// sent). `json` picks the error body style: API callers get JSON, form posts
+// get plain text.
+function enforceRateLimit(req, res, endpoint, { json = false } = {}) {
+    const limit = checkRateLimit(req, endpoint);
+    if (limit.allowed) return false;
+    res.writeHead(429, {
+        'Content-Type': json ? 'application/json' : 'text/plain',
+        'Retry-After': limit.retryAfter
+    });
+    res.end(json ? JSON.stringify({ error: limit.message }) : limit.message);
+    return true;
+}
+
+// Read and parse a JSON request body. Throws the same SyntaxError a bare
+// JSON.parse would, so existing error handling keeps working.
+async function readJsonBody(req, maxBytes) {
+    const body = await readRawBody(req, maxBytes);
+    return JSON.parse(body.toString());
+}
+
 // ── RATE LIMITING ─────────────────────────────────────────
 const rateLimits = new Map();
 
@@ -266,12 +315,10 @@ async function handlePublicPublishingCalendar(req, res, query) {
     const end = query.get('end');
 
     if (!isValidDateStr(start) || !isValidDateStr(end)) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ error: 'start and end must be valid YYYY-MM-DD dates' }));
+        return sendJson(res, { error: 'start and end must be valid YYYY-MM-DD dates' }, 400);
     }
     if (start >= end) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ error: 'start must be before end' }));
+        return sendJson(res, { error: 'start must be before end' }, 400);
     }
 
     // Manual entries come from the calendar store (already local-date, half-open).
@@ -320,8 +367,7 @@ async function handlePublicPublishingCalendar(req, res, query) {
         (a.platform || '').localeCompare(b.platform || '')
     );
 
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify({ start, end, entries }));
+    return sendJson(res, { start, end, entries }, 200);
 }
 
 const ADMIN_CALENDAR_RATE_KEY = '/api/admin/publishing-calendar';
@@ -333,27 +379,19 @@ async function handleAdminPublishingCalendar(req, res, url) {
     const delMatch = url.match(/^\/api\/admin\/publishing-calendar\/([^/]+)$/);
 
     if (req.method !== 'GET' && req.method !== 'POST' && req.method !== 'DELETE') {
-        res.writeHead(405, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ error: 'Method not allowed' }));
+        return sendJson(res, { error: 'Method not allowed' }, 405);
     }
     if (req.method === 'GET' && !isList) {
-        res.writeHead(405, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ error: 'Method not allowed' }));
+        return sendJson(res, { error: 'Method not allowed' }, 405);
     }
     if (req.method === 'POST' && !isList) {
-        res.writeHead(405, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ error: 'Method not allowed' }));
+        return sendJson(res, { error: 'Method not allowed' }, 405);
     }
     if (req.method === 'DELETE' && !delMatch) {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ error: 'Not found' }));
+        return sendJson(res, { error: 'Not found' }, 404);
     }
 
-    const limit = checkRateLimit(req, ADMIN_CALENDAR_RATE_KEY);
-    if (!limit.allowed) {
-        res.writeHead(429, { 'Content-Type': 'application/json', 'Retry-After': limit.retryAfter });
-        return res.end(JSON.stringify({ error: limit.message }));
-    }
+    if (enforceRateLimit(req, res, ADMIN_CALENDAR_RATE_KEY, { json: true })) return;
 
     try {
         const calendar = getPublishingCalendar();
@@ -361,45 +399,102 @@ async function handleAdminPublishingCalendar(req, res, url) {
         if (req.method === 'GET') {
             await calendar.Open();
             const entries = await calendar.ListAll();
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ entries }));
+            return sendJson(res, { entries }, 200);
         }
 
         if (req.method === 'POST') {
             const body = await readRawBody(req, 64 * 1024);
             const data = JSON.parse(body.toString());
             if (!data || typeof data !== 'object') {
-                res.writeHead(400, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify({ error: 'Invalid JSON body' }));
+                return sendJson(res, { error: 'Invalid JSON body' }, 400);
             }
             await calendar.Open();
             const entry = await calendar.Upsert(data);
             if (!entry) {
-                res.writeHead(404, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify({ error: 'Entry not found for update' }));
+                return sendJson(res, { error: 'Entry not found for update' }, 404);
             }
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ ok: true, entry }));
+            return sendJson(res, { ok: true, entry }, 200);
         }
 
         // DELETE /api/admin/publishing-calendar/:id
         const deleted = await calendar.Delete(delMatch[1]);
         if (!deleted) {
-            res.writeHead(404, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ error: 'Entry not found' }));
+            return sendJson(res, { error: 'Entry not found' }, 404);
         }
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ ok: true }));
+        return sendJson(res, { ok: true }, 200);
     } catch (err) {
         const msg = err && err.message ? err.message : 'Admin calendar error';
         let status = 500;
         if (err instanceof SyntaxError || /json/i.test(msg)) status = 400;
         else if (/^Entry /.test(msg) || /must |required|format|be exactly/i.test(msg)) status = 400;
         else if (/not found/i.test(msg)) status = 404;
-        res.writeHead(status, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ error: msg }));
+        return sendJson(res, { error: msg }, status);
     }
 }
+
+// ── MANUSCRIPTS (disabled by default) ─────────────────────
+// Reading .docx manuscripts is a whole optional feature, so it lives in one
+// function instead of being sprinkled through the request dispatch chain.
+// With MANUSCRIPTS_ENABLED=false (the default) none of this is reachable:
+// reads 503 and the list/chapters endpoints simply stay unmapped.
+async function handleManuscriptRequest(req, res, url) {
+    if (req.method === 'GET' && url === '/api/manuscripts') {
+        return sendJson(res, { manuscripts: listManuscripts() });
+    }
+
+    const chaptersMatch = url.match(/^\/api\/manuscripts\/([^\/]+)\/chapters$/);
+    if (req.method === 'GET' && chaptersMatch) {
+        const slug = chaptersMatch[1];
+        const chapters = await parseManuscript(slug);
+        if (!chapters) return notFound(res);
+        return sendJson(res, {
+            slug,
+            total: chapters.length,
+            preview: chapters.length > 3 ? 3 : chapters.length,
+            chapters: chapters.map((c, i) => ({ num: c.num, title: c.title, index: i }))
+        });
+    }
+
+    const chapterMatch = url.match(/^\/api\/manuscripts\/([^\/]+)\/chapters\/([0-9]+)$/);
+    if (req.method === 'GET' && chapterMatch) {
+        const chapters = await parseManuscript(chapterMatch[1]);
+        if (!chapters) return notFound(res);
+        const chapter = chapters.find(c => c.num === parseInt(chapterMatch[2], 10));
+        if (!chapter) return sendText(res, 'Chapter not found', 404);
+        return sendJson({
+            num: chapter.num,
+            title: chapter.title,
+            content: chapter.content,
+            total: chapters.length
+        });
+    }
+}
+
+async function handleManuscriptUpload(req, res) {
+    try {
+        const body = await readRawBody(req);
+        const ct = req.headers['content-type'] || '';
+        const bm = ct.match(/boundary=([^\s;]+)/);
+        if (!bm) return sendText(res, 'No boundary', 400);
+        const parts = parseMultipart(body, bm[1]);
+        const file = parts['file'];
+        if (!file || !file.data) return sendText(res, 'No file', 400);
+        if (!/\.docx$/i.test(file.filename || '')) return sendText(res, 'Only .docx files supported', 400);
+        const formSlug = (parts['slug'] || '').trim();
+        const slug = formSlug
+            ? formSlug.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 100)
+            : (file.filename || 'manuscript').replace(/\.docx$/i, '').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 100);
+        fs.writeFileSync(path.join(MANUSCRIPTS_DIR, slug + '.docx'), file.data);
+        MANUSCRIPT_CACHE.delete(slug);
+        return sendJson(res, { slug, name: slug + '.docx', size: file.data.length });
+    } catch (e) {
+        return sendText(res, e.message, 500);
+    }
+}
+
+const MANUSCRIPT_DISABLED = {
+    error: 'Manuscript upload disabled (Option 1). Set MANUSCRIPTS_ENABLED=true to re-enable.'
+};
 
 // ── MANUSCRIPT PARSING (.docx → chapters) ──────────────────
 const MANUSCRIPT_CACHE = new Map();
@@ -547,38 +642,26 @@ function serveFile(res, filePath) {
         res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
         res.end(data);
     } catch {
-        res.writeHead(404);
-        res.end('Not found');
+        return notFound(res);
     }
 }
 
 // ── LOGIN/REGISTER PAGES ─────────────────────────────
-// Resolve a post-login redirect target to a safe local path.
-// Rejects:
-//   - protocol-relative URLs (//host)
-//   - backslash characters (\) anywhere in the path
-//   - CRLF/control characters that could smuggle extra headers
-//   - non-local paths (not starting with /)
-// Falls back to /admin on any suspicious input.
+// Resolve a post-login redirect target to a safe local path. Rejects
+// protocol-relative URLs (//host), any backslash (\host / \\host), CRLF and
+// other control characters (which could smuggle extra headers), and anything
+// that isn't a local path. Falls back to /admin on any suspicious input.
 function safeRedirectPath(next) {
     if (typeof next !== 'string' || !next) return '/admin';
-    // Reject protocol-relative, backslash (anywhere), CRLF, and control chars
     if (next.startsWith('//') || next.includes('\\') || /[\r\n\x00-\x1f]/.test(next)) return '/admin';
-    // Reject non-local paths
     if (!next.startsWith('/')) return '/admin';
     return next;
 }
 
-
-function loginPage(nextUrl = '/admin', error = '') {
-    const safeNext = safeRedirectPath(nextUrl);
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Login - Nekojin Interactive</title>
-  <link href="https://fonts.googleapis.com/css2?family=Darumadrop+One&family=Zen+Kaku+Gothic+New:wght@400;500;600&display=swap" rel="stylesheet">
-  <style>
+// The login and register pages are the same card with a different form, so
+// the shell (fonts, palette, layout) lives here once and each page supplies
+// only its own fields.
+const AUTH_PAGE_CSS = `
     *{box-sizing:border-box;margin:0;padding:0}
     body{min-height:100vh;background:#0d0820;display:flex;align-items:center;justify-content:center;font-family:'Zen Kaku Gothic New',sans-serif;padding:2rem;position:relative;overflow:hidden}
     body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 60% at 20% 0%,rgba(91,26,154,0.2),transparent 60%),radial-gradient(ellipse 60% 80% at 80% 100%,rgba(22,44,110,0.15),transparent 60%);pointer-events:none}
@@ -589,6 +672,7 @@ function loginPage(nextUrl = '/admin', error = '') {
     input{width:100%;padding:0.7rem 1rem;border:1.5px solid rgba(124,40,212,0.2);border-radius:10px;font-family:inherit;font-size:0.9rem;color:#d8cef0;background:#1c1640;outline:none;transition:border-color 0.2s;margin-bottom:1.25rem}
     input:focus{border-color:#8B44E8}
     .error{background:rgba(224,80,80,0.1);border:1px solid rgba(224,80,80,0.3);color:#e08080;font-size:0.82rem;padding:0.6rem 0.9rem;border-radius:8px;margin-bottom:1.25rem}
+    .success{background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.3);color:#86efac;font-size:0.82rem;padding:0.6rem 0.9rem;border-radius:8px;margin-bottom:1.25rem}
     button{width:100%;padding:0.85rem;background:linear-gradient(135deg,#5B1A9A,#162C6E);color:white;border:none;border-radius:999px;font-family:inherit;font-size:1rem;font-weight:600;cursor:pointer;transition:all 0.2s}
     button:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(91,26,154,0.5)}
     .back{display:block;text-align:center;margin-top:1.5rem;font-size:0.82rem;color:#5A4A80;text-decoration:none}
@@ -596,15 +680,37 @@ function loginPage(nextUrl = '/admin', error = '') {
     .link-row{display:flex;justify-content:center;gap:1rem;margin-top:1.25rem;font-size:0.82rem}
     .link-row a{color:#d4c8f0;text-decoration:none}
     .link-row a:hover{color:#8B44E8}
-    .success{background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.3);color:#86efac;font-size:0.82rem;padding:0.6rem 0.9rem;border-radius:8px;margin-bottom:1.25rem}
-  </style>
+    .hint{font-size:0.75rem;color:#5A4A80;margin-bottom:1.25rem}
+`;
+
+function authPage({ title, heading, error = '', success = '', form }) {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${title} - Nekojin Interactive</title>
+  <link href="https://fonts.googleapis.com/css2?family=Darumadrop+One&family=Zen+Kaku+Gothic+New:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>${AUTH_PAGE_CSS}</style>
 </head>
 <body>
   <div class="card">
     <div class="logo">Nekojin Interactive</div>
-    <div class="sub">✦ Sign In ✦</div>
+    <div class="sub">✦ ${heading} ✦</div>
     ${error ? `<div class="error">${error}</div>` : ''}
-    <form method="POST" action="/login">
+    ${success ? `<div class="success">${success}</div>` : ''}
+${form}
+  </div>
+</body>
+</html>`;
+}
+
+function loginPage(nextUrl = '/admin', error = '') {
+    const safeNext = safeRedirectPath(nextUrl);
+    return authPage({
+        title: 'Admin Login',
+        heading: 'Sign In',
+        error,
+        form: `    <form method="POST" action="/login">
       <input type="hidden" name="next" value="${safeNext.replace(/"/g, '&quot;')}">
       <label>Username</label>
       <input type="text" name="username" autocomplete="username" required>
@@ -612,45 +718,17 @@ function loginPage(nextUrl = '/admin', error = '') {
       <input type="password" name="password" autocomplete="current-password" required>
       <button type="submit">Sign In</button>
     </form>
-    <div class="link-row"><a href="/register">Create account</a><a href="/">Back to site</a></div>
-  </div>
-</body>
-</html>`;
+    <div class="link-row"><a href="/register">Create account</a><a href="/">Back to site</a></div>`
+    });
 }
 
 function registerPage(error = '', success = '') {
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Create Account - Nekojin Interactive</title>
-  <link href="https://fonts.googleapis.com/css2?family=Darumadrop+One&family=Zen+Kaku+Gothic+New:wght@400;500;600&display=swap" rel="stylesheet">
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{min-height:100vh;background:#0d0820;display:flex;align-items:center;justify-content:center;font-family:'Zen Kaku Gothic New',sans-serif;padding:2rem;position:relative;overflow:hidden}
-    body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 60% at 20% 0%,rgba(91,26,154,0.2),transparent 60%),radial-gradient(ellipse 60% 80% at 80% 100%,rgba(22,44,110,0.15),transparent 60%);pointer-events:none}
-    .card{background:#140f2e;border:1px solid rgba(124,40,212,0.25);border-radius:24px;padding:2.5rem;width:100%;max-width:400px;box-shadow:0 8px 40px rgba(0,0,0,0.5);position:relative;z-index:1}
-    .logo{font-family:'Darumadrop One',cursive;font-size:1.4rem;color:#8B44E8;text-align:center;margin-bottom:0.25rem}
-    .sub{text-align:center;font-size:0.78rem;color:#5A4A80;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:2rem}
-    label{display:block;font-size:0.78rem;font-weight:700;color:#7C28D4;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:0.35rem}
-    input{width:100%;padding:0.7rem 1rem;border:1.5px solid rgba(124,40,212,0.2);border-radius:10px;font-family:inherit;font-size:0.9rem;color:#d8cef0;background:#1c1640;outline:none;transition:border-color 0.2s;margin-bottom:1.25rem}
-    input:focus{border-color:#8B44E8}
-    .error{background:rgba(224,80,80,0.1);border:1px solid rgba(224,80,80,0.3);color:#e08080;font-size:0.82rem;padding:0.6rem 0.9rem;border-radius:8px;margin-bottom:1.25rem}
-    .success{background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.3);color:#86efac;font-size:0.82rem;padding:0.6rem 0.9rem;border-radius:8px;margin-bottom:1.25rem}
-    button{width:100%;padding:0.85rem;background:linear-gradient(135deg,#5B1A9A,#162C6E);color:white;border:none;border-radius:999px;font-family:inherit;font-size:1rem;font-weight:600;cursor:pointer;transition:all 0.2s}
-    button:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(91,26,154,0.5)}
-    .back{display:block;text-align:center;margin-top:1.5rem;font-size:0.82rem;color:#5A4A80;text-decoration:none}
-    .back:hover{color:#8B44E8}
-    .hint{font-size:0.75rem;color:#5A4A80;margin-bottom:1.25rem}
-  </style>
-</head>
-<body>
-  <div class="card">
-    <div class="logo">Nekojin Interactive</div>
-    <div class="sub">✦ Create Account ✦</div>
-    ${error ? `<div class="error">${error}</div>` : ''}
-    ${success ? `<div class="success">${success}</div>` : ''}
-    <form method="POST" action="/register" ${success ? 'style="display:none;"' : ''}>
+    return authPage({
+        title: 'Create Account',
+        heading: 'Create Account',
+        error,
+        success,
+        form: `    <form method="POST" action="/register" ${success ? 'style="display:none;"' : ''}>
       <label>Username</label>
       <p class="hint">3-32 characters, letters, numbers, underscores only.</p>
       <input type="text" name="username" autocomplete="username" required pattern="[a-z0-9_]{3,32}" title="3-32 lowercase letters, numbers, underscores">
@@ -660,10 +738,8 @@ function registerPage(error = '', success = '') {
       <input type="password" name="confirm" autocomplete="new-password" required minlength="8">
       <button type="submit">Create Account</button>
     </form>
-    <a href="/login" class="back">← Back to sign in</a>
-  </div>
-</body>
-</html>`;
+    <a href="/login" class="back">← Back to sign in</a>`
+    });
 }
 
 // ── COVER VERSIONING ──────────────────────────────────────
@@ -727,6 +803,28 @@ const PUBLIC_ROUTES = {
     '/xanrean/lore/travelers': path.join(PUBLIC_DIR, 'xanrean', 'lore', 'travelers.html'),
     '/xanrean/lore/wolfkin': path.join(PUBLIC_DIR, 'xanrean', 'lore', 'wolfkin.html'),
     '/xanrean/lore/kitsune': path.join(PUBLIC_DIR, 'xanrean', 'lore', 'kitsune.html'),
+};
+
+// ── PUBLIC CONTENT READS (characters / timeline / lore) ────
+// The unauthenticated half of the same three content types the admin CRUD
+// section writes. Invisible rows are filtered out for non-admins; a hidden
+// single entity 404s rather than leaking that it exists.
+const PUBLIC_READS = {
+    '/api/characters': {
+        list: () => contentDB.SelectCharacters(),
+        one: slug => contentDB.SelectCharacterBySlug(slug),
+        label: 'Character'
+    },
+    '/api/timeline': {
+        list: () => contentDB.SelectTimelineEvents(),
+        one: id => contentDB.SelectTimelineEventById(id),
+        label: 'Timeline event'
+    },
+    '/api/lore-topics': {
+        list: section => contentDB.SelectLoreTopics(section),
+        one: slug => contentDB.SelectLoreTopicBySlug(slug),
+        label: 'Lore topic'
+    }
 };
 
 // ── SERVER ────────────────────────────────────────────────
@@ -894,11 +992,7 @@ async function handleRequest(req, res) {
 
      // Gumroad Webhook (PUBLIC, CSRF-exempt)
       if (req.method === 'POST' && url === '/webhook/gumroad') {
-          const limit = checkRateLimit(req, '/webhook/gumroad');
-          if (!limit.allowed) {
-              res.writeHead(429);
-              return res.end(limit.message);
-          }
+          if (enforceRateLimit(req, res, '/webhook/gumroad')) return;
 
           try {
               // Validate webhook signature (cryptographically strong authentication)
@@ -915,14 +1009,12 @@ async function handleRequest(req, res) {
 
              if (!configuredSecret) {
                  console.error('[Gumroad Webhook] GUMROAD_WEBHOOK_SECRET not configured');
-                 res.writeHead(403);
-                 return res.end('Forbidden: Webhook secret not configured');
+                 return sendText(res, 'Forbidden: Webhook secret not configured', 403);
              }
 
              if (!providedSecret) {
                  console.warn('[Gumroad Webhook] Missing webhook secret');
-                 res.writeHead(403);
-                 return res.end('Forbidden: Missing webhook secret header');
+                 return sendText(res, 'Forbidden: Missing webhook secret header', 403);
              }
 
              let secretValid = false;
@@ -930,14 +1022,12 @@ async function handleRequest(req, res) {
                  secretValid = gumroad.validateWebhookSignature(configuredSecret, providedSecret);
              } catch (err) {
                  console.error('[Gumroad Webhook] Signature comparison error:', err);
-                 res.writeHead(403);
-                 return res.end('Forbidden: Invalid webhook secret');
+                 return sendText(res, 'Forbidden: Invalid webhook secret', 403);
              }
 
              if (!secretValid) {
                  console.warn('[Gumroad Webhook] Invalid webhook secret');
-                 res.writeHead(403);
-                 return res.end('Forbidden: Invalid webhook secret');
+                 return sendText(res, 'Forbidden: Invalid webhook secret', 403);
              }
 
              const body = await readRawBody(req, 512 * 1024);
@@ -948,16 +1038,14 @@ async function handleRequest(req, res) {
 
              const pingErrors = gumroad.validatePing(ping);
              if (!sellerId || pingErrors.length || !gumroad.validateSellerId(ping, sellerId)) {
-                 res.writeHead(403);
-                 return res.end('Forbidden: Invalid webhook');
+                 return sendText(res, 'Forbidden: Invalid webhook', 403);
              }
 
             // Convert and validate price strictly as integer (cents)
             const priceCents = gumroad.parsePriceInCents(ping.price);
             if (priceCents === null) {
                 console.warn('[Gumroad Webhook] Price validation failed:', ping.price);
-                res.writeHead(400);
-                return res.end('Invalid price format');
+                return sendText(res, 'Invalid price format', 400);
             }
 
             await contentDB.InsertSale({
@@ -966,12 +1054,10 @@ async function handleRequest(req, res) {
                 purchased_at: ping.purchased_at || new Date().toISOString()
             });
 
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ ok: true }));
+            return sendJson(res, { ok: true }, 200);
         } catch (err) {
             console.error('[Gumroad Webhook] Error:', err);
-            res.writeHead(500);
-            return res.end('Internal Server Error');
+            return sendText(res, 'Internal Server Error', 500);
         }
     }
 
@@ -998,18 +1084,16 @@ async function handleRequest(req, res) {
                 alerts = [];
             }
 
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({
+            return sendJson(res, {
                 ok: true,
                 uptimeSeconds: Math.floor(process.uptime()),
                 dbConnected: true,
                 diskFreeBytes: diskFree,
                 diskStatus: diskStatus,
                 alerts: alerts
-            }));
+            }, 200);
         } catch (err) {
-            res.writeHead(503, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ ok: false, dbConnected: false, error: 'Service unavailable' }));
+            return sendJson(res, { ok: false, dbConnected: false, error: 'Service unavailable' }, 503);
         }
     }
 
@@ -1033,170 +1117,96 @@ async function handleRequest(req, res) {
             // content hash so a replaced cover gets a new URL and the old one
             // can be cached forever without ever going stale.
             data.books = (data.books || []).map(withCoverVersion);
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify(data));
+            return sendJson(res, data, 200);
         } catch (err) {
             console.error('Database error:', err);
-            res.writeHead(500);
-            return res.end('{"error":"Failed to load content"}');
+            return sendText(res, '{"error":"Failed to load content"}', 500);
         }
     }
 
-    // Character API
-    if (url.startsWith('/api/characters')) {
+    // Public content reads: characters, timeline, lore topics.
+    const readBase = url.split('/').slice(0, 3).join('/');
+    const publicRead = PUBLIC_READS[readBase];
+    if (publicRead && req.method === 'GET') {
+        const rest = url.slice(readBase.length);
         try {
-            if (req.method === 'GET' && url === '/api/characters') {
-                const characters = await contentDB.SelectCharacters();
-                const filtered = accounts.isAdmin(req)
-                    ? characters
-                    : characters.filter(c => c.visible === 1);
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify(filtered));
+            if (!rest) {
+                const rows = await publicRead.list(query.get('section'));
+                const visible = accounts.isAdmin(req) ? rows : rows.filter(r => r.visible === 1);
+                return sendJson(res, visible);
             }
-            if (req.method === 'GET' && url.match(/\/api\/characters\/([^\/]+)$/)) {
-                const slug = url.split('/').pop();
-                const char = await contentDB.SelectCharacterBySlug(slug);
-                if (!char || (char.visible !== 1 && !accounts.isAdmin(req))) {
-                    res.writeHead(404);
-                    return res.end(JSON.stringify({ error: 'Character not found' }));
+            if (/^\/[^/]+$/.test(rest)) {
+                const entity = await publicRead.one(decodeURIComponent(rest.slice(1)));
+                if (!entity || (entity.visible !== 1 && !accounts.isAdmin(req))) {
+                    return sendJson(res, { error: `${publicRead.label} not found` }, 404);
                 }
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify(char));
+                return sendJson(res, entity);
             }
         } catch (err) {
-            console.error('Character API error:', err);
-            res.writeHead(500);
-            return res.end(JSON.stringify({ error: 'Failed to load characters' }));
+            console.error(`${publicRead.label} API error:`, err);
+            return sendJson(res, { error: `Failed to load ${publicRead.label.toLowerCase()}s` }, 500);
         }
     }
 
-    // Timeline API
-    if (url.startsWith('/api/timeline')) {
-        try {
-            if (req.method === 'GET' && url === '/api/timeline') {
-                const events = await contentDB.SelectTimelineEvents();
-                const filtered = accounts.isAdmin(req)
-                    ? events
-                    : events.filter(e => e.visible === 1);
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify(filtered));
-            }
-            if (req.method === 'GET' && url.match(/\/api\/timeline\/([^\/]+)$/)) {
-                const id = url.split('/').pop();
-                const event = await contentDB.SelectTimelineEventById(id);
-                if (!event || (event.visible !== 1 && !accounts.isAdmin(req))) {
-                    res.writeHead(404);
-                    return res.end(JSON.stringify({ error: 'Timeline event not found' }));
-                }
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify(event));
-            }
-        } catch (err) {
-            console.error('Timeline API error:', err);
-            res.writeHead(500);
-            return res.end(JSON.stringify({ error: 'Failed to load timeline' }));
-        }
-    }
 
-    // Lore API
-    if (url.startsWith('/api/lore-topics')) {
-        try {
-            if (req.method === 'GET' && url === '/api/lore-topics') {
-                const section = query.get('section');
-                const topics = await contentDB.SelectLoreTopics(section || null);
-                const filtered = accounts.isAdmin(req)
-                    ? topics
-                    : topics.filter(t => t.visible === 1);
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify(filtered));
-            }
-            if (req.method === 'GET' && url.match(/\/api\/lore-topics\/([^\/]+)$/)) {
-                const slug = url.split('/').pop();
-                const topic = await contentDB.SelectLoreTopicBySlug(slug);
-                if (!topic || (topic.visible !== 1 && !accounts.isAdmin(req))) {
-                    res.writeHead(404);
-                    return res.end(JSON.stringify({ error: 'Lore topic not found' }));
-                }
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify(topic));
-            }
-        } catch (err) {
-            console.error('Lore API error:', err);
-            res.writeHead(500);
-            return res.end(JSON.stringify({ error: 'Failed to load lore topics' }));
-        }
-    }
 
-    // Integration APIs (public)
-    if (req.method === 'GET') {
-        if (url === '/api/youtube') {
-            const limit = checkRateLimit(req, '/api/youtube');
-            if (!limit.allowed) {
-                res.writeHead(429);
-                return res.end(JSON.stringify({ error: limit.message }));
-            }
-            try {
-                const settings = await contentDB.SelectXanreanSettings();
-                const channelId = settings.youtube_channel_id || process.env.YOUTUBE_CHANNEL_ID;
-                if (!channelId) {
-                    res.writeHead(200, { 'Content-Type': 'application/json' });
-                    return res.end(JSON.stringify({ videos: [] }));
-                }
-                const videos = await youtube.fetchLatestVideos(channelId);
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify({ videos }));
-            } catch (e) {
-                // Don't expose internal errors to client; log for debugging
-                console.error('[YouTube API] Error:', e.message);
-                res.writeHead(500);
-                return res.end(JSON.stringify({ error: 'Service temporarily unavailable' }));
-            }
-        }
-        if (url === '/api/discord') {
-            const limit = checkRateLimit(req, '/api/discord');
-            if (!limit.allowed) {
-                res.writeHead(429);
-                return res.end(JSON.stringify({ error: limit.message }));
-            }
-            try {
-                const settings = await contentDB.SelectXanreanSettings();
-                const server_id = settings.discord_server_id || process.env.DISCORD_SERVER_ID || null;
-                const invite_code = settings.discord_invite_code || process.env.DISCORD_INVITE_CODE || null;
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify({
-                    server_id,
-                    invite_code,
-                    invite_url: invite_code ? `https://discord.gg/${invite_code}` : null
-                }));
-            } catch (e) {
-                console.error('[Discord API] Error:', e.message);
-                res.writeHead(500);
-                return res.end(JSON.stringify({ error: 'Service temporarily unavailable' }));
-            }
-        }
-        if (url === '/api/sales') {
-            const limit = checkRateLimit(req, '/api/sales');
-            if (!limit.allowed) {
-                res.writeHead(429);
-                return res.end(JSON.stringify({ error: limit.message }));
-            }
-            try {
-                const sales = await contentDB.SelectRecentSales(25);
-                const mapped = sales.map(s => ({
-                    product_name: s.product_name,
-                    price_cents: s.price_cents,
-                    currency: s.currency,
-                    purchased_at: s.purchased_at
-                    // Note: email deliberately excluded for privacy
-                }));
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify({ sales: mapped }));
-            } catch (e) {
-                console.error('[Sales API] Error:', e.message);
-                res.writeHead(500);
-                return res.end(JSON.stringify({ error: 'Service temporarily unavailable' }));
-            }
-        }
+
+
+// ── INTEGRATION APIS (public) ─────────────────────────────
+// Each integration reads its config from the settings row (admin-editable)
+// and falls back to an env var, then responds with one JSON shape. Failures
+// are logged but never surfaced to the client. Defined as a table so the
+// routes stay one line each and adding a provider doesn't mean another
+// copy of the same try/catch/rate-limit block.
+const INTEGRATION_ROUTES = {
+    '/api/youtube': async () => {
+        const settings = await contentDB.SelectXanreanSettings();
+        const channelId = settings.youtube_channel_id || process.env.YOUTUBE_CHANNEL_ID;
+        if (!channelId) return { videos: [] };
+        return { videos: await youtube.fetchLatestVideos(channelId) };
+    },
+
+    '/api/discord': async () => {
+        const settings = await contentDB.SelectXanreanSettings();
+        const server_id = settings.discord_server_id || process.env.DISCORD_SERVER_ID || null;
+        const invite_code = settings.discord_invite_code || process.env.DISCORD_INVITE_CODE || null;
+        return {
+            server_id,
+            invite_code,
+            invite_url: invite_code ? `https://discord.gg/${invite_code}` : null
+        };
+    },
+
+    '/api/sales': async () => {
+        const sales = await contentDB.SelectRecentSales(25);
+        return {
+            // email deliberately excluded for privacy
+            sales: sales.map(s => ({
+                product_name: s.product_name,
+                price_cents: s.price_cents,
+                currency: s.currency,
+                purchased_at: s.purchased_at
+            }))
+        };
+    }
+};
+
+async function handleIntegrationRequest(req, res, url) {
+    try {
+        return sendJson(res, await INTEGRATION_ROUTES[url]());
+    } catch (e) {
+        // Don't expose internal errors to the client; log for debugging
+        console.error(`[${url}] Error:`, e.message);
+        return sendJson(res, { error: 'Service temporarily unavailable' }, 500);
+    }
+}
+
+
+
+    // Integration APIs (public): one handler per provider in INTEGRATION_ROUTES
+    if (req.method === 'GET' && INTEGRATION_ROUTES[url]) {
+        if (enforceRateLimit(req, res, url, { json: true })) return;
+        return handleIntegrationRequest(req, res, url);
     }
 
     // Public single-book lookup (supports preview mode).
@@ -1206,89 +1216,43 @@ async function handleRequest(req, res) {
         try {
             const slug = query.get('slug');
             if (!slug) {
-                res.writeHead(400, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify({ error: 'Missing slug' }));
+                return sendJson(res, { error: 'Missing slug' }, 400);
             }
             const previewAllowed = query.get('preview') === '1';
             const rows = await contentDB.SelectBooks(slug);
             const book = rows.find(b => contentDB.isBookPublic(b, previewAllowed));
             if (!book) {
-                res.writeHead(404, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify({ error: 'Book not found' }));
+                return sendJson(res, { error: 'Book not found' }, 404);
             }
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ book }));
+            return sendJson(res, { book }, 200);
         } catch (err) {
             console.error('Database error:', err);
-            res.writeHead(500);
-            return res.end('{"error":"Failed to load book"}');
+            return sendText(res, '{"error":"Failed to load book"}', 500);
         }
     }
 
-    // ── MANUSCRIPT API (OPTION 1: DISABLED) ─────────────────
-    // Set MANUSCRIPTS_ENABLED = true above to re-enable
-    // Manuscript reading system hidden to focus on external platform links
-    if (MANUSCRIPTS_ENABLED) {
-        const mList = /^\/api\/manuscripts$/;
-        const mChapters = /^\/api\/manuscripts\/([^\/]+)\/chapters$/;
-        const mChapter = /^\/api\/manuscripts\/([^\/]+)\/chapters\/([0-9]+)$/;
 
-        if (req.method === 'GET' && mList.test(url)) {
-            const slugs = listManuscripts();
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ manuscripts: slugs }));
-        }
-
-        const chaptersMatch = url.match(mChapters);
-        if (req.method === 'GET' && chaptersMatch) {
-            const slug = chaptersMatch[1];
-            const chapters = await parseManuscript(slug);
-            if (!chapters) { res.writeHead(404); return res.end('Not found'); }
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({
-                slug,
-                total: chapters.length,
-                preview: chapters.length > 3 ? 3 : chapters.length,
-                chapters: chapters.map((c, i) => ({ num: c.num, title: c.title, index: i }))
-            }));
-        }
-
-        const chapterMatch = url.match(mChapter);
-        if (req.method === 'GET' && chapterMatch) {
-            const slug = chapterMatch[1];
-            const num = parseInt(chapterMatch[2], 10);
-            const chapters = await parseManuscript(slug);
-            if (!chapters) { res.writeHead(404); return res.end('Not found'); }
-            const ch = chapters.find(c => c.num === num);
-            if (!ch) { res.writeHead(404); return res.end('Chapter not found'); }
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({
-                num: ch.num,
-                title: ch.title,
-                content: ch.content,
-                total: chapters.length
-            }));
-        }
+    // Manuscript API + upload: one optional feature, one gate.
+    if (MANUSCRIPTS_ENABLED && url.startsWith('/api/manuscripts')) {
+        return handleManuscriptRequest(req, res, url);
     }
-    // ── END MANUSCRIPT API ──────────────────────────────────
+    if (url === '/upload-manuscript') {
+        if (!MANUSCRIPTS_ENABLED) return sendJson(res, MANUSCRIPT_DISABLED, 503);
+        if (!accounts.isAdmin(req)) return forbidden(res);
+        return handleManuscriptUpload(req, res);
+    }
 
     // ── LOGIN / LOGOUT / REGISTER ─────────────────────────
     if (req.method === 'GET' && url === '/login') {
         if (accounts.isAuthenticated(req)) {
-            res.writeHead(302, { Location: '/admin' });
-            return res.end();
+            return redirect(res, '/admin');
         }
-        res.writeHead(200, { 'Content-Type': 'text/html' });
-        return res.end(loginPage(query.get('next') || '/admin'));
+        return sendHtml(res, loginPage(query.get('next') || '/admin'));
     }
 
     if (req.method === 'POST' && url === '/login') {
         // Rate limit check
-        const limit = checkRateLimit(req, '/login');
-        if (!limit.allowed) {
-            res.writeHead(429, { 'Content-Type': 'text/plain', 'Retry-After': limit.retryAfter });
-            return res.end(limit.message);
-        }
+        if (enforceRateLimit(req, res, '/login')) return;
 
         const body = await readRawBody(req, 16 * 1024);
         const params = parseFormBody(body);
@@ -1308,25 +1272,19 @@ async function handleRequest(req, res) {
              });
              return res.end();
          }
-        res.writeHead(200, { 'Content-Type': 'text/html' });
-        return res.end(loginPage(params.next || '/admin', 'Incorrect username or password.'));
+        return sendHtml(res, loginPage(params.next || '/admin', 'Incorrect username or password.'));
     }
 
     if (req.method === 'GET' && url === '/register') {
-        if (!PUBLIC_REGISTRATION_ENABLED) { res.writeHead(404); return res.end('Not found'); }
-        res.writeHead(200, { 'Content-Type': 'text/html' });
-        return res.end(registerPage());
+        if (!PUBLIC_REGISTRATION_ENABLED) { return notFound(res); }
+        return sendHtml(res, registerPage());
     }
 
     if (req.method === 'POST' && url === '/register') {
-        if (!PUBLIC_REGISTRATION_ENABLED) { res.writeHead(404); return res.end('Not found'); }
+        if (!PUBLIC_REGISTRATION_ENABLED) { return notFound(res); }
 
         // Rate limit check
-        const limit = checkRateLimit(req, '/register');
-        if (!limit.allowed) {
-            res.writeHead(429, { 'Content-Type': 'text/plain', 'Retry-After': limit.retryAfter });
-            return res.end(limit.message);
-        }
+        if (enforceRateLimit(req, res, '/register')) return;
 
         const body = await readRawBody(req, 16 * 1024);
         const params = parseFormBody(body);
@@ -1334,23 +1292,18 @@ async function handleRequest(req, res) {
         const password = params.password || '';
         const confirm = params.confirm || '';
         if (!/^[a-z0-9_]{3,32}$/.test(username)) {
-            res.writeHead(200, { 'Content-Type': 'text/html' });
-            return res.end(registerPage('Username must be 3-32 characters: letters, numbers, underscores.'));
+            return sendHtml(res, registerPage('Username must be 3-32 characters: letters, numbers, underscores.'));
         }
         if (password.length < 8) {
-            res.writeHead(200, { 'Content-Type': 'text/html' });
-            return res.end(registerPage('Password must be at least 8 characters.'));
+            return sendHtml(res, registerPage('Password must be at least 8 characters.'));
         }
         if (password !== confirm) {
-            res.writeHead(200, { 'Content-Type': 'text/html' });
-            return res.end(registerPage('Passwords do not match.'));
+            return sendHtml(res, registerPage('Passwords do not match.'));
         }
         if (!accounts.createUser(username, password)) {
-            res.writeHead(200, { 'Content-Type': 'text/html' });
-            return res.end(registerPage('Username already taken.'));
+            return sendHtml(res, registerPage('Username already taken.'));
         }
-        res.writeHead(200, { 'Content-Type': 'text/html' });
-        return res.end(registerPage('', 'Account created. You can now log in.'));
+        return sendHtml(res, registerPage('', 'Account created. You can now log in.'));
     }
 
      if (req.method === 'GET' && url === '/logout') {
@@ -1369,25 +1322,19 @@ async function handleRequest(req, res) {
     // ── PUBLIC NEWSLETTER ─────────────────────────────────
     if (req.method === 'POST' && url === '/newsletter') {
         // Rate limit check
-        const limit = checkRateLimit(req, '/newsletter');
-        if (!limit.allowed) {
-            res.writeHead(429, { 'Content-Type': 'application/json', 'Retry-After': limit.retryAfter });
-            return res.end(JSON.stringify({ error: limit.message }));
-        }
+        if (enforceRateLimit(req, res, '/newsletter', { json: true })) return;
 
         try {
             const body = await readRawBody(req, 16 * 1024);
             const { email } = JSON.parse(body.toString());
             if (!email || !email.includes('@')) {
-                res.writeHead(400);
-                return res.end(JSON.stringify({ error: 'Invalid email' }));
+                return sendJson(res, { error: 'Invalid email' }, 400);
             }
 
             // Use database instead of JSON file
             const result = await contentDB.InsertSubscriber(email, 'website');
             if (!result.success) {
-                res.writeHead(500, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify({ error: result.error }));
+                return sendJson(res, { error: result.error }, 500);
             }
 
             // Fire-and-forget call to external provider.
@@ -1398,11 +1345,9 @@ async function handleRequest(req, res) {
                 console.error('[Newsletter] Critical failure in provider call:', err)
             );
 
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end('{"ok":true}');
+            return sendJson(res, { ok: true });
         } catch (e) {
-            res.writeHead(500);
-            return res.end(e.message);
+            return sendText(res, e.message, 500);
         }
     }
 
@@ -1411,11 +1356,9 @@ async function handleRequest(req, res) {
     if (req.method === 'GET' && url === '/api/homepage') {
         try {
             const settings = await contentDB.SelectHomepageSettings();
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify(settings));
+            return sendJson(res, settings, 200);
         } catch (e) {
-            res.writeHead(500);
-            return res.end(JSON.stringify({ error: e.message }));
+            return sendJson(res, { error: e.message }, 500);
         }
     }
 
@@ -1426,11 +1369,9 @@ async function handleRequest(req, res) {
             // Public endpoint must never leak the Gumroad access token; it is
             // only ever returned to admins via /api/settings.
             const { gumroad_access_token, ...publicSettings } = settings;
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify(publicSettings));
+            return sendJson(res, publicSettings, 200);
         } catch (e) {
-            res.writeHead(500);
-            return res.end(JSON.stringify({ error: e.message }));
+            return sendJson(res, { error: e.message }, 500);
         }
     }
 
@@ -1446,11 +1387,9 @@ async function handleRequest(req, res) {
     // ── AUTH GATE ─────────────────────────────────────────
     if (!accounts.isAuthenticated(req)) {
         if (req.method === 'GET') {
-            res.writeHead(302, { Location: '/login?next=' + encodeURIComponent(req.url) });
-            return res.end();
+            return redirect(res, '/login?next=' + encodeURIComponent(req.url));
         }
-        res.writeHead(401);
-        return res.end('Unauthorized');
+        return sendText(res, 'Unauthorized', 401);
     }
 
     // ── CSRF GATE ─────────────────────────────────────────
@@ -1461,8 +1400,7 @@ async function handleRequest(req, res) {
         const sid = accounts.getSessionId(req);
         const csrfHeader = req.headers['x-csrf-token'];
         if (!accounts.isValidCsrfToken(sid, csrfHeader)) {
-            res.writeHead(403, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ error: 'Invalid or missing CSRF token' }));
+            return sendJson(res, { error: 'Invalid or missing CSRF token' }, 403);
         }
     }
 
@@ -1470,113 +1408,109 @@ async function handleRequest(req, res) {
     const username = accounts.getUsername(req);
 
     // Admin Character API
-    if (url.startsWith('/api/characters')) {
-        try {
-            if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
-            if (req.method === 'POST' && url.match(/^\/api\/characters\/([^\/]+)\/appearances$/)) {
-                const id = url.split('/')[3];
-                const body = await readRawBody(req, 64 * 1024);
-                const { appearances } = JSON.parse(body.toString());
-                const result = await contentDB.ReplaceCharacterAppearances(id, appearances || []);
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify(result));
-            }
-            if (req.method === 'POST' || req.method === 'PUT') {
-                const body = await readRawBody(req, 10 * 1024 * 1024);
-                const data = JSON.parse(body.toString());
-                if (!data.name || !data.slug) {
-                    res.writeHead(400);
-                    return res.end(JSON.stringify({ error: 'Name and slug are required' }));
-                }
-                if (!/^[a-z0-9_-]+$/.test(String(data.slug))) {
-                    res.writeHead(400);
-                    return res.end(JSON.stringify({ error: 'Invalid character slug' }));
-                }
-                const result = await contentDB.InsertCharacter(data);
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify(result));
-            }
-            if (req.method === 'DELETE' && url.match(/\/api\/characters\/([^\/]+)$/)) {
-                const id = url.split('/').pop();
-                const result = await contentDB.DeleteCharacter(id);
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify(result));
-            }
-        } catch (err) {
-            console.error('Admin Character API error:', err);
-            res.writeHead(500);
-            return res.end(JSON.stringify({ error: err.message }));
+// ── ADMIN CONTENT CRUD ────────────────────────────────────
+// Characters, timeline events, and lore topics are the same shape: an upsert
+// that validates a couple of fields, a delete by id, and one list/detail GET
+// that hides invisible rows from non-admins. The three blocks used to be
+// near-identical copies; this table is the shared version of all of them.
+//
+// `validate(data)` returns an error string to reject the payload, or null to
+// accept. `validateSlug` is the markup-safety check (slugs end up in URLs and
+// inline page scripts, so they must stay URL-safe).
+const ADMIN_CONTENT_TYPES = {
+    characters: {
+        base: '/api/characters',
+        insert: data => contentDB.InsertCharacter(data),
+        remove: id => contentDB.DeleteCharacter(id),
+        validate: data => (!data.name || !data.slug ? 'Name and slug are required' : null),
+        validateSlug: () => 'Invalid character slug'
+    },
+    timeline: {
+        base: '/api/timeline',
+        insert: data => contentDB.InsertTimelineEvent(data.id ? data : { ...data, id: crypto.randomUUID() }),
+        remove: id => contentDB.DeleteTimelineEvent(id),
+        validate: data => (data.title ? null : 'Title is required')
+    },
+    'lore-topics': {
+        base: '/api/lore-topics',
+        insert: data => contentDB.InsertLoreTopic(data),
+        remove: id => contentDB.DeleteLoreTopic(id),
+        validate: data => (!data.title || !data.slug || !data.section
+            ? 'Title, slug, and section are required' : null),
+        validateSlug: () => 'Invalid lore slug'
+    }
+};
+
+const ADMIN_CONTENT_MATCHERS = Object.values(ADMIN_CONTENT_TYPES).map(type => ({
+    type,
+    // Exact base URL, an /appearances sub-resource, or a single-entity id.
+    exact: new RegExp(`^${type.base}$`),
+    appearances: new RegExp(`^${type.base}/([^/]+)/appearances$`),
+    byId: new RegExp(`^${type.base}/([^/]+)$`)
+}));
+
+function matchAdminContent(url) {
+    for (const matcher of ADMIN_CONTENT_MATCHERS) {
+        if (matcher.exact.test(url)) return { type: matcher.type };
+        const byId = url.match(matcher.byId);
+        if (byId) return { type: matcher.type, id: byId[1] };
+        if (matcher.appearances.test(url)) {
+            return { type: matcher.type, id: url.split('/')[3], appearances: true };
         }
     }
+    return null;
+}
 
-    // Admin Timeline API
-    if (url.startsWith('/api/timeline')) {
-        try {
-            if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
-            if (req.method === 'POST' || req.method === 'PUT') {
-                const body = await readRawBody(req, 10 * 1024 * 1024);
-                const data = JSON.parse(body.toString());
-                if (!data.title) {
-                    res.writeHead(400);
-                    return res.end(JSON.stringify({ error: 'Title is required' }));
-                }
-                if (!data.id) {
-                    data.id = crypto.randomUUID();
-                }
-                const result = await contentDB.InsertTimelineEvent(data);
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify(result));
-            }
-            if (req.method === 'DELETE' && url.match(/\/api\/timeline\/([^\/]+)$/)) {
-                const id = url.split('/').pop();
-                const result = await contentDB.DeleteTimelineEvent(id);
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify(result));
-            }
-        } catch (err) {
-            console.error('Admin Timeline API error:', err);
-            res.writeHead(500);
-            return res.end(JSON.stringify({ error: err.message }));
-        }
+// Admin view of characters / timeline / lore topics. `id` is null for a
+// collection request, set for a single entity or its /appearances sub-resource.
+async function handleAdminContent(req, res, match) {
+    const { type, id, appearances } = match;
+    const isList = id === undefined;
+
+    // Characters expose a per-character appearances editor.
+    if (appearances && req.method === 'POST') {
+        const { appearances: rows } = await readJsonBody(req, 64 * 1024);
+        return sendJson(res, await contentDB.ReplaceCharacterAppearances(id, rows || []));
     }
 
-    // Admin Lore API
-    if (url.startsWith('/api/lore-topics')) {
+    if (req.method === 'POST' || req.method === 'PUT') {
+        const data = await readJsonBody(req, 10 * 1024 * 1024);
+        const problem = type.validate(data);
+        if (problem) return sendJson(res, { error: problem }, 400);
+        if (type.validateSlug && !/^[a-z0-9_-]+$/.test(String(data.slug))) {
+            return sendJson(res, { error: type.validateSlug() }, 400);
+        }
+        return sendJson(res, await type.insert(data));
+    }
+
+    if (req.method === 'DELETE' && !isList) {
+        return sendJson(res, await type.remove(id));
+    }
+
+    return isList ? undefined : sendJson(res, { error: 'Method not allowed' }, 405);
+}
+
+
+
+    // Admin Character / Timeline / Lore API (auth already enforced above).
+    // The public GET side is served before the auth gate; everything that
+    // reaches here is an admin-gated write or a single-entity read.
+    const contentMatch = matchAdminContent(url);
+    if (contentMatch) {
+        if (!accounts.isAdmin(req)) return forbidden(res);
         try {
-            if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
-            if (req.method === 'POST' || req.method === 'PUT') {
-                const body = await readRawBody(req, 10 * 1024 * 1024);
-                const data = JSON.parse(body.toString());
-                if (!data.title || !data.slug || !data.section) {
-                    res.writeHead(400);
-                    return res.end(JSON.stringify({ error: 'Title, slug, and section are required' }));
-                }
-                if (!/^[a-z0-9_-]+$/.test(String(data.slug))) {
-                    res.writeHead(400);
-                    return res.end(JSON.stringify({ error: 'Invalid lore slug' }));
-                }
-                const result = await contentDB.InsertLoreTopic(data);
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify(result));
-            }
-            if (req.method === 'DELETE' && url.match(/\/api\/lore-topics\/([^\/]+)$/)) {
-                const id = url.split('/').pop();
-                const result = await contentDB.DeleteLoreTopic(id);
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify(result));
-            }
+            const response = await handleAdminContent(req, res, contentMatch);
+            if (response !== undefined) return response;
         } catch (err) {
-            console.error('Admin Lore API error:', err);
-            res.writeHead(500);
-            return res.end(JSON.stringify({ error: err.message }));
+            console.error(`Admin ${contentMatch.type.base} API error:`, err);
+            return sendJson(res, { error: err.message }, 500);
         }
     }
 
     // API Keys (read / write) - kept for potential future use
     if (url === '/api/keys') {
         if (req.method === 'GET') {
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify(accounts.getUserKeys(username)));
+            return sendJson(res, accounts.getUserKeys(username), 200);
         }
         if (req.method === 'POST') {
             try {
@@ -1584,33 +1518,29 @@ async function handleRequest(req, res) {
                 const data = JSON.parse(body.toString('utf8'));
                 for (const [provider, key] of Object.entries(data)) {
                     if (!accounts.setUserKey(username, provider, key || '')) {
-                        res.writeHead(500, { 'Content-Type': 'application/json' });
-                        return res.end(JSON.stringify({ error: 'Failed to persist API key' }));
+                        return sendJson(res, { error: 'Failed to persist API key' }, 500);
                     }
                 }
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                return res.end('{"ok":true}');
-            } catch (e) { res.writeHead(400); return res.end(e.message); }
+                return sendJson(res, { ok: true });
+            } catch (e) { return sendText(res, e.message, 400); }
         }
     }
 
     // Admin Integrations Settings API (auth already enforced by the gate above)
     if (url === '/api/settings') {
-        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        if (!accounts.isAdmin(req)) { return forbidden(res); }
         if (req.method === 'GET') {
             try {
                 const settings = await contentDB.SelectXanreanSettings();
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify({
+                return sendJson(res, {
                     gumroad_seller_id: settings.gumroad_seller_id,
                     gumroad_access_token: settings.gumroad_access_token,
                     youtube_channel_id: settings.youtube_channel_id,
                     discord_server_id: settings.discord_server_id,
                     discord_invite_code: settings.discord_invite_code
-                }));
+                }, 200);
             } catch (e) {
-                res.writeHead(500);
-                return res.end(JSON.stringify({ error: e.message }));
+                return sendJson(res, { error: e.message }, 500);
             }
         }
         if (req.method === 'POST') {
@@ -1626,62 +1556,54 @@ async function handleRequest(req, res) {
                     discord_server_id: data.discord_server_id,
                     discord_invite_code: data.discord_invite_code
                 });
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify({ ok: true }));
+                return sendJson(res, { ok: true }, 200);
             } catch (e) {
-                res.writeHead(400);
-                return res.end(JSON.stringify({ error: e.message }));
+                return sendJson(res, { error: e.message }, 400);
             }
         }
     }
 
     // Admin page (admin only)
     if (req.method === 'GET' && (url === '/admin' || url === '/dashboard')) {
-        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        if (!accounts.isAdmin(req)) { return forbidden(res); }
         return serveFile(res, ADMIN_FILE);
     }
 
     // Update book sequence (admin only)
     if (req.method === 'POST' && url === '/api/books/reorder') {
-        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        if (!accounts.isAdmin(req)) { return forbidden(res); }
         try {
             const body = await readRawBody(req, 64 * 1024);
             const { seriesId, bookIds } = JSON.parse(body.toString());
             if (!Array.isArray(bookIds)) {
-                res.writeHead(400);
-                return res.end(JSON.stringify({ error: 'bookIds must be an array' }));
+                return sendJson(res, { error: 'bookIds must be an array' }, 400);
             }
             const result = await contentDB.UpdateBookSequence(seriesId || null, bookIds);
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify(result));
+            return sendJson(res, result, 200);
         } catch (e) {
-            res.writeHead(500);
-            return res.end(JSON.stringify({ error: e.message }));
+            return sendJson(res, { error: e.message }, 500);
         }
     }
 
     // Update game sequence (admin only)
     if (req.method === 'POST' && url === '/api/games/reorder') {
-        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        if (!accounts.isAdmin(req)) { return forbidden(res); }
         try {
             const body = await readRawBody(req, 64 * 1024);
             const { gameIds } = JSON.parse(body.toString());
             if (!Array.isArray(gameIds)) {
-                res.writeHead(400);
-                return res.end(JSON.stringify({ error: 'gameIds must be an array' }));
+                return sendJson(res, { error: 'gameIds must be an array' }, 400);
             }
             const result = await contentDB.ReorderGames(gameIds);
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify(result));
+            return sendJson(res, result, 200);
         } catch (e) {
-            res.writeHead(500);
-            return res.end(JSON.stringify({ error: e.message }));
+            return sendJson(res, { error: e.message }, 500);
         }
     }
 
     // Save site content (admin only) - now to database
     if (req.method === 'POST' && url === '/save-content') {
-        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        if (!accounts.isAdmin(req)) { return forbidden(res); }
         try {
             const body = await readRawBody(req, 10 * 1024 * 1024);
             const data = JSON.parse(body.toString());
@@ -1691,10 +1613,9 @@ async function handleRequest(req, res) {
                 for (const book of data.books) {
                     const slug = book.slug || book.id;
                     if (!/^[a-z0-9_-]+$/.test(slug)) {
-                        res.writeHead(400, { 'Content-Type': 'application/json' });
-                        return res.end(JSON.stringify({
+                        return sendJson(res, {
                             error: `Invalid slug for book "${book.title || 'Unknown'}": "${slug}". Slugs must be lowercase, numbers, hyphens, or underscores.`
-                        }));
+                        }, 400);
                     }
                 }
             }
@@ -1703,16 +1624,14 @@ async function handleRequest(req, res) {
             if (data.books && Array.isArray(data.books)) {
                 for (const book of data.books) {
                     if (!book.title) {
-                        res.writeHead(400, { 'Content-Type': 'application/json' });
-                        return res.end(JSON.stringify({ error: `Book (ID: ${book.id}) is missing a title.` }));
+                        return sendJson(res, { error: `Book (ID: ${book.id}) is missing a title.` }, 400);
                     }
                 }
             }
             if (data.series && Array.isArray(data.series)) {
                 for (const s of data.series) {
                     if (!s.name && !s.universe) {
-                        res.writeHead(400, { 'Content-Type': 'application/json' });
-                        return res.end(JSON.stringify({ error: `Series (ID: ${s.id}) is missing a name.` }));
+                        return sendJson(res, { error: `Series (ID: ${s.id}) is missing a name.` }, 400);
                     }
                 }
             }
@@ -1720,15 +1639,13 @@ async function handleRequest(req, res) {
                 const games = Array.isArray(data.game) ? data.game : [data.game];
                 for (const g of games) {
                     if (g && Object.keys(g).length > 0 && !g.title) {
-                        res.writeHead(400, { 'Content-Type': 'application/json' });
-                        return res.end(JSON.stringify({ error: `Game is missing a title.` }));
+                        return sendJson(res, { error: `Game is missing a title.` }, 400);
                     }
                 }
             }
             if (data.about && Object.keys(data.about).length > 0) {
                 if (!data.about.studio_name && !data.about.studioName) {
-                    res.writeHead(400, { 'Content-Type': 'application/json' });
-                    return res.end(JSON.stringify({ error: `About page is missing the studio name.` }));
+                    return sendJson(res, { error: `About page is missing the studio name.` }, 400);
                 }
             }
 
@@ -1737,32 +1654,30 @@ async function handleRequest(req, res) {
             await contentDB.SaveAllContent(data);
             // Best-effort: keep sitemap.xml/rss.xml in sync with content changes.
             meta.generateAll().catch(err => console.error('Meta regeneration failed:', err));
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end('{"ok":true}');
+            return sendJson(res, { ok: true });
         } catch (e) {
             console.error('Save content error:', e);
             let status = 500;
             if (e.code === 'EMPTY_CONTENT_GUARD' || e.code === 'DUPLICATE_SLUG') {
                 status = 409;
             }
-            res.writeHead(status, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ error: e.message }));
+            return sendJson(res, { error: e.message }, status);
         }
     }
 
     // Cover image upload (admin only) with optimization
     if (req.method === 'POST' && url === '/upload-cover') {
-        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        if (!accounts.isAdmin(req)) { return forbidden(res); }
         try {
             const body = await readRawBody(req, 25 * 1024 * 1024);
             const ct = req.headers['content-type'] || '';
             const bm = ct.match(/boundary=([^\s;]+)/);
-            if (!bm) { res.writeHead(400); return res.end('No boundary'); }
+            if (!bm) { return sendText(res, 'No boundary', 400); }
             const parts = parseMultipart(body, bm[1]);
             const file = parts['cover'];
-            if (!file || !file.data) { res.writeHead(400); return res.end('No file'); }
-            if (file.data.length === 0) { res.writeHead(400); return res.end('Image file is empty'); }
-            if (file.data.length > 20 * 1024 * 1024) { res.writeHead(413); return res.end('Image too large (max 20MB)'); }
+            if (!file || !file.data) { return sendText(res, 'No file', 400); }
+            if (file.data.length === 0) { return sendText(res, 'Image file is empty', 400); }
+            if (file.data.length > 20 * 1024 * 1024) { return sendText(res, 'Image too large (max 20MB)', 413); }
 
             // bookId ends up in a filename written under COVERS_DIR, so strip
             // anything that isn't safe for a path segment to prevent traversal.
@@ -1800,12 +1715,11 @@ async function handleRequest(req, res) {
                 .webp({ quality: 85, effort: 4 })
                 .toFile(path.join(COVERS_DIR, fname));
 
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({
+            return sendJson(res, {
                 path: `/covers/${fname}`,
                 originalSize: file.data.length,
                 optimized: true
-            }));
+            }, 200);
         } catch (e) {
             const isSharpError = e.message && (e.message.includes('unsupported image format') || e.message.includes('Input buffer contains insufficient pixel data'));
             res.writeHead(isSharpError ? 400 : 500, { 'Content-Type': 'text/plain' });
@@ -1813,52 +1727,20 @@ async function handleRequest(req, res) {
         }
     }
 
-    // Upload manuscript .docx (OPTION 1: DISABLED)
-    // Set MANUSCRIPTS_ENABLED = true above to re-enable
-    if (MANUSCRIPTS_ENABLED && req.method === 'POST' && url === '/upload-manuscript') {
-        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
-        try {
-            const body = await readRawBody(req);
-            const ct = req.headers['content-type'] || '';
-            const bm = ct.match(/boundary=([^\s;]+)/);
-            if (!bm) { res.writeHead(400); return res.end('No boundary'); }
-            const parts = parseMultipart(body, bm[1]);
-            const file = parts['file'];
-            if (!file || !file.data) { res.writeHead(400); return res.end('No file'); }
-            if (!/\.docx$/i.test(file.filename || '')) { res.writeHead(400); return res.end('Only .docx files supported'); }
-            const formSlug = (parts['slug'] || '').trim();
-            const slug = formSlug
-                ? formSlug.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 100)
-                : (file.filename || 'manuscript').replace(/\.docx$/i, '').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 100);
-            const outPath = path.join(MANUSCRIPTS_DIR, slug + '.docx');
-            fs.writeFileSync(outPath, file.data);
-            MANUSCRIPT_CACHE.delete(slug);
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ slug, name: slug + '.docx', size: file.data.length }));
-        } catch (e) { res.writeHead(500); return res.end(e.message); }
-    }
-
-    // Disabled manuscript upload response
-    if (!MANUSCRIPTS_ENABLED && req.method === 'POST' && url === '/upload-manuscript') {
-        res.writeHead(503, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ error: 'Manuscript upload disabled (Option 1). Set MANUSCRIPTS_ENABLED=true to re-enable.' }));
-    }
-
     // ── BACKUP API ───────────────────────────────────────────
     // Create manual backup (admin only)
     if (req.method === 'POST' && url === '/api/backup') {
-        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        if (!accounts.isAdmin(req)) { return forbidden(res); }
         try {
             const backupPath = await backup.createBackup();
             const cleaned = backup.cleanupOldBackups();
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ ok: !!backupPath, cleaned }));
-        } catch (e) { res.writeHead(500); return res.end(e.message); }
+            return sendJson(res, { ok: !!backupPath, cleaned }, 200);
+        } catch (e) { return sendText(res, e.message, 500); }
     }
 
     // Get backup status (admin only)
     if (url === '/api/backup/status') {
-        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        if (!accounts.isAdmin(req)) { return forbidden(res); }
         try {
             const backupDir = path.join(__dirname, 'data', 'backups');
             const files = fs.readdirSync(backupDir)
@@ -1874,29 +1756,25 @@ async function handleRequest(req, res) {
                 })
                 .sort((a, b) => b.created - a.created);
 
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ backups: files, count: files.length }));
+            return sendJson(res, { backups: files, count: files.length }, 200);
         } catch (e) {
-            res.writeHead(500);
-            return res.end(JSON.stringify({ error: e.message }));
+            return sendJson(res, { error: e.message }, 500);
         }
     }
 
     // ── HOMEPAGE SETTINGS API (POST - admin only) ─────────
     // Update homepage settings (admin only)
     if (req.method === 'POST' && url === '/api/homepage') {
-        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        if (!accounts.isAdmin(req)) { return forbidden(res); }
         try {
             const body = await readRawBody(req, 64 * 1024);
             const data = JSON.parse(body.toString());
             await contentDB.UpdateHomepageSettings(data);
             const updated = await contentDB.SelectHomepageSettings();
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify(updated));
+            return sendJson(res, updated, 200);
         } catch (e) {
             console.error('POST /api/homepage error:', e);
-            res.writeHead(500);
-            return res.end(JSON.stringify({ error: e.message }));
+            return sendJson(res, { error: e.message }, 500);
         }
     }
 
@@ -1905,117 +1783,100 @@ async function handleRequest(req, res) {
 
     // Update xanrean settings (admin only)
     if (req.method === 'POST' && url === '/api/xanrean') {
-        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        if (!accounts.isAdmin(req)) { return forbidden(res); }
         try {
             const body = await readRawBody(req, 64 * 1024);
             const data = JSON.parse(body.toString());
             await contentDB.UpdateXanreanSettings(data);
             const updated = await contentDB.SelectXanreanSettings();
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify(updated));
+            return sendJson(res, updated, 200);
         } catch (e) {
             console.error('POST /api/xanrean error:', e);
-            res.writeHead(500);
-            return res.end(JSON.stringify({ error: e.message }));
+            return sendJson(res, { error: e.message }, 500);
         }
     }
 
     // ── USER MANAGEMENT API ───────────────────────────────
     // List all users (admin only)
     if (req.method === 'GET' && url === '/api/users') {
-        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        if (!accounts.isAdmin(req)) { return forbidden(res); }
 
         // Rate limit check
-        const limit = checkRateLimit(req, '/api/users');
-        if (!limit.allowed) {
-            res.writeHead(429, { 'Content-Type': 'application/json', 'Retry-After': limit.retryAfter });
-            return res.end(JSON.stringify({ error: limit.message }));
-        }
+        if (enforceRateLimit(req, res, '/api/users', { json: true })) return;
 
         try {
             const users = accounts.listAllUsers();
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify(users));
-        } catch (e) { res.writeHead(500); return res.end(e.message); }
+            return sendJson(res, users, 200);
+        } catch (e) { return sendText(res, e.message, 500); }
     }
 
     // Create new user (admin only)
     if (req.method === 'POST' && url === '/api/users') {
-        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        if (!accounts.isAdmin(req)) { return forbidden(res); }
 
         // Rate limit check
-        const limit = checkRateLimit(req, '/api/users');
-        if (!limit.allowed) {
-            res.writeHead(429, { 'Content-Type': 'application/json', 'Retry-After': limit.retryAfter });
-            return res.end(JSON.stringify({ error: limit.message }));
-        }
+        if (enforceRateLimit(req, res, '/api/users', { json: true })) return;
 
         try {
             const body = await readRawBody(req, 16 * 1024);
             const { username, password, role } = JSON.parse(body.toString());
-            if (!username || !password) { res.writeHead(400); return res.end('Missing username or password'); }
+            if (!username || !password) { return sendText(res, 'Missing username or password', 400); }
             if (!/^[a-z0-9_]{3,32}$/.test(String(username).trim().toLowerCase())) {
-                res.writeHead(400); return res.end('Username must be 3-32 characters: letters, numbers, underscores');
+                return sendText(res, 'Username must be 3-32 characters: letters, numbers, underscores', 400);
             }
-            if (password.length < 8) { res.writeHead(400); return res.end('Password must be at least 8 characters'); }
-            if (role && !['admin', 'user'].includes(role)) { res.writeHead(400); return res.end('Invalid role'); }
+            if (password.length < 8) { return sendText(res, 'Password must be at least 8 characters', 400); }
+            if (role && !['admin', 'user'].includes(role)) { return sendText(res, 'Invalid role', 400); }
             const success = accounts.createUser(username, password, role || 'user');
-            if (!success) { res.writeHead(409); return res.end('Username already exists'); }
-            res.writeHead(201, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ ok: true, username }));
-        } catch (e) { res.writeHead(500); return res.end(e.message); }
+            if (!success) { return sendText(res, 'Username already exists', 409); }
+            return sendJson(res, { ok: true, username }, 201);
+        } catch (e) { return sendText(res, e.message, 500); }
     }
 
     // Delete user (admin only)
     if (req.method === 'DELETE' && url.startsWith('/api/users/')) {
-        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        if (!accounts.isAdmin(req)) { return forbidden(res); }
         try {
             const username = decodeURIComponent(url.slice(11)); // Remove '/api/users/'
-            if (!username) { res.writeHead(400); return res.end('Missing username'); }
+            if (!username) { return sendText(res, 'Missing username', 400); }
             if (accounts.isLastAdmin(username)) {
-                res.writeHead(400, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify({ error: 'Cannot delete the last remaining admin account.' }));
+                return sendJson(res, { error: 'Cannot delete the last remaining admin account.' }, 400);
             }
             const success = accounts.deleteUser(username);
-            if (!success) { res.writeHead(404); return res.end('User not found'); }
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ ok: true }));
-        } catch (e) { res.writeHead(500); return res.end(e.message); }
+            if (!success) { return sendText(res, 'User not found', 404); }
+            return sendJson(res, { ok: true }, 200);
+        } catch (e) { return sendText(res, e.message, 500); }
     }
 
     // Reset user password (admin only)
     if (req.method === 'POST' && url.match(/^\/api\/users\/[^\/]+\/reset-password$/)) {
-        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        if (!accounts.isAdmin(req)) { return forbidden(res); }
         try {
             const username = decodeURIComponent(url.match(/^\/api\/users\/([^\/]+)/)[1]);
             const body = await readRawBody(req, 16 * 1024);
             const { password } = JSON.parse(body.toString());
-            if (!password) { res.writeHead(400); return res.end('Missing new password'); }
-            if (password.length < 8) { res.writeHead(400); return res.end('Password must be at least 8 characters'); }
+            if (!password) { return sendText(res, 'Missing new password', 400); }
+            if (password.length < 8) { return sendText(res, 'Password must be at least 8 characters', 400); }
             const success = accounts.resetPassword(username, password);
-            if (!success) { res.writeHead(404); return res.end('User not found'); }
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ ok: true }));
-        } catch (e) { res.writeHead(500); return res.end(e.message); }
+            if (!success) { return sendText(res, 'User not found', 404); }
+            return sendJson(res, { ok: true }, 200);
+        } catch (e) { return sendText(res, e.message, 500); }
     }
 
     // Change user role (admin only)
     if (req.method === 'POST' && url.match(/^\/api\/users\/[^\/]+\/role$/)) {
-        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        if (!accounts.isAdmin(req)) { return forbidden(res); }
         try {
             const username = decodeURIComponent(url.match(/^\/api\/users\/([^\/]+)/)[1]);
             const body = await readRawBody(req, 16 * 1024);
             const { role } = JSON.parse(body.toString());
-            if (!role || !['admin', 'user'].includes(role)) { res.writeHead(400); return res.end('Invalid role'); }
+            if (!role || !['admin', 'user'].includes(role)) { return sendText(res, 'Invalid role', 400); }
             if (role !== 'admin' && accounts.isLastAdmin(username)) {
-                res.writeHead(400, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify({ error: 'Cannot demote the last remaining admin account.' }));
+                return sendJson(res, { error: 'Cannot demote the last remaining admin account.' }, 400);
             }
             const success = accounts.setUserRole(username, role);
-            if (!success) { res.writeHead(404); return res.end('User not found'); }
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ ok: true }));
-        } catch (e) { res.writeHead(500); return res.end(e.message); }
+            if (!success) { return sendText(res, 'User not found', 404); }
+            return sendJson(res, { ok: true }, 200);
+        } catch (e) { return sendText(res, e.message, 500); }
     }
 
     // ── PUBLISHING CALENDAR (ADMIN) ───────────────────────
@@ -2026,15 +1887,14 @@ async function handleRequest(req, res) {
 
     // Admin calendar page (admin only)
     if (req.method === 'GET' && url === '/admin/publishing-calendar') {
-        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        if (!accounts.isAdmin(req)) { return forbidden(res); }
         return serveFile(res, path.join(PUBLIC_DIR, 'publishing-calendar-admin.html'));
     }
 
     // Admin calendar API (admin only)
     if (url.startsWith('/api/admin/publishing-calendar')) {
         if (!accounts.isAdmin(req)) {
-            res.writeHead(403, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ error: 'Forbidden' }));
+            return sendJson(res, { error: 'Forbidden' }, 403);
         }
         return handleAdminPublishingCalendar(req, res, url);
     }
@@ -2046,20 +1906,19 @@ async function handleRequest(req, res) {
 
     // Admin page (admin only)
     if (req.method === 'GET' && url === '/admin/publishing') {
-        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
+        if (!accounts.isAdmin(req)) { return forbidden(res); }
         return serveFile(res, path.join(PUBLIC_DIR, 'publishing', 'index.html'));
     }
 
     // Publishing API (admin only)
     if (url.startsWith('/api/publishing')) {
-        if (!accounts.isAdmin(req)) { res.writeHead(403); return res.end('Forbidden'); }
-        if (req.method !== 'GET') { res.writeHead(405); return res.end('Method Not Allowed'); }
+        if (!accounts.isAdmin(req)) { return forbidden(res); }
+        if (req.method !== 'GET') { return sendText(res, 'Method Not Allowed', 405); }
 
         try {
             const db = getPublishingDB();
             const send = (data) => {
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify(data));
+                return sendJson(res, data, 200);
             };
 
             if (url === '/api/publishing/health') {
@@ -2105,8 +1964,7 @@ async function handleRequest(req, res) {
                 const startUtc = query.get('startUtc');
                 const endUtc = query.get('endUtc');
                 if (!startUtc || !endUtc) {
-                    res.writeHead(400, { 'Content-Type': 'application/json' });
-                    return res.end(JSON.stringify({ error: 'startUtc and endUtc are required' }));
+                    return sendJson(res, { error: 'startUtc and endUtc are required' }, 400);
                 }
                 const releases = await db.releaseWindow({
                     startUtc,
@@ -2117,18 +1975,15 @@ async function handleRequest(req, res) {
                 return send({ releases });
             }
 
-            res.writeHead(404);
-            return res.end('Not found');
+            return sendText(res, 'Not found', 404);
         } catch (err) {
             console.error('Publishing API error:', err);
-            res.writeHead(500, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ error: err.message }));
+            return sendJson(res, { error: err.message }, 500);
         }
     }
 
     // ── 404 ────────────────────────────────────────────────
-    res.writeHead(404);
-    res.end('Not found');
+    return notFound(res);
 }
 
 server.on('error', err => {

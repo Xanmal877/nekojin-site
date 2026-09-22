@@ -461,22 +461,6 @@ class PublishingCalendar {
         const result = await this._run(sql, [id]);
         return result.changes > 0;
     }
-
-    /**
-     * Get a single entry by id
-     * @param {string} id - Entry id
-     * @returns {Promise<object|undefined>}
-     */
-    async GetById(id) {
-        if (!this.isOpen) throw new Error('Database not open');
-
-        if (typeof id !== 'string' || id.length !== VALIDATION.ID_LENGTH) {
-            throw new Error(`ID must be exactly ${VALIDATION.ID_LENGTH} characters`);
-        }
-
-        return this._get('SELECT * FROM publishing_calendar WHERE id = ?', [id]);
-    }
-
 }
 
 module.exports = PublishingCalendar;

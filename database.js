@@ -600,7 +600,7 @@ class ContentDB {
             // so when a caller round-trips a loaded series back through here
             // those must win. Otherwise the stale `name`/`description`
             // riding along in the object silently overwrites every edit.
-            data.universe || data.name || data.title || '',
+            data.universe || data.name || '',
             data.universeDesc || data.description || '',
             data.sort_order || 0,
             data.cover_image || null,
@@ -945,8 +945,6 @@ class ContentDB {
         );
     }
 
-    // ============================================================
-    // ABOUT CRUD
     // ============================================================
     // ABOUT CRUD
     // ============================================================
