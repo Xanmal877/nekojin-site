@@ -48,10 +48,15 @@ CATALOG = [
     {"slug": "to-rule-a-kingdom",    "series": "her-majesty-tamaneko", "volume": 5, "asin": "B0HFYSB1G4"},
     {"slug": "fuyu-the-hero",        "series": "her-majesty-tamaneko", "volume": 6, "asin": "B0GX7MZWY5"},
     {"slug": "war-on-the-horizon",   "series": "her-majesty-tamaneko", "volume": 7, "asin": "B0HKKBN52M"},
+    # The Bedrock — separate series. Volume 1 is titled "The Foundation" on KDP,
+    # which is why the slug is not simply "the-bedrock".
+    {"slug": "the-foundation",       "series": "the-bedrock", "volume": 1, "asin": "B0HJNF82P8"},
+    # The Godling and Her Husband — its own series, not an HMT volume.
+    {"slug": "the-godling-and-her-husband", "series": "the-godling-and-her-husband", "volume": 1, "asin": "B0HGCV9WFL"},
     # Omnibus — currently the Volumes 1-5 collection. Point this at a new ASIN
     # when the collection is reissued.
     {"slug": "her-majesty-tamaneko", "series": None, "volume": None, "asin": "B0GX2TMKHG"},
-    # Standalones
+    # Standalone novellas
     {"slug": "lucas-the-grand-strategist", "series": None, "volume": None, "asin": "B0GX2WYVZQ"},
     {"slug": "the-hero-is-perfect",        "series": None, "volume": None, "asin": "B0GBV1TGJ5"},
 ]

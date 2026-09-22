@@ -375,6 +375,10 @@ document.addEventListener('DOMContentLoaded', function() {
 const PLAT_CTA_CLASS = { rr: 'cta-rr', sh: 'cta-sh', kdp: 'cta-kdp', wp: 'cta-wp', gumroad: 'cta-gumroad' };
 const PLAT_CTA_LABEL = { rr: '📖 Royal Road', sh: '📖 ScribbleHub', kdp: '📚 Kindle', wp: '📖 Wattpad', gumroad: '🛒 Gumroad' };
 
+// Renamed book ids. "the-bedrock" turned out to be a series title, not a book —
+// its volume 1 is "The Foundation". Keep old links working rather than 404ing.
+const LEGACY_SLUG_ALIASES = { 'the-bedrock': 'the-foundation' };
+
 async function loadBook() {
   const params = new URLSearchParams(location.search);
   const bookId = params.get('id');
@@ -412,6 +416,12 @@ async function loadBook() {
       const seriesBooks = (data.series || []).filter(s => s.visible !== false).flatMap(s => (s.books || []).filter(b => b.visible !== false));
       allBooks = [...standaloneBooks, ...seriesBooks];
       book = allBooks.find(b => b.id === bookId || b.slug === bookId);
+      // Slugs that were renamed keep working: old inbound links, bookmarks and
+      // search results still point at the previous id.
+      if (!book) {
+        const alias = LEGACY_SLUG_ALIASES[bookId];
+        if (alias) book = allBooks.find(b => b.id === alias || b.slug === alias);
+      }
     }
   } catch(e) {
     container.innerHTML = '<div style="text-align:center;padding:8rem 2rem;color:var(--muted);">Failed to load book data.</div>';
