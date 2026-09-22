@@ -3,16 +3,12 @@
 // Run with: npm test
 const { test, before, after } = require('node:test');
 const assert = require('node:assert');
-const { spawn } = require('node:child_process');
 const fs = require('node:fs');
-const os = require('node:os');
 const path = require('node:path');
 const sqlite3 = require('sqlite3').verbose();
+const { ROOT, startTestServer, loginAs } = require('./harness.js');
 
-const ROOT = path.join(__dirname, '..');
-const WORKDIR = fs.mkdtempSync(path.join(os.tmpdir(), 'nekojin-pub-'));
 const PORT = 7792;
-const BASE = `http://127.0.0.1:${PORT}`;
 const ADMIN_PASSWORD = 'PublishDashAdminPass123';
 const GUMROAD_WEBHOOK_SECRET = 'pub-dashboard-webhook';
 
@@ -21,7 +17,7 @@ const PUBLISHING_DB_PATH = process.env.PUBLISHING_DB_PATH ||
     path.join(ROOT, 'data', 'Xanmal_Publishing_Database.sqlite');
 const HAS_REAL_DB = fs.existsSync(PUBLISHING_DB_PATH);
 
-let serverProcess;
+let server;
 let adminAuth = null;
 let userAuth = null;
 
@@ -44,111 +40,51 @@ function draftTitlesInWindow(start, end) {
     });
 }
 
-function copyRepoFiles() {
-    const filesToCopy = [
-        'dashboard-server.js', 'accounts.js', 'database.js', 'backup.js',
-        'generate-meta.js', 'package.json', 'publishing-db.js', 'publishing-calendar.js'
-    ];
-    for (const f of filesToCopy) {
-        fs.copyFileSync(path.join(ROOT, f), path.join(WORKDIR, f));
-    }
-    for (const dir of ['public', 'lib', 'node_modules']) {
-        fs.cpSync(path.join(ROOT, dir), path.join(WORKDIR, dir), { recursive: true });
-    }
-}
-
-async function waitForServer(timeoutMs = 10000) {
-    const start = Date.now();
-    while (Date.now() - start < timeoutMs) {
-        try {
-            const res = await fetch(`${BASE}/api/health`);
-            if (res.ok) return;
-        } catch {}
-        await new Promise(r => setTimeout(r, 150));
-    }
-    throw new Error('Publishing dashboard test server did not become healthy');
-}
-
-async function login(username, password) {
-    const res = await fetch(`${BASE}/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&next=/admin`,
-        redirect: 'manual',
-    });
-    const setCookie = res.headers.get('set-cookie') || '';
-    const sessionMatch = setCookie.match(/nki_session=[^;]+/);
-    const csrfMatch = setCookie.match(/nki_csrf=[^;]+/);
-    assert.ok(sessionMatch && csrfMatch, `Login failed to issue cookies: ${setCookie}`);
-    const cookieHeader = `${sessionMatch[0]}; ${csrfMatch[0]}`;
-    const csrfToken = csrfMatch[0].split('=')[1];
-    return {
-        cookieHeader,
-        csrfToken,
-        headers: { 'Content-Type': 'application/json', Cookie: cookieHeader, 'X-CSRF-Token': csrfToken },
-    };
-}
-
 before(async () => {
-    copyRepoFiles();
-    const env = {
-        ...process.env,
-        PORT: String(PORT),
-        ADMIN_BOOTSTRAP_PASSWORD: ADMIN_PASSWORD,
-        GUMROAD_WEBHOOK_SECRET,
-    };
-
-    // Only set publishing DB path if the real database exists
-    if (HAS_REAL_DB) {
-        env.PUBLISHING_DB_PATH = PUBLISHING_DB_PATH;
-    }
-
-    serverProcess = spawn(process.execPath, ['dashboard-server.js'], {
-        cwd: WORKDIR,
-        env,
-        stdio: 'pipe',
+    server = await startTestServer({
+        prefix: 'nekojin-pub-',
+        port: PORT,
+        adminPassword: ADMIN_PASSWORD,
+        webhookSecret: GUMROAD_WEBHOOK_SECRET,
+        // Only point at the real publishing DB if it exists.
+        extraEnv: HAS_REAL_DB ? { PUBLISHING_DB_PATH } : {}
     });
 
-    await waitForServer();
+    adminAuth = await loginAs(server.base, 'admin', ADMIN_PASSWORD);
 
-    // Login admin
-    adminAuth = await login('admin', ADMIN_PASSWORD);
-
-    // Create a non-admin user
-    const userRes = await fetch(`${BASE}/api/users`, {
+    const userRes = await fetch(`${server.base}/api/users`, {
         method: 'POST',
         headers: adminAuth.headers,
         body: JSON.stringify({ username: 'pubuser', password: 'PubUserPass123', role: 'user' }),
     });
     assert.strictEqual(userRes.status, 201);
-    userAuth = await login('pubuser', 'PubUserPass123');
+    userAuth = await loginAs(server.base, 'pubuser', 'PubUserPass123');
 });
 
 after(() => {
-    if (serverProcess) serverProcess.kill();
-    fs.rmSync(WORKDIR, { recursive: true, force: true });
+    if (server) server.stop();
 });
 
 // ── AUTHENTICATION & AUTHORIZATION TESTS ─────────────────────────────
 
 test('unauthenticated GET /admin/publishing redirects to login', async () => {
-    const res = await fetch(`${BASE}/admin/publishing`, { redirect: 'manual' });
+    const res = await fetch(`${server.base}/admin/publishing`, { redirect: 'manual' });
     assert.strictEqual(res.status, 302);
     assert.match(res.headers.get('location'), /^\/login/);
 });
 
 test('unauthenticated GET /api/publishing/health redirects to login', async () => {
-    const res = await fetch(`${BASE}/api/publishing/health`, { redirect: 'manual' });
+    const res = await fetch(`${server.base}/api/publishing/health`, { redirect: 'manual' });
     assert.strictEqual(res.status, 302);
     assert.match(res.headers.get('location'), /^\/login/);
 });
 
 test('public release calendar is reachable without authentication', async () => {
-    const page = await fetch(`${BASE}/publishing-calendar`);
+    const page = await fetch(`${server.base}/publishing-calendar`);
     assert.strictEqual(page.status, 200);
     assert.match(await page.text(), /Release Calendar/);
 
-    const api = await fetch(`${BASE}/api/public/publishing-calendar?start=2099-01-01&end=2099-02-01`);
+    const api = await fetch(`${server.base}/api/public/publishing-calendar?start=2099-01-01&end=2099-02-01`);
     assert.strictEqual(api.status, 200);
     const body = await api.json();
     assert.deepStrictEqual(body.entries, []);
@@ -157,7 +93,7 @@ test('public release calendar is reachable without authentication', async () => 
 test('public release calendar never exposes draft imports', async () => {
     if (!HAS_REAL_DB) return;
     const draftTitles = await draftTitlesInWindow('2026-04-01', '2026-05-01');
-    const api = await fetch(`${BASE}/api/public/publishing-calendar?start=2026-04-01&end=2026-05-01`);
+    const api = await fetch(`${server.base}/api/public/publishing-calendar?start=2026-04-01&end=2026-05-01`);
     assert.strictEqual(api.status, 200);
     const body = await api.json();
     for (const title of draftTitles) {
@@ -166,23 +102,23 @@ test('public release calendar never exposes draft imports', async () => {
 });
 
 test('publishing calendar admin page and API require an admin', async () => {
-    const unauthenticated = await fetch(`${BASE}/admin/publishing-calendar`, { redirect: 'manual' });
+    const unauthenticated = await fetch(`${server.base}/admin/publishing-calendar`, { redirect: 'manual' });
     assert.strictEqual(unauthenticated.status, 302);
 
-    const nonAdmin = await fetch(`${BASE}/admin/publishing-calendar`, {
+    const nonAdmin = await fetch(`${server.base}/admin/publishing-calendar`, {
         headers: { Cookie: userAuth.cookieHeader },
         redirect: 'manual',
     });
     assert.strictEqual(nonAdmin.status, 403);
 
-    const adminPage = await fetch(`${BASE}/admin/publishing-calendar`, {
+    const adminPage = await fetch(`${server.base}/admin/publishing-calendar`, {
         headers: { Cookie: adminAuth.cookieHeader },
     });
     assert.strictEqual(adminPage.status, 200);
 });
 
 test('admin can add a platform-labelled manual release to the public calendar', async () => {
-    const create = await fetch(`${BASE}/api/admin/publishing-calendar`, {
+    const create = await fetch(`${server.base}/api/admin/publishing-calendar`, {
         method: 'POST',
         headers: adminAuth.headers,
         body: JSON.stringify({
@@ -200,7 +136,7 @@ test('admin can add a platform-labelled manual release to the public calendar', 
     const created = (await create.json()).entry;
     assert.ok(created.id);
 
-    const publicRes = await fetch(`${BASE}/api/public/publishing-calendar?start=2099-01-01&end=2099-02-01`);
+    const publicRes = await fetch(`${server.base}/api/public/publishing-calendar?start=2099-01-01&end=2099-02-01`);
     assert.strictEqual(publicRes.status, 200);
     const body = await publicRes.json();
     assert.strictEqual(body.entries.length, 1);
@@ -208,7 +144,7 @@ test('admin can add a platform-labelled manual release to the public calendar', 
     assert.strictEqual(body.entries[0].source, 'manual');
     assert.strictEqual(body.entries[0].notes, undefined);
 
-    const remove = await fetch(`${BASE}/api/admin/publishing-calendar/${encodeURIComponent(created.id)}`, {
+    const remove = await fetch(`${server.base}/api/admin/publishing-calendar/${encodeURIComponent(created.id)}`, {
         method: 'DELETE',
         headers: adminAuth.headers,
     });
@@ -216,19 +152,19 @@ test('admin can add a platform-labelled manual release to the public calendar', 
 });
 
 test('unauthenticated GET /api/publishing/overview redirects to login', async () => {
-    const res = await fetch(`${BASE}/api/publishing/overview`, { redirect: 'manual' });
+    const res = await fetch(`${server.base}/api/publishing/overview`, { redirect: 'manual' });
     assert.strictEqual(res.status, 302);
     assert.match(res.headers.get('location'), /^\/login/);
 });
 
 test('unauthenticated GET /api/publishing/catalog redirects to login', async () => {
-    const res = await fetch(`${BASE}/api/publishing/catalog`, { redirect: 'manual' });
+    const res = await fetch(`${server.base}/api/publishing/catalog`, { redirect: 'manual' });
     assert.strictEqual(res.status, 302);
     assert.match(res.headers.get('location'), /^\/login/);
 });
 
 test('non-admin user gets 403 on /admin/publishing page', async () => {
-    const res = await fetch(`${BASE}/admin/publishing`, {
+    const res = await fetch(`${server.base}/admin/publishing`, {
         headers: { Cookie: userAuth.cookieHeader },
         redirect: 'manual',
     });
@@ -236,14 +172,14 @@ test('non-admin user gets 403 on /admin/publishing page', async () => {
 });
 
 test('non-admin user gets 403 on /api/publishing/health', async () => {
-    const res = await fetch(`${BASE}/api/publishing/health`, {
+    const res = await fetch(`${server.base}/api/publishing/health`, {
         headers: { Cookie: userAuth.cookieHeader },
     });
     assert.strictEqual(res.status, 403);
 });
 
 test('non-admin user gets 403 on /api/publishing/overview', async () => {
-    const res = await fetch(`${BASE}/api/publishing/overview`, {
+    const res = await fetch(`${server.base}/api/publishing/overview`, {
         headers: { Cookie: userAuth.cookieHeader },
     });
     assert.strictEqual(res.status, 403);
@@ -256,7 +192,7 @@ test('admin login succeeds and grants access', async () => {
 });
 
 test('authenticated admin GET /admin/publishing returns 200', async () => {
-    const res = await fetch(`${BASE}/admin/publishing`, {
+    const res = await fetch(`${server.base}/admin/publishing`, {
         headers: { Cookie: adminAuth.cookieHeader },
     });
     assert.strictEqual(res.status, 200);
@@ -269,7 +205,7 @@ test('authenticated admin GET /admin/publishing returns 200', async () => {
 test('built asset request under /publishing/assets returns 200', async () => {
     // The build should have generated hashed CSS and JS files in public/publishing/assets/
     // These assets are included in admin.html, so access them via the admin page
-    const adminRes = await fetch(`${BASE}/admin/publishing`, {
+    const adminRes = await fetch(`${server.base}/admin/publishing`, {
         headers: { Cookie: adminAuth.cookieHeader },
     });
     assert.strictEqual(adminRes.status, 200);
@@ -281,7 +217,7 @@ test('built asset request under /publishing/assets returns 200', async () => {
 
 test('direct /publishing/index.html access is not public', async () => {
     // Direct access to /publishing/index.html without auth should not serve the admin page
-    const res = await fetch(`${BASE}/publishing/index.html`, { redirect: 'manual' });
+    const res = await fetch(`${server.base}/publishing/index.html`, { redirect: 'manual' });
     // Should either redirect or return 403, not 200
     assert.ok([302, 403, 404].includes(res.status),
         `Expected 302/403/404 for unauthenticated /publishing/index.html, got ${res.status}`);
@@ -290,7 +226,7 @@ test('direct /publishing/index.html access is not public', async () => {
 // ── API ENDPOINT TESTS ───────────────────────────────────────────────
 
 test('POST /api/publishing/* returns 405 Method Not Allowed', async () => {
-    const res = await fetch(`${BASE}/api/publishing/health`, {
+    const res = await fetch(`${server.base}/api/publishing/health`, {
         method: 'POST',
         headers: adminAuth.headers,
         body: JSON.stringify({}),
@@ -299,7 +235,7 @@ test('POST /api/publishing/* returns 405 Method Not Allowed', async () => {
 });
 
 test('DELETE /api/publishing/* returns 405 Method Not Allowed', async () => {
-    const res = await fetch(`${BASE}/api/publishing/overview`, {
+    const res = await fetch(`${server.base}/api/publishing/overview`, {
         method: 'DELETE',
         headers: adminAuth.headers,
     });
@@ -307,7 +243,7 @@ test('DELETE /api/publishing/* returns 405 Method Not Allowed', async () => {
 });
 
 test('PUT /api/publishing/* returns 405 Method Not Allowed', async () => {
-    const res = await fetch(`${BASE}/api/publishing/catalog`, {
+    const res = await fetch(`${server.base}/api/publishing/catalog`, {
         method: 'PUT',
         headers: adminAuth.headers,
         body: JSON.stringify({}),
@@ -325,7 +261,7 @@ test('missing database path returns health:false or 500 without crashing', async
         return;
     }
 
-    const res = await fetch(`${BASE}/api/publishing/health`, {
+    const res = await fetch(`${server.base}/api/publishing/health`, {
         headers: adminAuth.headers,
     });
 
@@ -344,7 +280,7 @@ test('missing database path returns health:false or 500 without crashing', async
 // Only run catalog/overview tests if we have the real publishing DB
 if (HAS_REAL_DB) {
     test('health endpoint returns ok status', async () => {
-        const res = await fetch(`${BASE}/api/publishing/health`, {
+        const res = await fetch(`${server.base}/api/publishing/health`, {
             headers: adminAuth.headers,
         });
         assert.strictEqual(res.status, 200);
@@ -353,7 +289,7 @@ if (HAS_REAL_DB) {
     });
 
     test('overview endpoint returns consistent latest-view totals and current DB counts', async () => {
-        const res = await fetch(`${BASE}/api/publishing/overview`, {
+        const res = await fetch(`${server.base}/api/publishing/overview`, {
             headers: adminAuth.headers,
         });
         assert.strictEqual(res.status, 200);
@@ -387,7 +323,7 @@ if (HAS_REAL_DB) {
 
     test('catalog returns pagination total and clamps pageSize', async () => {
         // Test with no filter: should return all releases
-        const res1 = await fetch(`${BASE}/api/publishing/catalog?page=1&pageSize=10`, {
+        const res1 = await fetch(`${server.base}/api/publishing/catalog?page=1&pageSize=10`, {
             headers: adminAuth.headers,
         });
         assert.strictEqual(res1.status, 200);
@@ -408,7 +344,7 @@ if (HAS_REAL_DB) {
         assert.ok(Number.isInteger(body1.totalPages), 'totalPages should be integer');
 
         // Request with excessive pageSize should be clamped
-        const res2 = await fetch(`${BASE}/api/publishing/catalog?page=1&pageSize=9999`, {
+        const res2 = await fetch(`${server.base}/api/publishing/catalog?page=1&pageSize=9999`, {
             headers: adminAuth.headers,
         });
         const body2 = await res2.json();
@@ -417,7 +353,7 @@ if (HAS_REAL_DB) {
 
     test('catalog filters work: series, platform, status', async () => {
         // First get filters to know what values exist
-        const filterRes = await fetch(`${BASE}/api/publishing/filters`, {
+        const filterRes = await fetch(`${server.base}/api/publishing/filters`, {
             headers: adminAuth.headers,
         });
         assert.strictEqual(filterRes.status, 200);
@@ -430,7 +366,7 @@ if (HAS_REAL_DB) {
         // If we have series, test series filter
         if (filters.series.length > 0) {
             const seriesFilter = encodeURIComponent(filters.series[0]);
-            const res = await fetch(`${BASE}/api/publishing/catalog?series=${seriesFilter}`, {
+            const res = await fetch(`${server.base}/api/publishing/catalog?series=${seriesFilter}`, {
                 headers: adminAuth.headers,
             });
             const body = await res.json();
@@ -439,7 +375,7 @@ if (HAS_REAL_DB) {
                 assert.strictEqual(release.series, filters.series[0]);
             }
 
-            const searchRes = await fetch(`${BASE}/api/publishing/catalog?q=${encodeURIComponent(filters.series[0])}`, {
+            const searchRes = await fetch(`${server.base}/api/publishing/catalog?q=${encodeURIComponent(filters.series[0])}`, {
                 headers: adminAuth.headers,
             });
             const searchBody = await searchRes.json();
@@ -447,7 +383,7 @@ if (HAS_REAL_DB) {
         }
 
         // Test status filter
-        const statusRes = await fetch(`${BASE}/api/publishing/catalog?status=Published`, {
+        const statusRes = await fetch(`${server.base}/api/publishing/catalog?status=Published`, {
             headers: adminAuth.headers,
         });
         const statusBody = await statusRes.json();
@@ -459,7 +395,7 @@ if (HAS_REAL_DB) {
     test('wildcard search is literal enough (no regex injection)', async () => {
         // Search with wildcard-like characters should not execute as SQL wildcards
         // Test with % character which is SQL LIKE wildcard
-        const res = await fetch(`${BASE}/api/publishing/catalog?q=%test%`, {
+        const res = await fetch(`${server.base}/api/publishing/catalog?q=%test%`, {
             headers: adminAuth.headers,
         });
         assert.strictEqual(res.status, 200);
@@ -471,7 +407,7 @@ if (HAS_REAL_DB) {
 
     test('releases window validates required params and returns rows', async () => {
         // Missing startUtc and endUtc should return 400
-        const noParamsRes = await fetch(`${BASE}/api/publishing/releases`, {
+        const noParamsRes = await fetch(`${server.base}/api/publishing/releases`, {
             headers: adminAuth.headers,
         });
         assert.strictEqual(noParamsRes.status, 400);
@@ -479,14 +415,14 @@ if (HAS_REAL_DB) {
         assert.ok(errorBody.error, 'Error response should have error message');
 
         // Missing endUtc should fail
-        const noEndRes = await fetch(`${BASE}/api/publishing/releases?startUtc=2024-01-01T00:00:00Z`, {
+        const noEndRes = await fetch(`${server.base}/api/publishing/releases?startUtc=2024-01-01T00:00:00Z`, {
             headers: adminAuth.headers,
         });
         assert.strictEqual(noEndRes.status, 400);
 
         // With both params, should return 200
         const validRes = await fetch(
-            `${BASE}/api/publishing/releases?startUtc=2024-01-01T00:00:00Z&endUtc=2024-12-31T23:59:59Z`,
+            `${server.base}/api/publishing/releases?startUtc=2024-01-01T00:00:00Z&endUtc=2024-12-31T23:59:59Z`,
             { headers: adminAuth.headers }
         );
         assert.strictEqual(validRes.status, 200);
@@ -497,7 +433,7 @@ if (HAS_REAL_DB) {
 
     test('releases window respects status filter', async () => {
         const res = await fetch(
-            `${BASE}/api/publishing/releases?startUtc=2024-01-01T00:00:00Z&endUtc=2024-12-31T23:59:59Z&status=Published`,
+            `${server.base}/api/publishing/releases?startUtc=2024-01-01T00:00:00Z&endUtc=2024-12-31T23:59:59Z&status=Published`,
             { headers: adminAuth.headers }
         );
         assert.strictEqual(res.status, 200);
@@ -508,7 +444,7 @@ if (HAS_REAL_DB) {
     });
 
     test('series analytics endpoint returns expected shape', async () => {
-        const res = await fetch(`${BASE}/api/publishing/series`, {
+        const res = await fetch(`${server.base}/api/publishing/series`, {
             headers: adminAuth.headers,
         });
         assert.strictEqual(res.status, 200);
@@ -525,7 +461,7 @@ if (HAS_REAL_DB) {
     });
 
     test('health-checks endpoint returns system health details', async () => {
-        const res = await fetch(`${BASE}/api/publishing/health-checks`, {
+        const res = await fetch(`${server.base}/api/publishing/health-checks`, {
             headers: adminAuth.headers,
         });
         assert.strictEqual(res.status, 200);
@@ -535,7 +471,7 @@ if (HAS_REAL_DB) {
     });
 
     test('freshness endpoint returns data freshness info', async () => {
-        const res = await fetch(`${BASE}/api/publishing/freshness`, {
+        const res = await fetch(`${server.base}/api/publishing/freshness`, {
             headers: adminAuth.headers,
         });
         assert.strictEqual(res.status, 200);
@@ -545,7 +481,7 @@ if (HAS_REAL_DB) {
     });
 
     test('unknown /api/publishing/* route returns 404', async () => {
-        const res = await fetch(`${BASE}/api/publishing/nonexistent-endpoint`, {
+        const res = await fetch(`${server.base}/api/publishing/nonexistent-endpoint`, {
             headers: adminAuth.headers,
         });
         assert.strictEqual(res.status, 404);
@@ -562,7 +498,7 @@ if (HAS_REAL_DB) {
         ];
 
         for (const endpoint of endpoints) {
-            const res = await fetch(`${BASE}${endpoint}`, {
+            const res = await fetch(`${server.base}${endpoint}`, {
                 headers: adminAuth.headers,
             });
 
