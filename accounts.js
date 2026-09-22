@@ -176,7 +176,7 @@ function createSession(username) {
    * Secure flag only set in production (https) or when explicitly required.
    * @param {string} name - Cookie name
    * @param {string} value - Cookie value
-   * @param {object} options - {maxAge, secure, sameSite}
+   * @param {object} options - {maxAge, secure, sameSite, httpOnly}
    * @returns {string}
    */
   function setCookieHeader(name, value, options = {}) {
@@ -184,8 +184,16 @@ function createSession(username) {
       const secure = options.secure !== undefined ? options.secure : isProduction;
       const maxAge = options.maxAge !== undefined ? options.maxAge : SESSION_TTL;
       const sameSite = options.sameSite || 'Strict';
+      // HttpOnly defaults to true (session tokens must never be readable by
+      // page JS). The CSRF cookie is the one deliberate exception: the
+      // double-submit pattern requires the client to read it, so callers pass
+      // httpOnly: false for nki_csrf only.
+      const httpOnly = options.httpOnly !== undefined ? options.httpOnly : true;
 
-      let header = `${name}=${encodeURIComponent(value)}; Path=/; HttpOnly; SameSite=${sameSite}; Max-Age=${Math.floor(maxAge / 1000)}`;
+      let header = `${name}=${encodeURIComponent(value)}; Path=/; SameSite=${sameSite}; Max-Age=${Math.floor(maxAge / 1000)}`;
+      if (httpOnly) {
+          header += '; HttpOnly';
+      }
       if (secure) {
           header += '; Secure';
       }

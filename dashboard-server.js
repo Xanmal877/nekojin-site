@@ -1250,7 +1250,10 @@ async function handleRequest(req, res) {
                  Location: next,
                  'Set-Cookie': [
                      accounts.setCookieHeader('nki_session', sid, { sameSite: 'Strict' }),
-                     accounts.setCookieHeader('nki_csrf', csrfToken, { sameSite: 'Strict' }),
+                     // Double-submit CSRF: the client must be able to read this
+                     // cookie to echo it back in the X-CSRF-Token header, so it
+                     // is the one cookie that is deliberately not HttpOnly.
+                     accounts.setCookieHeader('nki_csrf', csrfToken, { sameSite: 'Strict', httpOnly: false }),
                  ],
              });
              return res.end();

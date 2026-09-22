@@ -256,6 +256,29 @@ test('login sets secure cookies with proper attributes', async () => {
     // Verify cookie names are present
     assert.match(allCookies, /nki_session=/, 'nki_session cookie must be set');
     assert.match(allCookies, /nki_csrf=/, 'nki_csrf cookie must be set');
+
+    // The admin panel's double-submit CSRF flow reads nki_csrf via
+    // document.cookie and echoes it in the X-CSRF-Token header. If that cookie
+    // is ever marked HttpOnly the token is invisible to page JS, so every
+    // state-changing admin request 403s and the panel becomes unusable.
+    // nki_session must stay HttpOnly; nki_csrf must not be.
+    const sessionCookie = setCookieHeaders.find(c => c.startsWith('nki_session='));
+    const csrfCookie = setCookieHeaders.find(c => c.startsWith('nki_csrf='));
+    assert.match(sessionCookie, /HttpOnly/, 'nki_session must stay HttpOnly');
+    assert.doesNotMatch(csrfCookie, /HttpOnly/,
+        'nki_csrf must NOT be HttpOnly or the admin panel cannot read its own CSRF token');
+    assert.match(csrfCookie, /SameSite=Strict/, 'nki_csrf must still be SameSite=Strict');
+
+    // End-to-end: the token a browser would read from the cookie actually works.
+    const jar = setCookieHeaders.map(c => c.split(';')[0]).join('; ');
+    const token = csrfCookie.split(';')[0].split('=')[1];
+    const saveRes = await fetch(`${BASE}/save-content`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: jar, 'X-CSRF-Token': token },
+        body: JSON.stringify({ series: [{ id: 'csrf-probe', universe: 'Probe' }], books: [], game: [], about: {} }),
+    });
+    assert.notEqual(saveRes.status, 403,
+        'a request carrying the cookie-visible CSRF token must not be rejected');
 });
 
 test('protocol-relative and CRLF login redirects are rejected', async () => {
