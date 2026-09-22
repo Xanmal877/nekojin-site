@@ -18,6 +18,7 @@ process.umask(0o077);
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const { isSafeHttpUrl, isValidDateStr } = require('./lib/url');
 const sharp = require('sharp');
 const crypto = require('node:crypto');
 
@@ -93,6 +94,33 @@ function enforceRateLimit(req, res, endpoint, { json = false } = {}) {
 async function readJsonBody(req, maxBytes) {
     const body = await readRawBody(req, maxBytes);
     return JSON.parse(body.toString());
+}
+
+// Slugs go into URLs and filenames, so they stay lowercase alphanumeric.
+const SLUG_PATTERN = /^[a-z0-9_-]+$/;
+function isValidSlug(value) {
+    return SLUG_PATTERN.test(String(value));
+}
+
+// Read one file part out of a multipart/form-data request. Returns
+// { error, status } when the request can't be used, otherwise { parts, file }.
+// Both upload routes need exactly this preamble, and the failure responses
+// must stay identical between them.
+async function readMultipartFile(req, field, maxBytes) {
+    const body = await readRawBody(req, maxBytes);
+    const boundary = (req.headers['content-type'] || '').match(/boundary=([^\s;]+)/);
+    if (!boundary) return { error: 'No boundary', status: 400 };
+    const parts = parseMultipart(body, boundary[1]);
+    const file = parts[field];
+    if (!file || !file.data) return { error: 'No file', status: 400 };
+    return { parts, file };
+}
+
+// Anything derived from user input that lands in a filename goes through here:
+// covers are written under COVERS_DIR and manuscripts under MANUSCRIPTS_DIR,
+// so a path separator must never survive.
+function safePathSegment(name, fallback) {
+    return String(name || '').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 100) || fallback;
 }
 
 // ── RATE LIMITING ─────────────────────────────────────────
@@ -188,7 +216,7 @@ console.log('Database connection opened');
 
 // Publishing dashboard database (read-only). Loaded lazily on first request so
 // the server still boots in environments that don't ship publishing-db.js
-// (e.g. the smoke-test harness, which copies a fixed file list).
+// (e.g. a test harness that only copies a subset of the repo).
 let publishingDB = null;
 function getPublishingDB() {
     if (!publishingDB) {
@@ -213,12 +241,7 @@ function getPublishingCalendar() {
 // ── CALENDAR HELPERS ──────────────────────────────────────
 // Valid YYYY-MM-DD local date (checked against a real calendar date, not just
 // the regex) so bad strings like "2025-02-30" are rejected up front.
-function isValidDateStr(str) {
-    if (typeof str !== 'string') return false;
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(str)) return false;
-    const d = new Date(str + 'T00:00:00Z');
-    return d instanceof Date && !isNaN(d) && d.toISOString().startsWith(str);
-}
+
 
 // Map a source platform name to the display key used by the badge, falling back
 // to 'Other' for anything that isn't Royal Road or ScribbleHub.
@@ -274,14 +297,12 @@ function normalizeManualRelease(e) {
 // Only http(s) URLs are safe to expose on the public calendar. Legacy rows that
 // predate URL validation (or any future bad data) must have their URL dropped
 // at the serialization boundary rather than rendered as a link.
+// Only http(s) URLs are handed to the public calendar; lib/url.js owns that
+// rule so this can't drift from the copy database.js and generate-meta.js use.
 function safePublicUrl(url) {
-    if (typeof url !== 'string' || !url) return null;
-    try {
-        const parsed = new URL(url);
-        return (parsed.protocol === 'http:' || parsed.protocol === 'https:') ? url : null;
-    } catch (e) {
-        return null;
-    }
+    if (typeof url !== 'string') return null;
+    const trimmed = url.trim();
+    return isSafeHttpUrl(trimmed) ? trimmed : null;
 }
 
 // Normalize an imported release (from PublishingDB) to the public-safe shape.
@@ -321,44 +342,49 @@ async function handlePublicPublishingCalendar(req, res, query) {
         return sendJson(res, { error: 'start must be before end' }, 400);
     }
 
-    // Manual entries come from the calendar store (already local-date, half-open).
-    let manual = [];
-    try {
-        const calendar = getPublishingCalendar();
-        await calendar.Open();
-        manual = (await calendar.ListPublic(start, end)) || [];
-    } catch (err) {
-        console.error('[Public Calendar] Manual entries unavailable:', err.message);
-        manual = [];
-    }
+    // The manual calendar store and the read-only publishing DB are separate
+    // files, so these two loads are independent and run together. Each keeps
+    // its own fallback: one source being unavailable must not empty the other.
+    const loadManual = async () => {
+        // Already local-date and half-open.
+        try {
+            const calendar = getPublishingCalendar();
+            await calendar.Open();
+            return (await calendar.ListPublic(start, end)) || [];
+        } catch (err) {
+            console.error('[Public Calendar] Manual entries unavailable:', err.message);
+            return [];
+        }
+    };
 
-    // Imported entries come from the read-only publishing DB. We over-fetch a
-    // UTC window that covers every possible local date in [start, end), then
-    // keep only rows whose LOCAL date falls in the half-open range.
-    let imported = [];
-    try {
-        const db = getPublishingDB();
-        const window = {
-            startUtc: utcWindowStart(start),
-            endUtc: utcWindowEnd(end),
-            limit: 500
-        };
-        const [published, scheduled] = await Promise.all([
-            db.releaseWindow({ ...window, status: 'Published' }),
-            db.releaseWindow({ ...window, status: 'Scheduled' })
-        ]);
-        const rows = [...published, ...scheduled];
-        imported = (rows || [])
-            .filter(r => {
-                const localDate = typeof r.releaseDateTime === 'string'
-                    ? r.releaseDateTime.slice(0, 10) : null;
-                return !!localDate && localDate >= start && localDate < end;
-            })
-            .map(normalizeImportedRelease);
-    } catch (err) {
-        console.error('[Public Calendar] Imported releases unavailable:', err.message);
-        imported = [];
-    }
+    const loadImported = async () => {
+        // Over-fetch a UTC window covering every possible local date in
+        // [start, end), then keep only rows whose LOCAL date is in range.
+        try {
+            const db = getPublishingDB();
+            const window = {
+                startUtc: utcWindowStart(start),
+                endUtc: utcWindowEnd(end),
+                limit: 500
+            };
+            const [published, scheduled] = await Promise.all([
+                db.releaseWindow({ ...window, status: 'Published' }),
+                db.releaseWindow({ ...window, status: 'Scheduled' })
+            ]);
+            return [...published, ...scheduled]
+                .filter(r => {
+                    const localDate = typeof r.releaseDateTime === 'string'
+                        ? r.releaseDateTime.slice(0, 10) : null;
+                    return !!localDate && localDate >= start && localDate < end;
+                })
+                .map(normalizeImportedRelease);
+        } catch (err) {
+            console.error('[Public Calendar] Imported releases unavailable:', err.message);
+            return [];
+        }
+    };
+
+    const [manual, imported] = await Promise.all([loadManual(), loadImported()]);
 
     const entries = manual.map(normalizeManualRelease).concat(imported);
     entries.sort((a, b) =>
@@ -403,8 +429,7 @@ async function handleAdminPublishingCalendar(req, res, url) {
         }
 
         if (req.method === 'POST') {
-            const body = await readRawBody(req, 64 * 1024);
-            const data = JSON.parse(body.toString());
+            const data = await readJsonBody(req, 64 * 1024);
             if (!data || typeof data !== 'object') {
                 return sendJson(res, { error: 'Invalid JSON body' }, 400);
             }
@@ -435,8 +460,9 @@ async function handleAdminPublishingCalendar(req, res, url) {
 // ── MANUSCRIPTS (disabled by default) ─────────────────────
 // Reading .docx manuscripts is a whole optional feature, so it lives in one
 // function instead of being sprinkled through the request dispatch chain.
-// With MANUSCRIPTS_ENABLED=false (the default) none of this is reachable:
-// reads 503 and the list/chapters endpoints simply stay unmapped.
+// With MANUSCRIPTS_ENABLED=false (the default) the read endpoints stay
+// unmapped and only /upload-manuscript answers, with a 503 explaining how to
+// turn the feature on.
 async function handleManuscriptRequest(req, res, url) {
     if (req.method === 'GET' && url === '/api/manuscripts') {
         return sendJson(res, { manuscripts: listManuscripts() });
@@ -461,7 +487,7 @@ async function handleManuscriptRequest(req, res, url) {
         if (!chapters) return notFound(res);
         const chapter = chapters.find(c => c.num === parseInt(chapterMatch[2], 10));
         if (!chapter) return sendText(res, 'Chapter not found', 404);
-        return sendJson({
+        return sendJson(res, {
             num: chapter.num,
             title: chapter.title,
             content: chapter.content,
@@ -472,18 +498,14 @@ async function handleManuscriptRequest(req, res, url) {
 
 async function handleManuscriptUpload(req, res) {
     try {
-        const body = await readRawBody(req);
-        const ct = req.headers['content-type'] || '';
-        const bm = ct.match(/boundary=([^\s;]+)/);
-        if (!bm) return sendText(res, 'No boundary', 400);
-        const parts = parseMultipart(body, bm[1]);
-        const file = parts['file'];
-        if (!file || !file.data) return sendText(res, 'No file', 400);
+        const upload = await readMultipartFile(req, 'file');
+        if (upload.error) return sendText(res, upload.error, upload.status);
+        const { parts, file } = upload;
         if (!/\.docx$/i.test(file.filename || '')) return sendText(res, 'Only .docx files supported', 400);
         const formSlug = (parts['slug'] || '').trim();
         const slug = formSlug
-            ? formSlug.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 100)
-            : (file.filename || 'manuscript').replace(/\.docx$/i, '').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 100);
+            ? safePathSegment(formSlug)
+            : safePathSegment((file.filename || '').replace(/\.docx$/i, ''), 'manuscript');
         fs.writeFileSync(path.join(MANUSCRIPTS_DIR, slug + '.docx'), file.data);
         MANUSCRIPT_CACHE.delete(slug);
         return sendJson(res, { slug, name: slug + '.docx', size: file.data.length });
@@ -634,6 +656,55 @@ const MIME = {
     '.woff2': 'font/woff2',
     '.webp': 'image/webp',
 };
+
+// Whether a path may be cached for an hour. Deliberately NOT the whole
+// servable whitelist: the generated meta files (robots.txt, sitemap.xml,
+// rss.xml, manifest.json) are servable but change on content save, so they
+// have to stay no-store.
+function isStaticAssetPath(url) {
+    return ALLOWED_DIRECTORIES.some(dir => url.startsWith(dir)) ||
+        url === '/style.css' || url === '/common.js';
+}
+
+// Serve a file from public/ when it passes the extension + directory
+// whitelist. Returns true when the request was answered (including the 400/403
+// rejections), false when the caller should keep routing.
+function serveStaticAsset(req, res, url) {
+    if (req.method !== 'GET') return false;
+
+    let decodedUrl;
+    try {
+        decodedUrl = decodeURIComponent(url);
+    } catch {
+        return sendText(res, 'Bad Request', 400), true;
+    }
+    if (decodedUrl.includes('\0')) return sendText(res, 'Bad Request', 400), true;
+
+    const resolvedPath = path.resolve(PUBLIC_DIR, `.${decodedUrl}`);
+    const isPathSafe = resolvedPath.startsWith(PUBLIC_DIR + path.sep);
+    const relativeUrl = isPathSafe
+        ? '/' + path.relative(PUBLIC_DIR, resolvedPath).split(path.sep).join('/')
+        : '';
+    const ext = path.extname(relativeUrl).toLowerCase();
+    const isAllowedExt = ALLOWED_EXTENSIONS.has(ext);
+    // The publishing dashboard is a build output: its assets are servable,
+    // its own HTML is not (the /admin/publishing route serves that).
+    const isPublishingAsset = relativeUrl.startsWith('/publishing/') && ext !== '.html';
+    const isAllowedDir = ALLOWED_DIRECTORIES.some(dir => relativeUrl.startsWith(dir)) &&
+        (!relativeUrl.startsWith('/publishing/') || isPublishingAsset);
+
+    if (isPathSafe && isAllowedExt && (isAllowedDir || ROOT_ASSETS.has(relativeUrl))) {
+        return serveFile(res, resolvedPath), true;
+    }
+
+    // A request for something that *looks* like one of our asset paths but
+    // resolves outside them is a traversal attempt, not a missing page.
+    if (isAllowedExt || ALLOWED_DIRECTORIES.some(dir => decodedUrl.startsWith(dir))) {
+        return sendText(res, 'Forbidden: Invalid path', 403), true;
+    }
+
+    return false;
+}
 
 function serveFile(res, filePath) {
     try {
@@ -827,6 +898,169 @@ const PUBLIC_READS = {
     }
 };
 
+// ── STATIC ASSETS ─────────────────────────────────────────
+// Only these file types, inside these directories (or the handful of files
+// that live at the site root), are served off disk. Anything else 403s.
+// `isStaticAsset` in the header logic uses the same directory set.
+const ALLOWED_EXTENSIONS = new Set([
+    '.html', '.css', '.js', '.xml', '.txt', '.json', '.md',
+    '.png', '.jpg', '.jpeg', '.ico', '.svg', '.webp', '.gif'
+]);
+
+const ALLOWED_DIRECTORIES = [
+    '/covers/',
+    '/assets/',
+    '/images/',
+    '/fonts/',
+    '/publishing/'
+];
+
+const ROOT_ASSETS = new Set([
+    '/style.css',
+    '/common.js',
+    '/manifest.json',
+    '/robots.txt',
+    '/sitemap.xml',
+    '/rss.xml'
+]);
+
+
+// ── INTEGRATION APIS (public) ─────────────────────────────
+// Each integration reads its config from the settings row (admin-editable)
+// and falls back to an env var, then responds with one JSON shape. Failures
+// are logged but never surfaced to the client. Defined as a table so the
+// routes stay one line each and adding a provider doesn't mean another
+// copy of the same try/catch/rate-limit block.
+const INTEGRATION_ROUTES = {
+    '/api/youtube': async () => {
+        const settings = await contentDB.SelectXanreanSettings();
+        const channelId = settings.youtube_channel_id || process.env.YOUTUBE_CHANNEL_ID;
+        if (!channelId) return { videos: [] };
+        return { videos: await youtube.fetchLatestVideos(channelId) };
+    },
+
+    '/api/discord': async () => {
+        const settings = await contentDB.SelectXanreanSettings();
+        const server_id = settings.discord_server_id || process.env.DISCORD_SERVER_ID || null;
+        const invite_code = settings.discord_invite_code || process.env.DISCORD_INVITE_CODE || null;
+        return {
+            server_id,
+            invite_code,
+            invite_url: invite_code ? `https://discord.gg/${invite_code}` : null
+        };
+    },
+
+    '/api/sales': async () => {
+        const sales = await contentDB.SelectRecentSales(25);
+        return {
+            // email deliberately excluded for privacy
+            sales: sales.map(s => ({
+                product_name: s.product_name,
+                price_cents: s.price_cents,
+                currency: s.currency,
+                purchased_at: s.purchased_at
+            }))
+        };
+    }
+};
+
+// ── ADMIN CONTENT CRUD ────────────────────────────────────
+// Characters, timeline events, and lore topics are the same shape: an upsert
+// that validates a couple of fields, a delete by id, and one list/detail GET
+// that hides invisible rows from non-admins. The three blocks used to be
+// near-identical copies; this table is the shared version of all of them.
+//
+// `validate(data)` returns an error string to reject the payload, or null to
+// accept. `slugError` is set for the types whose slug lands in a URL, and the
+// message doubles as the markup-safety check's rejection reason.
+const ADMIN_CONTENT_TYPES = {
+    characters: {
+        base: '/api/characters',
+        insert: data => contentDB.InsertCharacter(data),
+        remove: id => contentDB.DeleteCharacter(id),
+        validate: data => (!data.name || !data.slug ? 'Name and slug are required' : null),
+        slugError: 'Invalid character slug'
+    },
+    timeline: {
+        base: '/api/timeline',
+        insert: data => contentDB.InsertTimelineEvent(data),
+        remove: id => contentDB.DeleteTimelineEvent(id),
+        validate: data => (data.title ? null : 'Title is required')
+    },
+    'lore-topics': {
+        base: '/api/lore-topics',
+        insert: data => contentDB.InsertLoreTopic(data),
+        remove: id => contentDB.DeleteLoreTopic(id),
+        validate: data => (!data.title || !data.slug || !data.section
+            ? 'Title, slug, and section are required' : null),
+        slugError: 'Invalid lore slug'
+    }
+};
+
+const ADMIN_CONTENT_MATCHERS = Object.values(ADMIN_CONTENT_TYPES).map(type => ({
+    type,
+    // Exact base URL, an /appearances sub-resource, or a single-entity id.
+    exact: new RegExp(`^${type.base}$`),
+    appearances: new RegExp(`^${type.base}/([^/]+)/appearances$`),
+    byId: new RegExp(`^${type.base}/([^/]+)$`)
+}));
+
+function matchAdminContent(url) {
+    for (const matcher of ADMIN_CONTENT_MATCHERS) {
+        if (matcher.exact.test(url)) return { type: matcher.type };
+        const byId = url.match(matcher.byId);
+        if (byId) return { type: matcher.type, id: byId[1] };
+        if (matcher.appearances.test(url)) {
+            return { type: matcher.type, id: url.split('/')[3], appearances: true };
+        }
+    }
+    return null;
+}
+
+// Admin view of characters / timeline / lore topics. `id` is undefined for a
+// collection request, set for a single entity or its /appearances sub-resource.
+async function handleAdminContent(req, res, match) {
+    const { type, id, appearances } = match;
+    const isList = id === undefined;
+
+    // Characters expose a per-character appearances editor.
+    if (appearances && req.method === 'POST') {
+        const { appearances: rows } = await readJsonBody(req, 64 * 1024);
+        return sendJson(res, await contentDB.ReplaceCharacterAppearances(id, rows || []));
+    }
+
+    if (req.method === 'POST' || req.method === 'PUT') {
+        const data = await readJsonBody(req, 10 * 1024 * 1024);
+        const problem = type.validate(data);
+        if (problem) return sendJson(res, { error: problem }, 400);
+        if (type.slugError && !isValidSlug(data.slug)) {
+            return sendJson(res, { error: type.slugError }, 400);
+        }
+        return sendJson(res, await type.insert(data));
+    }
+
+    if (req.method === 'DELETE' && !isList) {
+        return sendJson(res, await type.remove(id));
+    }
+
+    // Reads on a collection are served publicly before the auth gate, so any
+    // other method on a collection URL is a genuine method error. Answering
+    // here (rather than falling through) keeps this handler terminal.
+    return sendJson(res, { error: 'Method not allowed' }, 405);
+}
+
+// Reorder endpoints: drag-and-drop ordering for books and games.
+const REORDER_ROUTES = {
+    '/api/books/reorder': {
+        idField: 'bookIds',
+        apply: (body, ids) => contentDB.UpdateBookSequence(body.seriesId || null, ids)
+    },
+    '/api/games/reorder': {
+        idField: 'gameIds',
+        apply: (body, ids) => contentDB.ReorderGames(ids)
+    }
+};
+
 // ── SERVER ────────────────────────────────────────────────
 const server = http.createServer((req, res) => {
     handleRequest(req, res).catch(err => {
@@ -886,16 +1120,7 @@ async function handleRequest(req, res) {
     // gets no-cache so the document and its script always match; the data it
     // fetches (/content) is already no-store, and cover URLs are content-hashed
     // (see withCoverVersion) so their bytes can't go stale either.
-    const isStaticAsset = req.method === 'GET' && (
-        url.startsWith('/assets/') ||
-        url.startsWith('/covers/') ||
-        url.startsWith('/images/') ||
-        url.startsWith('/fonts/') ||
-        url === '/style.css' ||
-        url === '/common.js' ||
-        url.startsWith('/publishing/')
-    );
-    if (isStaticAsset) {
+    if (req.method === 'GET' && isStaticAssetPath(url)) {
         res.setHeader('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400');
     } else {
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -922,63 +1147,7 @@ async function handleRequest(req, res) {
         return serveFile(res, path.join(PUBLIC_DIR, 'xanrean', 'series', 'cast.html'));
 
     // Static assets with whitelist validation
-    // Security: Only serve allowed file types from safe directories
-    const ALLOWED_EXTENSIONS = new Set([
-        '.html', '.css', '.js', '.xml', '.txt', '.json', '.md',
-        '.png', '.jpg', '.jpeg', '.ico', '.svg', '.webp', '.gif'
-    ]);
-
-    const ALLOWED_DIRECTORIES = [
-        '/covers/',
-        '/assets/',
-        '/images/',
-        '/fonts/',
-        '/publishing/'
-    ];
-
-    const ROOT_ASSETS = new Set([
-        '/style.css',
-        '/common.js',
-        '/manifest.json',
-        '/robots.txt',
-        '/sitemap.xml',
-        '/rss.xml'
-    ]);
-
-    if (req.method === 'GET') {
-        let decodedUrl;
-        try {
-            decodedUrl = decodeURIComponent(url);
-        } catch {
-            res.writeHead(400, { 'Content-Type': 'text/plain' });
-            return res.end('Bad Request');
-        }
-        if (decodedUrl.includes('\0')) {
-            res.writeHead(400, { 'Content-Type': 'text/plain' });
-            return res.end('Bad Request');
-        }
-
-        const resolvedPath = path.resolve(PUBLIC_DIR, `.${decodedUrl}`);
-        const isPathSafe = resolvedPath.startsWith(PUBLIC_DIR + path.sep);
-        const relativeUrl = isPathSafe
-            ? '/' + path.relative(PUBLIC_DIR, resolvedPath).split(path.sep).join('/')
-            : '';
-        const ext = path.extname(relativeUrl).toLowerCase();
-        const isAllowedExt = ALLOWED_EXTENSIONS.has(ext);
-        const isPublishingAsset = relativeUrl.startsWith('/publishing/') && ext !== '.html';
-        const isAllowedDir = ALLOWED_DIRECTORIES.some(dir => relativeUrl.startsWith(dir)) &&
-            (!relativeUrl.startsWith('/publishing/') || isPublishingAsset);
-        const isRootAsset = ROOT_ASSETS.has(relativeUrl);
-
-        if (isPathSafe && isAllowedExt && (isAllowedDir || isRootAsset)) {
-            return serveFile(res, resolvedPath);
-        }
-        if (isAllowedExt || decodedUrl.startsWith('/covers/') || decodedUrl.startsWith('/assets/') ||
-            decodedUrl.startsWith('/images/') || decodedUrl.startsWith('/fonts/')) {
-            res.writeHead(403, { 'Content-Type': 'text/plain' });
-            return res.end('Forbidden: Invalid path');
-        }
-    }
+    if (req.method === 'GET' && serveStaticAsset(req, res, url)) return;
 
     // Wiki Markdown is exposed through narrow APIs rather than reopening
     // /public/data/ as a static directory.
@@ -1001,7 +1170,7 @@ async function handleRequest(req, res) {
               // Query-string secrets are unsafe as they appear in logs/referrers.
               // For local development, query-string fallback is allowed if not in production.
               let providedSecret = req.headers['x-gumroad-webhook-secret'];
-              const isProduction = process.env.NODE_ENV === 'production' || process.env.TRUST_PROXY === 'true';
+              const isProduction = process.env.NODE_ENV === 'production' || TRUST_PROXY;
               if (!providedSecret && !isProduction) {
                   providedSecret = query.get('secret'); // Fallback only in dev
               }
@@ -1120,7 +1289,7 @@ async function handleRequest(req, res) {
             return sendJson(res, data, 200);
         } catch (err) {
             console.error('Database error:', err);
-            return sendText(res, '{"error":"Failed to load content"}', 500);
+            return sendJson(res, { error: 'Failed to load content' }, 500);
         }
     }
 
@@ -1152,61 +1321,18 @@ async function handleRequest(req, res) {
 
 
 
-// ── INTEGRATION APIS (public) ─────────────────────────────
-// Each integration reads its config from the settings row (admin-editable)
-// and falls back to an env var, then responds with one JSON shape. Failures
-// are logged but never surfaced to the client. Defined as a table so the
-// routes stay one line each and adding a provider doesn't mean another
-// copy of the same try/catch/rate-limit block.
-const INTEGRATION_ROUTES = {
-    '/api/youtube': async () => {
-        const settings = await contentDB.SelectXanreanSettings();
-        const channelId = settings.youtube_channel_id || process.env.YOUTUBE_CHANNEL_ID;
-        if (!channelId) return { videos: [] };
-        return { videos: await youtube.fetchLatestVideos(channelId) };
-    },
-
-    '/api/discord': async () => {
-        const settings = await contentDB.SelectXanreanSettings();
-        const server_id = settings.discord_server_id || process.env.DISCORD_SERVER_ID || null;
-        const invite_code = settings.discord_invite_code || process.env.DISCORD_INVITE_CODE || null;
-        return {
-            server_id,
-            invite_code,
-            invite_url: invite_code ? `https://discord.gg/${invite_code}` : null
-        };
-    },
-
-    '/api/sales': async () => {
-        const sales = await contentDB.SelectRecentSales(25);
-        return {
-            // email deliberately excluded for privacy
-            sales: sales.map(s => ({
-                product_name: s.product_name,
-                price_cents: s.price_cents,
-                currency: s.currency,
-                purchased_at: s.purchased_at
-            }))
-        };
-    }
-};
-
-async function handleIntegrationRequest(req, res, url) {
-    try {
-        return sendJson(res, await INTEGRATION_ROUTES[url]());
-    } catch (e) {
-        // Don't expose internal errors to the client; log for debugging
-        console.error(`[${url}] Error:`, e.message);
-        return sendJson(res, { error: 'Service temporarily unavailable' }, 500);
-    }
-}
-
-
 
     // Integration APIs (public): one handler per provider in INTEGRATION_ROUTES
     if (req.method === 'GET' && INTEGRATION_ROUTES[url]) {
         if (enforceRateLimit(req, res, url, { json: true })) return;
-        return handleIntegrationRequest(req, res, url);
+        const load = INTEGRATION_ROUTES[url];
+        try {
+            return sendJson(res, await load());
+        } catch (e) {
+            // Don't expose internal errors to the client; log for debugging.
+            console.error(`[${url}] Error:`, e.message);
+            return sendJson(res, { error: 'Service temporarily unavailable' }, 500);
+        }
     }
 
     // Public single-book lookup (supports preview mode).
@@ -1227,20 +1353,10 @@ async function handleIntegrationRequest(req, res, url) {
             return sendJson(res, { book }, 200);
         } catch (err) {
             console.error('Database error:', err);
-            return sendText(res, '{"error":"Failed to load book"}', 500);
+            return sendJson(res, { error: 'Failed to load book' }, 500);
         }
     }
 
-
-    // Manuscript API + upload: one optional feature, one gate.
-    if (MANUSCRIPTS_ENABLED && url.startsWith('/api/manuscripts')) {
-        return handleManuscriptRequest(req, res, url);
-    }
-    if (url === '/upload-manuscript') {
-        if (!MANUSCRIPTS_ENABLED) return sendJson(res, MANUSCRIPT_DISABLED, 503);
-        if (!accounts.isAdmin(req)) return forbidden(res);
-        return handleManuscriptUpload(req, res);
-    }
 
     // ── LOGIN / LOGOUT / REGISTER ─────────────────────────
     if (req.method === 'GET' && url === '/login') {
@@ -1406,89 +1522,17 @@ async function handleIntegrationRequest(req, res, url) {
 
     // ── AUTHENTICATED ROUTES ──────────────────────────────
     const username = accounts.getUsername(req);
-
-    // Admin Character API
-// ── ADMIN CONTENT CRUD ────────────────────────────────────
-// Characters, timeline events, and lore topics are the same shape: an upsert
-// that validates a couple of fields, a delete by id, and one list/detail GET
-// that hides invisible rows from non-admins. The three blocks used to be
-// near-identical copies; this table is the shared version of all of them.
-//
-// `validate(data)` returns an error string to reject the payload, or null to
-// accept. `validateSlug` is the markup-safety check (slugs end up in URLs and
-// inline page scripts, so they must stay URL-safe).
-const ADMIN_CONTENT_TYPES = {
-    characters: {
-        base: '/api/characters',
-        insert: data => contentDB.InsertCharacter(data),
-        remove: id => contentDB.DeleteCharacter(id),
-        validate: data => (!data.name || !data.slug ? 'Name and slug are required' : null),
-        validateSlug: () => 'Invalid character slug'
-    },
-    timeline: {
-        base: '/api/timeline',
-        insert: data => contentDB.InsertTimelineEvent(data.id ? data : { ...data, id: crypto.randomUUID() }),
-        remove: id => contentDB.DeleteTimelineEvent(id),
-        validate: data => (data.title ? null : 'Title is required')
-    },
-    'lore-topics': {
-        base: '/api/lore-topics',
-        insert: data => contentDB.InsertLoreTopic(data),
-        remove: id => contentDB.DeleteLoreTopic(id),
-        validate: data => (!data.title || !data.slug || !data.section
-            ? 'Title, slug, and section are required' : null),
-        validateSlug: () => 'Invalid lore slug'
+    // Manuscript API + upload: one optional feature, one gate. Deliberately
+    // below the auth gate with the other admin/private routes, so the feature's
+    // existence isn't disclosed and unpublished drafts need a session.
+    if (MANUSCRIPTS_ENABLED && url.startsWith('/api/manuscripts')) {
+        return handleManuscriptRequest(req, res, url);
     }
-};
-
-const ADMIN_CONTENT_MATCHERS = Object.values(ADMIN_CONTENT_TYPES).map(type => ({
-    type,
-    // Exact base URL, an /appearances sub-resource, or a single-entity id.
-    exact: new RegExp(`^${type.base}$`),
-    appearances: new RegExp(`^${type.base}/([^/]+)/appearances$`),
-    byId: new RegExp(`^${type.base}/([^/]+)$`)
-}));
-
-function matchAdminContent(url) {
-    for (const matcher of ADMIN_CONTENT_MATCHERS) {
-        if (matcher.exact.test(url)) return { type: matcher.type };
-        const byId = url.match(matcher.byId);
-        if (byId) return { type: matcher.type, id: byId[1] };
-        if (matcher.appearances.test(url)) {
-            return { type: matcher.type, id: url.split('/')[3], appearances: true };
-        }
+    if (req.method === 'POST' && url === '/upload-manuscript') {
+        if (!MANUSCRIPTS_ENABLED) return sendJson(res, MANUSCRIPT_DISABLED, 503);
+        if (!accounts.isAdmin(req)) return forbidden(res);
+        return handleManuscriptUpload(req, res);
     }
-    return null;
-}
-
-// Admin view of characters / timeline / lore topics. `id` is null for a
-// collection request, set for a single entity or its /appearances sub-resource.
-async function handleAdminContent(req, res, match) {
-    const { type, id, appearances } = match;
-    const isList = id === undefined;
-
-    // Characters expose a per-character appearances editor.
-    if (appearances && req.method === 'POST') {
-        const { appearances: rows } = await readJsonBody(req, 64 * 1024);
-        return sendJson(res, await contentDB.ReplaceCharacterAppearances(id, rows || []));
-    }
-
-    if (req.method === 'POST' || req.method === 'PUT') {
-        const data = await readJsonBody(req, 10 * 1024 * 1024);
-        const problem = type.validate(data);
-        if (problem) return sendJson(res, { error: problem }, 400);
-        if (type.validateSlug && !/^[a-z0-9_-]+$/.test(String(data.slug))) {
-            return sendJson(res, { error: type.validateSlug() }, 400);
-        }
-        return sendJson(res, await type.insert(data));
-    }
-
-    if (req.method === 'DELETE' && !isList) {
-        return sendJson(res, await type.remove(id));
-    }
-
-    return isList ? undefined : sendJson(res, { error: 'Method not allowed' }, 405);
-}
 
 
 
@@ -1499,33 +1543,12 @@ async function handleAdminContent(req, res, match) {
     if (contentMatch) {
         if (!accounts.isAdmin(req)) return forbidden(res);
         try {
-            const response = await handleAdminContent(req, res, contentMatch);
-            if (response !== undefined) return response;
+            return await handleAdminContent(req, res, contentMatch);
         } catch (err) {
             console.error(`Admin ${contentMatch.type.base} API error:`, err);
             return sendJson(res, { error: err.message }, 500);
         }
     }
-
-    // API Keys (read / write) - kept for potential future use
-    if (url === '/api/keys') {
-        if (req.method === 'GET') {
-            return sendJson(res, accounts.getUserKeys(username), 200);
-        }
-        if (req.method === 'POST') {
-            try {
-                const body = await readRawBody(req, 16 * 1024);
-                const data = JSON.parse(body.toString('utf8'));
-                for (const [provider, key] of Object.entries(data)) {
-                    if (!accounts.setUserKey(username, provider, key || '')) {
-                        return sendJson(res, { error: 'Failed to persist API key' }, 500);
-                    }
-                }
-                return sendJson(res, { ok: true });
-            } catch (e) { return sendText(res, e.message, 400); }
-        }
-    }
-
     // Admin Integrations Settings API (auth already enforced by the gate above)
     if (url === '/api/settings') {
         if (!accounts.isAdmin(req)) { return forbidden(res); }
@@ -1545,8 +1568,7 @@ async function handleAdminContent(req, res, match) {
         }
         if (req.method === 'POST') {
             try {
-                const body = await readRawBody(req, 16 * 1024);
-                const data = JSON.parse(body.toString());
+                const data = await readJsonBody(req, 16 * 1024);
                 const current = await contentDB.SelectXanreanSettings();
                 await contentDB.UpdateXanreanSettings({
                     ...current,
@@ -1569,33 +1591,17 @@ async function handleAdminContent(req, res, match) {
         return serveFile(res, ADMIN_FILE);
     }
 
-    // Update book sequence (admin only)
-    if (req.method === 'POST' && url === '/api/books/reorder') {
-        if (!accounts.isAdmin(req)) { return forbidden(res); }
-        try {
-            const body = await readRawBody(req, 64 * 1024);
-            const { seriesId, bookIds } = JSON.parse(body.toString());
-            if (!Array.isArray(bookIds)) {
-                return sendJson(res, { error: 'bookIds must be an array' }, 400);
-            }
-            const result = await contentDB.UpdateBookSequence(seriesId || null, bookIds);
-            return sendJson(res, result, 200);
-        } catch (e) {
-            return sendJson(res, { error: e.message }, 500);
-        }
-    }
 
-    // Update game sequence (admin only)
-    if (req.method === 'POST' && url === '/api/games/reorder') {
-        if (!accounts.isAdmin(req)) { return forbidden(res); }
+    const reorder = REORDER_ROUTES[url];
+    if (req.method === 'POST' && reorder) {
+        if (!accounts.isAdmin(req)) return forbidden(res);
         try {
-            const body = await readRawBody(req, 64 * 1024);
-            const { gameIds } = JSON.parse(body.toString());
-            if (!Array.isArray(gameIds)) {
-                return sendJson(res, { error: 'gameIds must be an array' }, 400);
+            const body = await readJsonBody(req, 64 * 1024);
+            const ids = body[reorder.idField];
+            if (!Array.isArray(ids)) {
+                return sendJson(res, { error: `${reorder.idField} must be an array` }, 400);
             }
-            const result = await contentDB.ReorderGames(gameIds);
-            return sendJson(res, result, 200);
+            return sendJson(res, await reorder.apply(body, ids));
         } catch (e) {
             return sendJson(res, { error: e.message }, 500);
         }
@@ -1605,14 +1611,13 @@ async function handleAdminContent(req, res, match) {
     if (req.method === 'POST' && url === '/save-content') {
         if (!accounts.isAdmin(req)) { return forbidden(res); }
         try {
-            const body = await readRawBody(req, 10 * 1024 * 1024);
-            const data = JSON.parse(body.toString());
+            const data = await readJsonBody(req, 10 * 1024 * 1024);
 
             // Validate book slugs: lowercase, numbers, hyphens, underscores only.
             if (data.books && Array.isArray(data.books)) {
                 for (const book of data.books) {
                     const slug = book.slug || book.id;
-                    if (!/^[a-z0-9_-]+$/.test(slug)) {
+                    if (!isValidSlug(slug)) {
                         return sendJson(res, {
                             error: `Invalid slug for book "${book.title || 'Unknown'}": "${slug}". Slugs must be lowercase, numbers, hyphens, or underscores.`
                         }, 400);
@@ -1650,7 +1655,7 @@ async function handleAdminContent(req, res, match) {
             }
 
             // Safety: backup the DB before any bulk replacement, then proceed.
-            const restorePoint = await contentDB.CreateBackup('save-content');
+            await contentDB.CreateBackup('save-content');
             await contentDB.SaveAllContent(data);
             // Best-effort: keep sitemap.xml/rss.xml in sync with content changes.
             meta.generateAll().catch(err => console.error('Meta regeneration failed:', err));
@@ -1669,19 +1674,13 @@ async function handleAdminContent(req, res, match) {
     if (req.method === 'POST' && url === '/upload-cover') {
         if (!accounts.isAdmin(req)) { return forbidden(res); }
         try {
-            const body = await readRawBody(req, 25 * 1024 * 1024);
-            const ct = req.headers['content-type'] || '';
-            const bm = ct.match(/boundary=([^\s;]+)/);
-            if (!bm) { return sendText(res, 'No boundary', 400); }
-            const parts = parseMultipart(body, bm[1]);
-            const file = parts['cover'];
-            if (!file || !file.data) { return sendText(res, 'No file', 400); }
+            const upload = await readMultipartFile(req, 'cover', 25 * 1024 * 1024);
+            if (upload.error) return sendText(res, upload.error, upload.status);
+            const { parts, file } = upload;
             if (file.data.length === 0) { return sendText(res, 'Image file is empty', 400); }
             if (file.data.length > 20 * 1024 * 1024) { return sendText(res, 'Image too large (max 20MB)', 413); }
 
-            // bookId ends up in a filename written under COVERS_DIR, so strip
-            // anything that isn't safe for a path segment to prevent traversal.
-            const bookId = (parts['bookId'] || 'cover').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 100) || 'cover';
+            const bookId = safePathSegment(parts['bookId'], 'cover');
             // Use fixed filename for homepage and xanrean backgrounds (overwrite), timestamp for others
             const useFixedName = bookId.startsWith('homepage-cover-') || bookId.startsWith('xanrean-cover-');
             const fname = useFixedName ? `${bookId}.webp` : `${bookId}-${Date.now()}.webp`;
@@ -1767,8 +1766,7 @@ async function handleAdminContent(req, res, match) {
     if (req.method === 'POST' && url === '/api/homepage') {
         if (!accounts.isAdmin(req)) { return forbidden(res); }
         try {
-            const body = await readRawBody(req, 64 * 1024);
-            const data = JSON.parse(body.toString());
+            const data = await readJsonBody(req, 64 * 1024);
             await contentDB.UpdateHomepageSettings(data);
             const updated = await contentDB.SelectHomepageSettings();
             return sendJson(res, updated, 200);
@@ -1785,8 +1783,7 @@ async function handleAdminContent(req, res, match) {
     if (req.method === 'POST' && url === '/api/xanrean') {
         if (!accounts.isAdmin(req)) { return forbidden(res); }
         try {
-            const body = await readRawBody(req, 64 * 1024);
-            const data = JSON.parse(body.toString());
+            const data = await readJsonBody(req, 64 * 1024);
             await contentDB.UpdateXanreanSettings(data);
             const updated = await contentDB.SelectXanreanSettings();
             return sendJson(res, updated, 200);
