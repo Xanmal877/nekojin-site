@@ -1,0 +1,176 @@
+/* Styles for book.html — moved out of the markup verbatim. */
+    /* ── BOOK HERO ── */
+    .book-hero {
+      padding: 6rem 2rem 3rem;
+      max-width: 1000px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 3rem;
+      align-items: start;
+    }
+    @media (max-width: 680px) {
+      .book-hero { grid-template-columns: 1fr; gap: 2rem; padding: 5rem 1.5rem 2rem; }
+      .book-hero-cta { flex-wrap: wrap; }
+      .more-section { padding: 2.5rem 1.25rem; }
+      .more-grid { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+    }
+
+    .book-hero-cover {
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      border: 1px solid rgba(124,58,237,0.15);
+      aspect-ratio: 2/3;
+      background: linear-gradient(160deg, #1a0a3d, #0f1a3a);
+    }
+    .book-hero-cover img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .book-hero-cover .placeholder {
+      width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 5rem;
+    }
+
+    .book-hero-info { display: flex; flex-direction: column; gap: 1rem; }
+    .book-hero-vol {
+      font-size: 0.65rem; font-weight: 700;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--royal-light);
+    }
+    .book-hero-title {
+      font-family: var(--font-display);
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      color: var(--ink);
+      line-height: 1.1;
+    }
+    .book-hero-desc {
+      font-size: 0.92rem;
+      line-height: 1.75;
+      color: rgba(212,200,240,0.78);
+      white-space: pre-wrap;
+    }
+    .book-hero-tags {
+      display: flex; flex-wrap: wrap;
+      gap: 0.35rem;
+      margin-top: 0.25rem;
+    }
+    .book-hero-tag {
+      font-size: 0.62rem; font-weight: 700;
+      letter-spacing: 0.07em; text-transform: uppercase;
+      padding: 0.22rem 0.55rem; border-radius: 6px;
+      background: rgba(124,58,237,0.1);
+      color: var(--royal-light);
+      border: 1px solid rgba(124,58,237,0.18);
+    }
+    .book-hero-cta {
+      display: flex; flex-wrap: wrap; gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+    .book-hero-cta a {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      padding: 0.55rem 1.1rem; border-radius: 10px;
+      text-decoration: none; font-size: 0.82rem;
+      font-weight: 600; transition: all 0.2s;
+    }
+    .book-hero-cta a:hover { transform: translateY(-1px); }
+    .cta-rr  { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); color: #f59e0b; }
+    .cta-rr:hover  { background: rgba(245,158,11,0.18); border-color: rgba(245,158,11,0.5); }
+    .cta-sh  { background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.3); color: #a78bfa; }
+    .cta-sh:hover  { background: rgba(139,92,246,0.18); border-color: rgba(139,92,246,0.5); }
+    .cta-kdp { background: rgba(255,153,0,0.1); border: 1px solid rgba(255,153,0,0.3); color: #FF9900; }
+    .cta-kdp:hover { background: rgba(255,153,0,0.18); border-color: rgba(255,153,0,0.5); }
+    .cta-wp  { background: rgba(251,146,60,0.1); border: 1px solid rgba(251,146,60,0.3); color: #fb923c; }
+    .cta-wp:hover  { background: rgba(251,146,60,0.18); border-color: rgba(251,146,60,0.5); }
+    .cta-gumroad { background: rgba(255,144,232,0.1); border: 1px solid rgba(255,144,232,0.3); color: #FF90E8; }
+    .cta-gumroad:hover { background: rgba(255,144,232,0.18); border-color: rgba(255,144,232,0.5); }
+    .cta-other { background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--text2); }
+    .cta-other:hover { background: rgba(255,255,255,0.08); }
+    .cta-read { background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.4); color: #c4b5fd; font-weight: 600; }
+    .cta-read:hover { background: rgba(139,92,246,0.25); border-color: rgba(139,92,246,0.6); }
+
+    .back-link {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      color: var(--muted); text-decoration: none;
+      font-size: 0.82rem; margin-bottom: 1rem;
+      transition: color 0.2s;
+    }
+    .back-link:hover { color: var(--text); }
+
+    /* ── MORE BOOKS ── */
+    .more-section {
+      padding: 4rem 2rem;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    .more-title {
+      font-family: var(--font-display);
+      font-size: 1.4rem;
+      color: var(--ink);
+      margin-bottom: 1.5rem;
+    }
+    .more-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 1.25rem;
+    }
+    .more-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      text-decoration: none;
+      transition: all 0.25s;
+      display: block;
+    }
+    .more-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--border2);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.35);
+    }
+    .more-cover {
+      aspect-ratio: 2/3;
+      overflow: hidden;
+      background: linear-gradient(160deg, #1a0a3d, #0f1a3a);
+    }
+    .more-cover img {
+      width: 100%; height: 100%;
+      object-fit: cover; display: block;
+    }
+    .more-info { padding: 0.8rem; }
+    .more-name {
+      font-family: var(--font-display);
+      font-size: 0.9rem;
+      color: var(--text);
+      line-height: 1.2;
+    }
+
+    /* ── NOT FOUND ── */
+    .book-not-found {
+      text-align: center;
+      padding: 8rem 2rem;
+      color: var(--muted);
+    }
+    .book-not-found h2 {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      color: var(--ink);
+      margin-bottom: 0.75rem;
+    }
+    .book-not-found p { margin-bottom: 1.5rem; font-size: 0.9rem; }
+    .book-not-found a {
+      display: inline-block;
+      padding: 0.55rem 1.2rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text2);
+      text-decoration: none;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+    .book-not-found a:hover { border-color: var(--border2); background: var(--surface2); }
+  

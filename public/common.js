@@ -1,7 +1,10 @@
 // common.js - Shared utilities for Nekojin Interactive website
 
 /**
- * Escape HTML special characters to prevent XSS
+ * Escape HTML special characters to prevent XSS.
+ * Escapes quotes as well as the angle brackets, so a value is safe in BOTH
+ * text position and a double-quoted attribute. Do NOT use this for a value that
+ * lands inside an inline event-handler string — see inlineArg below.
  * @param {*} str - Value to escape
  * @returns {string} Escaped string
  */
@@ -13,6 +16,18 @@ function esc(str) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
+}
+
+/**
+ * Escape a value for a JavaScript string literal that sits inside an inline
+ * event handler, e.g. onclick="go('VALUE')". The value is passed through esc()
+ * first — which encodes the quote and backslash characters so it cannot close
+ * the JS string or the surrounding attribute — and only then serialized.
+ * @param {*} str - Value to embed
+ * @returns {string} Escaped string safe inside a single-quoted JS literal
+ */
+function inlineArg(str) {
+    return JSON.stringify(esc(str == null ? '' : String(str)));
 }
 
 /**
@@ -79,7 +94,32 @@ async function copyToClipboard(text) {
     }
 }
 
+/**
+ * Toggle the light/dark theme: flip the root attribute, persist the choice, and
+ * update the icon if the page has one.
+ *
+ * This was duplicated across a dozen page scripts in five slightly different
+ * versions — some threw when a page had no #theme-icon, some hard-coded the
+ * glyph per call site. One implementation, with a null guard, replaces them all.
+ * Kept as a function declaration so an inline onclick="toggleTheme()" still
+ * resolves it.
+ * @returns {void}
+ */
+function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme') || 'light';
+    const next = current === 'light' ? 'dark' : 'light';
+    html.setAttribute('data-theme', next);
+    try {
+        localStorage.setItem('theme', next);
+    } catch (err) {
+        // Private mode / storage disabled: the theme still flips for this page.
+    }
+    const icon = document.getElementById('theme-icon');
+    if (icon) icon.textContent = next === 'dark' ? '🌙' : '☀️';
+}
+
 // Export for module systems (if needed)
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { esc, safeUrl, fmtNum, debounce, copyToClipboard };
+    module.exports = { esc, inlineArg, safeUrl, fmtNum, debounce, copyToClipboard, toggleTheme };
 }

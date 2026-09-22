@@ -1,0 +1,107 @@
+/* Styles for xanrean/lore/world-topic.html — moved out of the markup verbatim. */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; overflow: auto; }
+
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 2rem;
+      background: rgba(10,6,20,0.9);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(59,130,246,0.2);
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--royal);
+      text-decoration: none;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+    }
+
+    main {
+      flex: 1;
+      margin-top: 60px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+    }
+
+    .topic-content {
+      width: 100%;
+      max-width: 800px;
+      color: var(--text);
+      line-height: 1.8;
+    }
+
+    .topic-content h1 {
+      font-family: var(--font-display);
+      font-size: 2.5rem;
+      margin-bottom: 1.5rem;
+      color: var(--royal-light);
+    }
+
+    .topic-content h2 {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      margin: 2rem 0 1rem;
+      color: var(--royal-light);
+    }
+
+    .topic-content p {
+      margin-bottom: 1rem;
+      color: var(--muted);
+    }
+
+    .topic-content strong {
+      color: var(--text);
+    }
+
+    .topic-content ul {
+      margin: 0 0 1rem 1.5rem;
+      color: var(--muted);
+    }
+
+    .topic-content li {
+      margin-bottom: 0.5rem;
+    }
+
+    footer {
+      flex-shrink: 0;
+      background: rgba(10,6,20,0.9);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid rgba(255,255,255,0.1);
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .footer-link {
+      color: rgba(255,255,255,0.7);
+      text-decoration: none;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--muted);
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+    }
+  

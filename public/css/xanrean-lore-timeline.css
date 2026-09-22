@@ -1,0 +1,94 @@
+/* Styles for xanrean/lore/timeline.html — moved out of the markup verbatim. */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.7;
+    }
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem 2rem; background: rgba(10,6,20,0.9);
+      backdrop-filter: blur(12px); border-bottom: 1px solid rgba(59,130,246,0.2);
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 0.75rem;
+      font-family: var(--font-display); font-size: 1.25rem;
+      font-weight: 700; color: var(--royal); text-decoration: none;
+    }
+    main {
+      flex: 1; margin-top: 60px; display: flex; flex-direction: column;
+      align-items: center; padding: 2rem;
+    }
+    .page-header {
+      text-align: center; margin-bottom: 3rem;
+    }
+    .page-header h1 {
+      font-family: var(--font-display); font-size: 2.5rem;
+      margin-bottom: 1rem; color: var(--text);
+    }
+    .page-header p {
+      color: var(--muted); font-size: 1.1rem;
+      max-width: 600px; margin: 0 auto;
+    }
+    .timeline-container {
+      position: relative; width: 100%; max-width: 800px;
+      padding: 2rem 0;
+    }
+    .timeline-line {
+      position: absolute; left: 50%; top: 0; bottom: 0;
+      width: 2px; background: var(--border);
+      transform: translateX(-50%);
+    }
+    .timeline-event {
+      position: relative; width: 50%; margin-bottom: 3rem;
+      padding: 0 2rem;
+    }
+    .timeline-event:nth-child(odd) { left: 0; text-align: right; }
+    .timeline-event:nth-child(even) { left: 50%; text-align: left; }
+    
+    .event-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 1.5rem;
+      transition: all 0.3s;
+    }
+    .event-card:hover { border-color: var(--royal); transform: translateY(-4px); }
+    .event-era {
+      font-family: var(--mono); font-size: 0.75rem;
+      color: var(--royal-light); font-weight: 700;
+      text-transform: uppercase; margin-bottom: 0.5rem;
+    }
+    .event-title {
+      font-family: var(--font-display); font-size: 1.4rem;
+      margin-bottom: 0.75rem; color: var(--text);
+    }
+    .event-desc { color: var(--muted); font-size: 0.95rem; margin-bottom: 1rem; }
+    .event-chars {
+      display: flex; gap: 0.5rem; flex-wrap: wrap;
+      justify-content: inherit;
+    }
+    .char-tag {
+      font-size: 0.75rem; padding: 0.2rem 0.6rem;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 4px; color: var(--royal-light);
+      text-decoration: none;
+    }
+    .char-tag:hover { border-color: var(--royal); }
+    
+    footer {
+      flex-shrink: 0; height: 52px; background: rgba(10,6,20,0.9);
+      backdrop-filter: blur(12px); border-top: 1px solid rgba(255,255,255,0.1);
+      padding: 0.75rem 1.5rem; display: flex; align-items: center; justify-content: center;
+    }
+    .footer-link { color: rgba(255,255,255,0.7); text-decoration: none; }
+    
+    .loading { text-align: center; padding: 4rem 2rem; color: var(--muted); font-family: var(--font-display); font-size: 1.2rem; }
+    
+    @media (max-width: 600px) {
+      .timeline-line { left: 20px; }
+      .timeline-event { width: 100%; left: 0 !important; text-align: left !important; padding-left: 40px; }
+      .event-chars { justify-content: flex-start !important; }
+    }
+  
