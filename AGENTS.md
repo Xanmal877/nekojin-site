@@ -4,6 +4,42 @@
 
 Nekojin Interactive's website: a root **Node.js HTTP server** (`dashboard-server.js`, no framework) serving the public site from `public/`, the admin panel at `/admin`, and a nested React publishing dashboard built into `public/publishing/`. SQLite-backed (`data/nekojin.db`). See `TASKS.md` for roadmap/changelog and `NEXT_AGENT_NOTE.md` for the current handoff state.
 
+## Layout
+
+`dashboard-server.js` is the **router only**: it owns the gates (CORS/security
+headers, rate limits, auth, CSRF, admin role) and the order routes are tried in.
+Everything a route calls lives in one named module under `lib/`:
+
+| Module | Owns |
+|--------|------|
+| `lib/http-helpers.js` | response writers (`sendJson`/`sendHtml`/`sendText`/`redirect`/`forbidden`/`notFound`), `enforceRateLimit`, body readers, slug/path guards |
+| `lib/rate-limit.js` | per-IP limits and `RATE_LIMIT_CONFIG` |
+| `lib/body-parsing.js` | one buffered read with a size cap, form decoding, multipart |
+| `lib/static-files.js` | MIME types and the serve whitelist (`ALLOWED_EXTENSIONS`, `ALLOWED_DIRECTORIES`, `ROOT_ASSETS`) |
+| `lib/public-routes.js` | the URL→template table and the public read surface (characters/timeline/lore) |
+| `lib/auth-pages.js` | login and register pages |
+| `lib/cover-versioning.js` | the content hash appended to cover URLs |
+| `lib/integrations.js` | public YouTube / Discord / sales APIs |
+| `lib/admin-content.js` | admin CRUD for characters, timeline, lore topics |
+| `lib/calendar.js` | publishing calendar (public read + admin write) |
+| `lib/manuscripts.js` | optional .docx reading, off unless enabled |
+| `lib/publishing-api.js` | the admin publishing dashboard API |
+| `lib/{gumroad,youtube,url,newsletter-provider}.js` | provider clients and the URL rule |
+
+**Path resolution:** `__dirname` inside `lib/` is `lib/`, so a module must never
+recompute a repo-root path. The server resolves `PUBLIC_DIR`, `MANUSCRIPTS_DIR`
+and the DB handles, and hands them over at boot with `configure()`. Adding a
+module means adding it to the `require` block and the configure calls near the
+bottom of `dashboard-server.js`.
+
+**Require cycles:** `lib/http-helpers.js` is required by most modules, so it
+must not require them back. `lib/static-files.js` needs two of its writers, so
+they are injected rather than required.
+
+The public site's own pages are split the same way: page-specific CSS and JS
+live in `public/css/` and `public/js/` (or `public/assets/admin/` for the admin
+panel) instead of inline `<style>`/`<script>` blocks.
+
 ## Node requirements
 
 - Root server: **Node.js 20.19+**.

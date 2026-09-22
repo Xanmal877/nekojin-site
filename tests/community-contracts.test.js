@@ -4,12 +4,15 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const youtube = require('../lib/youtube.js');
+const { readPage } = require('./harness.js');
 
-const COMMUNITY = fs.readFileSync(path.join(__dirname, '..', 'public', 'xanrean', 'community.html'), 'utf8');
+// Read through the page's <link>/<script> references, so these contracts hold
+// the code the browser actually runs rather than the markup alone.
+const COMMUNITY = readPage('public/xanrean/community.html');
+const HOMEPAGE = readPage('public/index.html');
 
 test('Community page is reachable from the homepage and has accessible controls', () => {
-    const homepage = fs.readFileSync(path.join(__dirname, '..', 'public', 'index.html'), 'utf8');
-    assert.match(homepage, /href="\/xanrean\/community"/);
+    assert.match(HOMEPAGE, /href="\/xanrean\/community"/);
     assert.match(COMMUNITY, /<html lang="en">/);
     assert.match(COMMUNITY, /<meta name="viewport"/);
     assert.match(COMMUNITY, /aria-label="Toggle theme"/);

@@ -11,6 +11,7 @@
 // touch the real ones.
 
 const { spawn } = require('node:child_process');
+const net = require('node:net');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
@@ -49,16 +50,28 @@ function copyRepoFiles(workdir) {
 
 // Start an isolated server. Returns the child process plus the helpers bound to
 // its port, so callers never have to rebuild a base URL or a cookie jar.
+function getFreePort() {
+    return new Promise((resolve, reject) => {
+        const probe = net.createServer();
+        probe.once('error', reject);
+        probe.listen(0, '127.0.0.1', () => {
+            const { port } = probe.address();
+            probe.close(() => resolve(port));
+        });
+    });
+}
+
 async function startTestServer({ prefix, port, adminPassword, webhookSecret, extraEnv = {} }) {
     const workdir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
     copyRepoFiles(workdir);
 
-    const base = `http://127.0.0.1:${port}`;
+    const actualPort = port || await getFreePort();
+    const base = `http://127.0.0.1:${actualPort}`;
     const proc = spawn(process.execPath, ['dashboard-server.js'], {
         cwd: workdir,
         env: {
             ...process.env,
-            PORT: String(port),
+            PORT: String(actualPort),
             ADMIN_BOOTSTRAP_USER: 'admin',
             ADMIN_BOOTSTRAP_PASSWORD: adminPassword,
             GUMROAD_WEBHOOK_SECRET: webhookSecret,
@@ -124,6 +137,30 @@ function authHeadersFromResponse(res) {
     };
 }
 
+// Read a public page the way a browser sees it: the markup plus every
+// stylesheet and script that page links to.
+//
+// Page splits moved page behaviour out of the HTML and into public/css/ and
+// public/js/. A contract that asserts a string against the raw .html file is
+// therefore asserting against a file the browser never executes — it would
+// pass on a page whose script was deleted. Reading through the links keeps the
+// assertion pointed at the code that actually ships.
+function readPage(relPath) {
+    const file = path.join(ROOT, relPath);
+    const html = fs.readFileSync(file, 'utf8');
+    let combined = html;
+    const refs = [
+        ...html.matchAll(/<link\b[^>]*\bhref="([^"]+\.css)"/gi),
+        ...html.matchAll(/<script\b[^>]*\bsrc="([^"]+\.js)"/gi)
+    ].map(m => m[1]);
+    for (const ref of refs) {
+        if (/^https?:/i.test(ref)) continue;
+        const asset = path.join(ROOT, 'public', ref.replace(/^\//, ''));
+        if (fs.existsSync(asset)) combined += `\n/* ${ref} */\n` + fs.readFileSync(asset, 'utf8');
+    }
+    return combined;
+}
+
 async function loginAs(base, username, password) {
     const res = await fetch(`${base}/login`, {
         method: 'POST',
@@ -134,4 +171,4 @@ async function loginAs(base, username, password) {
     return { status: res.status, ...authHeadersFromResponse(res) };
 }
 
-module.exports = { ROOT, copyRepoFiles, startTestServer, loginAs, authHeadersFromResponse };
+module.exports = { ROOT, copyRepoFiles, readPage, startTestServer, loginAs, authHeadersFromResponse };
