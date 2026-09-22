@@ -173,37 +173,6 @@ class PublishingDB {
     }
 
     /**
-     * totals() - Aggregate word count and views across all releases.
-     * Uses the latest metric snapshot per release (not summed across snapshots).
-     * @returns {Object} { words, views }
-     */
-    async totals() {
-        try {
-            await this.open();
-            const row = await this._get(`
-                SELECT
-                    COALESCE(SUM(r.word_count), 0) AS words,
-                    COALESCE(SUM(m.views), 0) AS views
-                FROM releases r
-                LEFT JOIN release_metrics m
-                  ON m.id = (
-                      SELECT m2.id
-                      FROM release_metrics m2
-                      WHERE m2.release_id = r.id
-                      ORDER BY m2.captured_at DESC, m2.id DESC
-                      LIMIT 1
-                  )
-            `);
-            return {
-                words: row.words || 0,
-                views: row.views || 0
-            };
-        } catch (err) {
-            throw new Error(`Totals query failed: ${err.message}`);
-        }
-    }
-
-    /**
      * cadence() - Published releases per month (UTC).
      * @returns {Array} [{ month: 'YYYY-MM', releases }]
      */

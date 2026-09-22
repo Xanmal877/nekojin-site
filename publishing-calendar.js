@@ -22,6 +22,7 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
 const crypto = require('node:crypto');
+const { isSafeHttpUrl, isValidDateStr } = require('./lib/url');
 
 // Database location
 const DB_DIR = path.join(__dirname, 'data');
@@ -111,9 +112,14 @@ class PublishingCalendar {
         if (!this.isOpen || !this.db) return;
 
         return new Promise((resolve, reject) => {
+            // sqlite3's close callback does not fire if a statement is still
+            // pending, and shutdown awaits this — without the bound the process
+            // would hang instead of exiting.
             const timeout = setTimeout(() => {
                 console.warn('PublishingCalendar: Close timeout, forcing shutdown');
                 this.isOpen = false;
+                this.db = null;
+                this.initPromise = null;
                 resolve();
             }, 5000);
 
@@ -211,16 +217,8 @@ class PublishingCalendar {
         return id;
     }
 
-    /**
-     * Validate date format YYYY-MM-DD
-     * @param {string} date
-     * @returns {boolean}
-     */
     _isValidDate(date) {
-        if (typeof date !== 'string') return false;
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
-        const d = new Date(date + 'T00:00:00Z');
-        return d instanceof Date && !isNaN(d) && d.toISOString().startsWith(date);
+        return isValidDateStr(date);
     }
 
     /**
@@ -234,11 +232,6 @@ class PublishingCalendar {
         return VALIDATION.RELEASE_TIME_PATTERN.test(time);
     }
 
-    /**
-     * Validate platform
-     * @param {string} platform
-     * @returns {boolean}
-     */
     _isValidPlatform(platform) {
         return VALIDATION.PLATFORM_CHOICES.includes(platform);
     }
@@ -261,31 +254,15 @@ class PublishingCalendar {
     }
 
     /**
-     * Validate URL (http/https only)
-     * @param {string} url
-     * @returns {boolean}
+     * Validate URL: optional, length-capped, and http(s) only. Only http(s)
+     * may be rendered as a link on the public calendar - javascript:, data:,
+     * and file: are all rejected by the shared isSafeHttpUrl check.
      */
     _isValidUrl(url) {
         if (!url) return true; // Optional
-        if (typeof url !== 'string') return false;
-        if (url.length > VALIDATION.URL_MAX) return false;
-        try {
-            const parsed = new URL(url);
-            // Only http(s) schemes are allowed. This blocks javascript:, data:,
-            // file:, and other schemes that could be used for XSS or local file
-            // access when the URL is rendered as a link on the public calendar.
-            return parsed.protocol === 'http:' || parsed.protocol === 'https:';
-        } catch (e) {
-            return false;
-        }
+        return url.length <= VALIDATION.URL_MAX && isSafeHttpUrl(url);
     }
 
-    /**
-     * Validate string length
-     * @param {string} str
-     * @param {number} max
-     * @returns {boolean}
-     */
     _isValidLength(str, max) {
         if (typeof str !== 'string') return false;
         return str.length > 0 && str.length <= max;
@@ -413,36 +390,22 @@ class PublishingCalendar {
         const notes = entry.notes ? entry.notes.trim() : null;
         const now = new Date().toISOString();
 
+        // One statement either way: both branches write the same columns, the
+        // only difference is whether the row already exists.
+        const columns = 'title = ?, series = ?, platform = ?, release_date = ?, ' +
+            'release_time = ?, timezone = ?, url = ?, notes = ?, updated_at = ?';
         if (isUpdate) {
-            // Update existing entry
-            const sql = `
-                UPDATE publishing_calendar
-                SET title = ?, series = ?, platform = ?, release_date = ?,
-                    release_time = ?, timezone = ?, url = ?, notes = ?, updated_at = ?
-                WHERE id = ?
-            `;
-
-            await this._run(sql, [
-                title, series, platform, release_date,
-                release_time, timezone, url, notes, now, id
-            ]);
-
-            return this._get('SELECT * FROM publishing_calendar WHERE id = ?', [id]);
+            await this._run(`UPDATE publishing_calendar SET ${columns} WHERE id = ?`,
+                [title, series, platform, release_date, release_time, timezone, url, notes, now, id]);
         } else {
-            // Insert new entry
-            const sql = `
-                INSERT INTO publishing_calendar
-                (id, title, series, platform, release_date, release_time, timezone, url, notes, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `;
-
-            await this._run(sql, [
-                id, title, series, platform, release_date,
-                release_time, timezone, url, notes, now, now
-            ]);
-
-            return this._get('SELECT * FROM publishing_calendar WHERE id = ?', [id]);
+            await this._run(
+                `INSERT INTO publishing_calendar
+                 (id, title, series, platform, release_date, release_time, timezone, url, notes, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [id, title, series, platform, release_date, release_time, timezone, url, notes, now, now]);
         }
+
+        return this._get('SELECT * FROM publishing_calendar WHERE id = ?', [id]);
     }
 
     /**

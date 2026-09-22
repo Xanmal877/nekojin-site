@@ -14,7 +14,6 @@ const SALT_ROUNDS = 10;
 
 // ── PATHS ───────────────────────────────────────────────
 const USERS_FILE = path.join(__dirname, 'users.json');
-const USER_KEYS_FILE = path.join(__dirname, 'user-keys.json');
 const SESSIONS_FILE = path.join(__dirname, 'sessions.json');
 
 // ── ATOMIC WRITE HELPERS ────────────────────────────────
@@ -94,13 +93,6 @@ if (fs.existsSync(USERS_FILE)) {
         fs.chmodSync(USERS_FILE, 0o600);
     } catch (e) {
         console.warn('[PERSISTENCE] Could not set restrictive permissions on users.json:', e.message);
-    }
-}
-if (fs.existsSync(USER_KEYS_FILE)) {
-    try {
-        fs.chmodSync(USER_KEYS_FILE, 0o600);
-    } catch (e) {
-        console.warn('[PERSISTENCE] Could not set restrictive permissions on user-keys.json:', e.message);
     }
 }
 
@@ -472,46 +464,6 @@ function isLastAdmin(username) {
     return adminCount <= 1;
 }
 
-// ── USER KEYS ───────────────────────────────────────────
-function loadUserKeys() {
-    const result = readJsonWithFallbackSync(USER_KEYS_FILE, {});
-    if (!result.valid) {
-        console.warn('[PERSISTENCE] Recovered from malformed user-keys.json');
-    }
-    return result.data;
-}
-
-function saveUserKeys(data) {
-    const written = atomicWriteSync(USER_KEYS_FILE, data);
-    if (!written) {
-        console.error(`[PERSISTENCE] Failed to save user keys to disk (in-memory state preserved)`);
-        return false;
-    }
-    return true;
-}
-
-function getUserKeys(username) {
-    const all = loadUserKeys();
-    return all[username] || {};
-}
-
-function setUserKey(username, provider, key) {
-    const all = loadUserKeys();
-    if (!all[username]) all[username] = {};
-    const original = all[username][provider];
-    all[username][provider] = key;
-    if (!saveUserKeys(all)) {
-        // Write failed: roll back the in-memory change so we don't report success.
-        if (original === undefined) {
-            delete all[username][provider];
-        } else {
-            all[username][provider] = original;
-        }
-        return false;
-    }
-    return true;
-}
-
 // ── REQUEST HELPERS ─────────────────────────────────────
 function parseCookies(h) {
     const c = {};
@@ -565,10 +517,7 @@ module.exports = {
      resetPassword,
      setUserRole,
      isLastAdmin,
-     // User keys
-     getUserKeys,
-     setUserKey,
-     // Request helpers
+      // Request helpers
      parseCookies,
      getSessionId,
      isAuthenticated,

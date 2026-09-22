@@ -29,7 +29,7 @@ npm audit                 # root dependency audit (also run in tools/publishing-
 
 ## Temporary test behavior
 
-`npm test` (`node --test`) boots a **throwaway copy** of the server: `tests/smoke.test.js` copies the server files, `public/`, `lib/`, and `node_modules` into a temp dir and runs on port `7781` (not the default `7771`). Tests use a temp working dir and a test admin password. The production code uses a single `operationQueue` in `database.js`; do not restore the old dual-queue design. Native dependencies must be installed for the test suite to start.
+`npm test` (`node --test`) boots **throwaway copies** of the server. `tests/harness.js` is the one place that does it: `startTestServer()` copies the server files, `public/`, and `lib/` into a temp dir, links `node_modules`, spawns the server on the requested port (smoke uses `7781`, not the default `7771`), waits for `/api/health`, and `loginAs()` returns session+CSRF headers. A new suite should call the harness rather than re-implement the preamble. The production code uses a single `operationQueue` in `database.js`; do not restore the old dual-queue design. Native dependencies must be installed for the test suite to start.
 
 ## Publishing DB env
 

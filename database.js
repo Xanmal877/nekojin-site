@@ -630,7 +630,7 @@ class ContentDB {
     // BOOKS CRUD
     // ============================================================
 
-    async InsertBook(data) {
+    async InsertBook(data, { replacePlatforms = true } = {}) {
         const validStatuses = new Set(['draft', 'preview', 'published', 'archived']);
         const status = validStatuses.has(data.status) ? data.status : 'draft';
         const publishAt = data.publishAt || data.publish_at || null;
@@ -680,10 +680,17 @@ class ContentDB {
             publishAt
         ]);
 
-        // Insert platforms with normalized field names. Only http/https URLs are
-        // persisted; unsafe schemes (javascript:, data:, protocol-relative, or
-        // malformed) are dropped at the persistence boundary so they can never
-        // reach the database or be emitted into generated RSS.
+        // Replace this book's platform rows rather than appending. Re-saving a
+        // book is a full write of that book (the admin panel always posts every
+        // link it currently shows), so appending would duplicate the existing
+        // set on each save. The bulk save clears book_platforms itself, so it
+        // passes replacePlatforms:false to skip a no-op delete per book.
+        // Only http/https URLs are persisted; unsafe schemes (javascript:,
+        // data:, protocol-relative, or malformed) are dropped at the
+        // persistence boundary so they can never reach the database or be
+        // emitted into generated RSS.
+        if (replacePlatforms) await this.DeleteBookPlatforms(data.id);
+
         const platforms = data.platforms || [];
         let sortOrder = 0;
         for (let i = 0; i < platforms.length; i++) {
@@ -712,6 +719,16 @@ class ContentDB {
         const params = slugOrId === null ? [] : [slugOrId, slugOrId];
         const rows = await this._all(sql, params);
 
+        // Every book's platforms come from one query grouped by book_id rather
+        // than a query per book: this runs on /content and every public page.
+        const byBook = new Map();
+        for (const p of await this._all('SELECT * FROM book_platforms ORDER BY sort_order')) {
+            if (!byBook.has(p.book_id)) byBook.set(p.book_id, []);
+            // `type`/`name` are the API-facing aliases of the stored columns.
+            byBook.get(p.book_id).push({ type: p.platform_type, name: p.platform_name, url: p.url, ...p });
+        }
+        const platformRows = id => byBook.get(id) || [];
+
         // Parse JSON and load platforms
         const books = [];
         for (const row of rows) {
@@ -731,15 +748,7 @@ class ContentDB {
             row.volume = row.volume || '';
             row.ctaPlatform = row.cta_platform || 'kdp';
 
-            // Load platforms and normalize field names
-            row.platforms = await this.SelectBookPlatforms(row.id);
-            // Map platform fields for compatibility
-            row.platforms = row.platforms.map(p => ({
-                type: p.platform_type,
-                name: p.platform_name,
-                url: p.url,
-                ...p
-            }));
+            row.platforms = platformRows(row.id);
 
             books.push(row);
         }
@@ -1267,6 +1276,7 @@ class ContentDB {
     // ============================================================
 
     async InsertTimelineEvent(data) {
+        const id = data.id || crypto.randomUUID();
         const sql = `
             INSERT INTO timeline_events (id, title, era, description, related_character_slugs, related_book_id, sort_order, visible, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
@@ -1281,7 +1291,7 @@ class ContentDB {
                 updated_at = CURRENT_TIMESTAMP
         `;
         const result = await this._run(sql, [
-            data.id,
+            id,
             data.title,
             data.era || null,
             data.description || '',
@@ -1290,7 +1300,7 @@ class ContentDB {
             data.sort_order || 0,
             data.visible !== false ? 1 : 0
         ]);
-        return { id: data.id, changes: result.changes };
+        return { id, changes: result.changes };
     }
 
     async SelectTimelineEvents(whereClause = '', params = []) {
@@ -1326,6 +1336,8 @@ class ContentDB {
         return { changes: result.changes };
     }
 
+    // ============================================================
+
     async UpdateCharacterRelationships(slug, relationships) {
         const result = await this._run(
             'UPDATE characters SET relationships = ? WHERE slug = ?',
@@ -1333,8 +1345,6 @@ class ContentDB {
         );
         return { changes: result.changes };
     }
-
-    // ============================================================
 
     async InsertLoreTopic(data) {
         if (!data || !data.id || !/^[a-zA-Z0-9_-]{1,64}$/.test(String(data.id))) {
@@ -1579,7 +1589,7 @@ class ContentDB {
                         name: p.name || p.platform_name,
                         url: p.url
                     }))
-                });
+                }, { replacePlatforms: false });
             }
 
             // Insert games - support array

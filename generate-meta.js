@@ -114,11 +114,11 @@ function createEntryXml(item, type) {
     id_slug = `/books#${encodeURIComponent(book.id)}`;
     const description = book.description || '';
     summaryText = description.slice(0, 300);
-    
+
     const platforms = (book.platforms || []).filter(p => isSafeHttpUrl(p.url)).map(p =>
       `<a href="${esc(p.url)}">${esc(p.name || p.type)}</a>`
     ).join(' · ');
-    
+
     contentHtml = `<p>${esc(description)}</p><p><strong>Platforms:</strong> ${platforms}</p>`;
   } else {
     const devlog = item;
@@ -181,7 +181,7 @@ async function generateAll() {
   await contentDB.Open();
   const books = await contentDB.SelectBooks();
   const devlogs = await contentDB.SelectAllVisibleDevlogEntries();
-  
+
   generateRobots();
   await generateSitemap(books);
   await generateRSS({ books, devlogs });
