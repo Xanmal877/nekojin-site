@@ -201,7 +201,29 @@ git commit -am "docs: mark feature complete"
 
 ## Known Issues: Nekojin Interactive Website
 
-> Last updated: 2026-08-21
+> Last updated: 2026-09-21
+
+
+### ✅ 2026-09-21 Session: KDP catalog + cover sync for Her Majesty, Tamaneko
+
+The shop listings on Amazon are the source of truth for title, blurb and cover
+art, so the live catalog now reads from them instead of being hand-copied.
+
+- **Volumes 5, 6, 7 added** to the live DB (`to-rule-a-kingdom`,
+  `fuyu-the-hero`, `war-on-the-horizon`) with their KDP blurbs, descriptions
+  and ASIN links. Volume 2's official title is "Vulpine Mastermind" — the old
+  "Buried Truths: The Depths of Despair" ASIN is retired.
+- **All 10 covers refreshed** from the current KDP listings (1024x1536 source
+  art through the same sharp pipeline as `/upload-cover`: max 1200px, webp
+  q85, 800x1200 output).
+- **`tools/sync-kdp-books.py`** — pulls title/description/cover straight off
+  each Amazon product page and writes them through `database.js`. Add a new
+  ASIN to its `CATALOG` list when a volume goes live; that is the only
+  maintenance it needs. `--dry` reports without writing.
+- The omnibus listing is currently the **Volumes 1-5** collection; point
+  `CATALOG`'s omnibus ASIN at a new one when it is reissued.
+
+Pre-change backups on the Pi: `~/Backups/pre-kdp-cover-update/` (DB + covers).
 
 ---
 
