@@ -99,10 +99,19 @@ test('GET / serves the homepage', async () => {
     assert.strictEqual(res.status, 200);
 });
 
-test('server warns on startup when content tables are empty but covers exist', () => {
+test('server warns on startup when content tables are empty but covers exist', async () => {
     // The smoke-test server starts with an empty DB but real covers copied
-    // from public/. The startup sanity check should log a warning.
-    assert(serverStderr.includes('WARNING: content tables are empty but /public/covers/ still has files'),
+    // from public/. The startup sanity check logs a warning — but it runs in
+    // the server process on its own tick and reaches this process over a pipe,
+    // so it is NOT guaranteed to have arrived by the time the health endpoint
+    // responds (and node:test runs files in parallel, which widens the gap).
+    // Poll for it rather than sampling stderr once.
+    const needle = 'WARNING: content tables are empty but /public/covers/ still has files';
+    const deadline = Date.now() + 5000;
+    while (Date.now() < deadline && !serverStderr.includes(needle)) {
+        await new Promise(r => setTimeout(r, 50));
+    }
+    assert(serverStderr.includes(needle),
         `Expected startup warning in stderr, got:\n${serverStderr}`);
 });
 
@@ -767,4 +776,99 @@ test('character relationships round-trip', async () => {
 
     // Cleanup
     await fetch(`${BASE}/api/characters/${charSlug}`, { method: 'DELETE', headers: sharedAuth.headers });
+});
+
+// ── Cache correctness for edited-in-place assets ──────────────
+// Regression: page HTML and cover art are both edited in place under fixed
+// URLs. Caching the HTML meant a normal reload kept serving the previous
+// inline script (old section headings, old cover filenames) until the entry
+// expired, so only a hard reload showed current content. Cover files replaced
+// under the same name likewise went stale in the browser.
+test('page HTML is not long-cached, so an edited page cannot go stale', async () => {
+    for (const route of ['/xanrean/books', '/books', '/book', '/', '/xanrean']) {
+        const res = await fetch(`${BASE}${route}`);
+        const cc = res.headers.get('cache-control') || '';
+        assert.ok(res.ok, `${route} should respond OK`);
+        assert.ok(
+            !/max-age=[1-9]/.test(cc) || /no-store|no-cache/.test(cc),
+            `${route} must not be served from cache (got "${cc}")`
+        );
+        assert.ok(
+            /no-cache|no-store/.test(cc),
+            `${route} should send an explicit no-cache/no-store (got "${cc}")`
+        );
+    }
+});
+
+test('public catalog exposes cover URLs carrying a content hash', async () => {
+    // Seed a book with a cover through the admin API so this doesn't depend on
+    // whatever catalog the test DB happens to start with.
+    const coverFile = 'book-cache-test.webp';
+    const coverBytes = fs.readFileSync(
+        path.join(WORKDIR, 'public', 'covers', 'homepage-cover-xanrean.webp'));
+    fs.writeFileSync(path.join(WORKDIR, 'public', 'covers', coverFile), coverBytes);
+
+    const seed = await fetch(`${BASE}/save-content`, {
+        method: 'POST', headers: sharedAuth.headers,
+        body: JSON.stringify({
+            series: [],
+            books: [{
+                id: 'cache-test-book', slug: 'cache-test-book', title: 'Cache Test Book',
+                cover: `/covers/${coverFile}`, status: 'published', visible: true, tier: 'novella',
+                description: 'seed', blurb: 'seed',
+            }],
+            game: [], about: {},
+        }),
+    });
+    assert.strictEqual(seed.status, 200, 'seeding a book should succeed');
+
+    const res = await fetch(`${BASE}/content`);
+    assert.strictEqual(res.status, 200);
+    const data = await res.json();
+    const books = (data.books || []).filter(b => b.cover && b.cover.startsWith('/covers/'));
+    assert.ok(books.length > 0, 'expected at least one book with a cover');
+
+    for (const b of books) {
+        assert.match(
+            b.cover,
+            /^\/covers\/[A-Za-z0-9._-]+\?v=[0-9a-f]{8}$/,
+            `cover for ${b.slug} should carry a content hash, got "${b.cover}"`
+        );
+        // and the underlying file must actually resolve
+        const fileRes = await fetch(`${BASE}${b.cover}`);
+        assert.ok(fileRes.ok, `cover file for ${b.slug} should be servable`);
+    }
+});
+
+test('a replaced cover gets a new versioned URL', async () => {
+    const before = await (await fetch(`${BASE}/content`)).json();
+    const target = (before.books || []).find(b => b.cover && b.cover.startsWith('/covers/'));
+    assert.ok(target, 'need a book with a cover to test replacement');
+
+    const rel = target.cover.split('?')[0];
+    const filePath = path.join(WORKDIR, 'public', rel.replace(/^\//, ''));
+
+    // Same bytes -> same version (stays cacheable).
+    const unchanged = await (await fetch(`${BASE}/content`)).json();
+    const same = unchanged.books.find(b => b.slug === target.slug);
+    assert.strictEqual(same.cover, target.cover, 'unchanged art should keep its URL');
+
+    // Rewrite the file with different bytes -> version must change.
+    const original = fs.readFileSync(filePath);
+    try {
+        fs.writeFileSync(filePath, Buffer.concat([original, Buffer.from('\n// changed')]));
+        // mtime granularity: make the change unambiguous
+        const future = new Date(Date.now() + 5000);
+        fs.utimesSync(filePath, future, future);
+
+        const after = await (await fetch(`${BASE}/content`)).json();
+        const changed = after.books.find(b => b.slug === target.slug);
+        assert.notStrictEqual(
+            changed.cover, target.cover,
+            'replacing a cover in place must produce a new URL, or browsers serve the old art'
+        );
+    } finally {
+        fs.writeFileSync(filePath, original);
+        fs.rmSync(path.join(WORKDIR, 'public', 'covers', 'book-cache-test.webp'), { force: true });
+    }
 });

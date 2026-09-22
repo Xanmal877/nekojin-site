@@ -666,6 +666,40 @@ function registerPage(error = '', success = '') {
 </html>`;
 }
 
+// ── COVER VERSIONING ──────────────────────────────────────
+// Cover files are replaced in place (same filename, new art), so a browser
+// holding the old bytes has no way to know. Hash the file content and append
+// it as a query string: same art -> same URL (stays cached), new art -> new
+// URL (fetched immediately). Memoised by mtime+size so re-requesting /content
+// doesn't re-hash every cover.
+const coverVersionCache = new Map();
+
+function coverVersion(coverPath) {
+    if (typeof coverPath !== 'string' || !coverPath.startsWith('/covers/')) return '';
+    // Ignore anything with a query/dot-segment trick in it.
+    if (coverPath.includes('..') || coverPath.includes('?') || coverPath.includes('#')) return '';
+    const file = path.join(PUBLIC_DIR, coverPath.slice(1));
+    try {
+        const st = fs.statSync(file);
+        const key = `${st.mtimeMs}:${st.size}`;
+        let v = coverVersionCache.get(coverPath);
+        if (!v || v.key !== key) {
+            v = { key, version: crypto.createHash('sha1')
+                .update(fs.readFileSync(file)).digest('hex').slice(0, 8) };
+            coverVersionCache.set(coverPath, v);
+        }
+        return `?v=${v.version}`;
+    } catch {
+        return '';   // missing file: leave the URL alone, let it 404 visibly
+    }
+}
+
+function withCoverVersion(book) {
+    if (!book || typeof book !== 'object') return book;
+    const v = coverVersion(book.cover);
+    return v ? { ...book, cover: book.cover + v } : book;
+}
+
 // ── PUBLIC ROUTES ─────────────────────────────────────────
 const PUBLIC_ROUTES = {
     '/': path.join(PUBLIC_DIR, 'index.html'),
@@ -743,19 +777,30 @@ async function handleRequest(req, res) {
     // Permissions-Policy: Disable potentially dangerous APIs
     res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=(), payment=()');
 
-    // Cache-Control: Public routes cache reasonably; admin/API routes don't
-    const isPublic = req.method === 'GET' && (
-        url === '/' ||
+    // Cache-Control: public *static assets* cache reasonably; HTML pages and
+    // admin/API routes do not.
+    //
+    // HTML is deliberately excluded. Page markup and cover art are both edited
+    // in place under fixed URLs, and every public page renders its content with
+    // an inline script. Caching the HTML meant a normal reload kept serving the
+    // *old* inline script — old section headings, old cover filenames — until
+    // the entry expired, so only a hard reload showed current content. Markup
+    // gets no-cache so the document and its script always match; the data it
+    // fetches (/content) is already no-store, and cover URLs are content-hashed
+    // (see withCoverVersion) so their bytes can't go stale either.
+    const isStaticAsset = req.method === 'GET' && (
         url.startsWith('/assets/') ||
         url.startsWith('/covers/') ||
         url.startsWith('/images/') ||
-        url.startsWith('/xanrean/') ||
-        url.startsWith('/data/')
+        url.startsWith('/fonts/') ||
+        url === '/style.css' ||
+        url === '/common.js' ||
+        url.startsWith('/publishing/')
     );
-    if (isPublic) {
+    if (isStaticAsset) {
         res.setHeader('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400');
     } else {
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, private');
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         res.setHeader('Pragma', 'no-cache');
         res.setHeader('Expires', '0');
     }
@@ -983,6 +1028,11 @@ async function handleRequest(req, res) {
                 // Games must be explicitly visible.
                 data.game = (data.game || []).filter(g => g.visible !== false);
             }
+            // Cover art is re-uploaded in place under the same filename, so the
+            // URL alone can't tell a browser its bytes changed. Append a
+            // content hash so a replaced cover gets a new URL and the old one
+            // can be cached forever without ever going stale.
+            data.books = (data.books || []).map(withCoverVersion);
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify(data));
         } catch (err) {
