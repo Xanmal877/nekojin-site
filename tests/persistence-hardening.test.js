@@ -15,16 +15,15 @@ const path = require('node:path');
 const os = require('node:os');
 const sqlite3 = require('sqlite3').verbose();
 
-// Test 1: Document umask enforcement at server startup
-// Note: dashboard-server.js sets process.umask(0o077) at the earliest opportunity
-// This test documents that server startup enforces restrictive umask
-test('Server startup enforces restrictive file permissions via umask', () => {
-    // This is verified by the other tests below which check actual file/dir permissions.
-    // The umask is set at line ~17 in dashboard-server.js as:
-    //   const previousUmask = process.umask(0o077);
-    // This ensures all new files/dirs are created with owner-only permissions
-    // regardless of system defaults.
-    assert(true, 'umask(0o077) is set at server startup (verified by permission tests below)');
+// Test 1: Keep the startup security invariant visible in the suite. The server
+// sets this before loading modules that may create runtime files.
+test('Server startup sets a restrictive umask before module initialization', () => {
+    const serverSource = fs.readFileSync(path.join(__dirname, '..', 'dashboard-server.js'), 'utf8');
+    const umaskAt = serverSource.indexOf('process.umask(0o077)');
+    const firstRequireAt = serverSource.indexOf("require('");
+
+    assert.notStrictEqual(umaskAt, -1, 'dashboard-server.js must set the restrictive umask');
+    assert.ok(umaskAt < firstRequireAt, 'umask must be set before application modules load');
 });
 // Test 2: Database directory has owner-only permissions
 test('Database directory has 0o700 permissions', async () => {

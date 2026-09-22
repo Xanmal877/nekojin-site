@@ -7,7 +7,6 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { ROOT, startTestServer, loginAs } = require('./harness.js');
 
-const PORT = 7781;
 const ADMIN_PASSWORD = 'SmokeTestPass1234';
 const GUMROAD_WEBHOOK_SECRET = 'smoke-webhook-secret';
 
@@ -18,7 +17,6 @@ const serverStderr = () => server.output;
 before(async () => {
     server = await startTestServer({
         prefix: 'nekojin-smoke-',
-        port: PORT,
         adminPassword: ADMIN_PASSWORD,
         webhookSecret: GUMROAD_WEBHOOK_SECRET
     });

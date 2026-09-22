@@ -8,7 +8,6 @@ const path = require('node:path');
 const sqlite3 = require('sqlite3').verbose();
 const { ROOT, startTestServer, loginAs } = require('./harness.js');
 
-const PORT = 7792;
 const ADMIN_PASSWORD = 'PublishDashAdminPass123';
 const GUMROAD_WEBHOOK_SECRET = 'pub-dashboard-webhook';
 
@@ -43,7 +42,6 @@ function draftTitlesInWindow(start, end) {
 before(async () => {
     server = await startTestServer({
         prefix: 'nekojin-pub-',
-        port: PORT,
         adminPassword: ADMIN_PASSWORD,
         webhookSecret: GUMROAD_WEBHOOK_SECRET,
         // Only point at the real publishing DB if it exists.

@@ -56,6 +56,7 @@ user-keys.json
 
 # Runtime / generated data
 story-metrics.json
+tools/scraper/story-metrics.json
 newsletter-subscribers.json
 sessions.json
 site-content.json

@@ -495,33 +495,33 @@ ensureAdminUser();
 
 // ── EXPORTS ───────────────────────────────────────────
 module.exports = {
-     // Sessions
-     createSession,
-     isValidSession,
-     getSessionUser,
-     deleteSession,
-     invalidateUserSessions,
-     cleanupExpiredSessions,
-     getSessionCsrfToken,
-     isValidCsrfToken,
-     setCookieHeader,
-     // Users
-     findUser,
-     createUser,
-     verifyUser,
-     getUserRole,
-     isAdmin,
-     // User management
-     listAllUsers,
-     deleteUser,
-     resetPassword,
-     setUserRole,
-     isLastAdmin,
-      // Request helpers
-     parseCookies,
-     getSessionId,
-     isAuthenticated,
-     getUsername,
-     // Constants
-     SESSION_TTL
- };
+    // Sessions
+    createSession,
+    isValidSession,
+    getSessionUser,
+    deleteSession,
+    invalidateUserSessions,
+    cleanupExpiredSessions,
+    getSessionCsrfToken,
+    isValidCsrfToken,
+    setCookieHeader,
+    // Users
+    findUser,
+    createUser,
+    verifyUser,
+    getUserRole,
+    isAdmin,
+    // User management
+    listAllUsers,
+    deleteUser,
+    resetPassword,
+    setUserRole,
+    isLastAdmin,
+    // Request helpers
+    parseCookies,
+    getSessionId,
+    isAuthenticated,
+    getUsername,
+    // Constants
+    SESSION_TTL
+};

@@ -2,11 +2,12 @@
 //
 // database.js stores books flat with a `series_id` FK (see SelectBooks/
 // GetAllContent in database.js), series rows never carry a `.books` array.
-// admin.html's editor UI predates that and still treats every series as
+// admin panel's editor UI predates that and still treats every series as
 // owning a nested `books` array (renderBooksPanel/getBook/getBooks all index
 // through `series[si].books`). nestBooksIntoSeries() and flattenSeriesBooks()
-// in admin.html are the single boundary that translates between the two
-// shapes on load/save respectively. Without them, the admin panel throws
+// in public/assets/admin/core.js are the single boundary that translates
+// between the two shapes on load/save respectively. Without them, the admin
+// panel throws
 // "Cannot read properties of undefined (reading 'length')" the instant any
 // series exists (reproduced live against a running server before this fix),
 // and any book living inside a series is silently dropped on save (since
@@ -20,26 +21,25 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-const ADMIN_HTML = fs.readFileSync(path.join(__dirname, '..', 'admin.html'), 'utf8');
+const ADMIN_JS = fs.readFileSync(path.join(__dirname, '..', 'public', 'assets', 'admin', 'core.js'), 'utf8');
 
 function extractFunction(name) {
     // Matches "function NAME(...) { ... }" up to the matching top-level
     // brace close, by tracking brace depth char-by-char from the opening
     // "{", and regex alone can't balance nested braces reliably.
-    const startMatch = ADMIN_HTML.match(new RegExp(`function ${name}\\([^)]*\\)\\s*\\{`));
-    if (!startMatch) throw new Error(`Could not find function ${name} in admin.html`);
+    const startMatch = ADMIN_JS.match(new RegExp(`function ${name}\\([^)]*\\)\\s*\\{`));
+    if (!startMatch) throw new Error(`Could not find function ${name} in admin panel core`);
     const start = startMatch.index;
     let depth = 0;
-    let i = ADMIN_HTML.indexOf('{', start);
-    const bodyStart = i;
-    for (; i < ADMIN_HTML.length; i++) {
-        if (ADMIN_HTML[i] === '{') depth++;
-        else if (ADMIN_HTML[i] === '}') {
+    let i = ADMIN_JS.indexOf('{', start);
+    for (; i < ADMIN_JS.length; i++) {
+        if (ADMIN_JS[i] === '{') depth++;
+        else if (ADMIN_JS[i] === '}') {
             depth--;
             if (depth === 0) break;
         }
     }
-    return ADMIN_HTML.slice(start, i + 1);
+    return ADMIN_JS.slice(start, i + 1);
 }
 
 const context = {};

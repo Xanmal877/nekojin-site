@@ -2,7 +2,8 @@
 /**
  * Multi-Platform Story Metrics Scraper
  * Royal Road + ScribbleHub
- * - Reads story config dynamically from content.json (same file the admin site manages)
+ * - Reads story configuration dynamically from data/nekojin.db
+ *   (the same SQLite content database the admin site manages)
  * - Adding/removing a book in the admin site automatically affects what gets scraped
  * - Uses Puppeteer to render JavaScript and extract live metrics
  * - Appends daily history, deduplicates by calendar date
