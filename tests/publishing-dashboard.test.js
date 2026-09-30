@@ -47,7 +47,7 @@ function draftTitlesInWindow(start, end) {
 function copyRepoFiles() {
     const filesToCopy = [
         'dashboard-server.js', 'accounts.js', 'database.js', 'backup.js',
-        'generate-meta.js', 'package.json', 'publishing-db.js', 'publishing-calendar.js'
+        'generate-meta.js', 'package.json', 'publishing-db.js'
     ];
     for (const f of filesToCopy) {
         fs.copyFileSync(path.join(ROOT, f), path.join(WORKDIR, f));
@@ -141,78 +141,6 @@ test('unauthenticated GET /api/publishing/health redirects to login', async () =
     const res = await fetch(`${BASE}/api/publishing/health`, { redirect: 'manual' });
     assert.strictEqual(res.status, 302);
     assert.match(res.headers.get('location'), /^\/login/);
-});
-
-test('public release calendar is reachable without authentication', async () => {
-    const page = await fetch(`${BASE}/publishing-calendar`);
-    assert.strictEqual(page.status, 200);
-    assert.match(await page.text(), /Release Calendar/);
-
-    const api = await fetch(`${BASE}/api/public/publishing-calendar?start=2099-01-01&end=2099-02-01`);
-    assert.strictEqual(api.status, 200);
-    const body = await api.json();
-    assert.deepStrictEqual(body.entries, []);
-});
-
-test('public release calendar never exposes draft imports', async () => {
-    if (!HAS_REAL_DB) return;
-    const draftTitles = await draftTitlesInWindow('2026-04-01', '2026-05-01');
-    const api = await fetch(`${BASE}/api/public/publishing-calendar?start=2026-04-01&end=2026-05-01`);
-    assert.strictEqual(api.status, 200);
-    const body = await api.json();
-    for (const title of draftTitles) {
-        assert.ok(!body.entries.some((entry) => entry.title === title), `Draft leaked publicly: ${title}`);
-    }
-});
-
-test('publishing calendar admin page and API require an admin', async () => {
-    const unauthenticated = await fetch(`${BASE}/admin/publishing-calendar`, { redirect: 'manual' });
-    assert.strictEqual(unauthenticated.status, 302);
-
-    const nonAdmin = await fetch(`${BASE}/admin/publishing-calendar`, {
-        headers: { Cookie: userAuth.cookieHeader },
-        redirect: 'manual',
-    });
-    assert.strictEqual(nonAdmin.status, 403);
-
-    const adminPage = await fetch(`${BASE}/admin/publishing-calendar`, {
-        headers: { Cookie: adminAuth.cookieHeader },
-    });
-    assert.strictEqual(adminPage.status, 200);
-});
-
-test('admin can add a platform-labelled manual release to the public calendar', async () => {
-    const create = await fetch(`${BASE}/api/admin/publishing-calendar`, {
-        method: 'POST',
-        headers: adminAuth.headers,
-        body: JSON.stringify({
-            title: 'Test scheduled chapter',
-            series: 'Test Series',
-            platform: 'ScribbleHub',
-            release_date: '2099-01-15',
-            release_time: '18:00',
-            timezone: 'America/Phoenix',
-            url: 'https://example.com/chapter',
-            notes: 'private admin note',
-        }),
-    });
-    assert.strictEqual(create.status, 200);
-    const created = (await create.json()).entry;
-    assert.ok(created.id);
-
-    const publicRes = await fetch(`${BASE}/api/public/publishing-calendar?start=2099-01-01&end=2099-02-01`);
-    assert.strictEqual(publicRes.status, 200);
-    const body = await publicRes.json();
-    assert.strictEqual(body.entries.length, 1);
-    assert.strictEqual(body.entries[0].platformKey, 'SH');
-    assert.strictEqual(body.entries[0].source, 'manual');
-    assert.strictEqual(body.entries[0].notes, undefined);
-
-    const remove = await fetch(`${BASE}/api/admin/publishing-calendar/${encodeURIComponent(created.id)}`, {
-        method: 'DELETE',
-        headers: adminAuth.headers,
-    });
-    assert.strictEqual(remove.status, 200);
 });
 
 test('unauthenticated GET /api/publishing/overview redirects to login', async () => {

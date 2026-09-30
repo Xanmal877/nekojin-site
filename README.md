@@ -85,11 +85,9 @@ nekojin-site/
 - Image uploads with WebP optimization
 - Newsletter subscriber management
 - Read-only publishing analytics at `/admin/publishing`
-- Public release calendar at `/publishing-calendar`
-- Admin-managed manual calendar entries at `/admin/publishing-calendar`
 
 ### 📈 **Publishing Dashboard**
-- Admin-only release, series, platform, calendar, and data-health views
+- Admin-only release, series, platform, and data-health views
 - Reads `data/Xanmal_Publishing_Database.sqlite` read-only by default
 - Override the source with `PUBLISHING_DB_PATH`
 - Build the nested React dashboard with `npm run build:dashboard`
@@ -145,7 +143,6 @@ sudo systemctl restart nekojin.service
 | `TRUST_PROXY` | `false` | Set `true` only if the server sits behind a reverse proxy (nginx, etc.) that sets `X-Forwarded-For`/`X-Real-IP`. Otherwise those headers are client-controlled and must not be trusted for rate limiting. |
 | `ALLOWED_ORIGINS` | `https://worldofxanrea.com` | Comma-separated list of origins allowed to make credentialed cross-origin requests. Same-origin browser requests (the normal case) don't need this at all. |
 | `PUBLISHING_DB_PATH` | `./data/Xanmal_Publishing_Database.sqlite` | Read-only SQLite source for the admin publishing dashboard. |
-| `PUBLISHING_CALENDAR_DB_PATH` | `./data/publishing-calendar.db` | SQLite store for admin-managed public calendar entries. |
 | `MANUSCRIPTS_ENABLED` | `false` | Enable the reviewed manuscript upload/reading subsystem. |
 | `NEWSLETTER_PROVIDER` | `none` | External provider to use: `none` (default), `buttondown`, `mailerlite`, `convertkit`, or `generic_webhook`. |
 | `BUTTONDOWN_API_KEY` | `null` | API key for Buttondown. |
