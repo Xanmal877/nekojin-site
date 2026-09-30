@@ -9,7 +9,7 @@ fetch('/content')
   })
   .catch(() => {});
 
-const PLAT_LABEL = { rr: 'Royal Road', sh: 'ScribbleHub', wp: 'Wattpad', kdp: 'Kindle', gumroad: 'Gumroad' };
+const PLAT_LABEL = { rr: 'Royal Road', sh: 'ScribbleHub', wp: 'Wattpad', kdp: 'Kindle' };
 
 function platLabel(p) {
   return PLAT_LABEL[p.type] || p.name || p.type || 'Read';

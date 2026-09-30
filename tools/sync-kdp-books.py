@@ -176,8 +176,6 @@ const dry = process.env.NEKOJIN_DRY === '1';
             throw new Error(`cover missing on disk: book-${item.slug}.webp`);
         }
         const platforms = [];
-        const gum = (prev?.platforms || []).find(p => p.platform_type === 'gumroad' && p.url);
-        if (gum) platforms.push({ type: 'gumroad', name: 'Gumroad', url: gum.url });
         platforms.push({ type: 'kdp', name: 'Kindle', url: item.kdp_url });
 
         const book = {

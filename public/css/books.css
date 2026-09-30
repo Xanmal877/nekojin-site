@@ -188,7 +188,6 @@
     .plat-btn.sh  { color: #a78bfa; border-color: rgba(167,139,250,0.4); }
     .plat-btn.wp  { color: #fb923c; border-color: rgba(251,146,60,0.4); }
     .plat-btn.kdp { color: #FF9900; border-color: rgba(255,153,0,0.4); }
-    .plat-btn.gumroad { color: #FF90E8; border-color: rgba(255,144,232,0.4); }
     .plat-btn.other { color: var(--muted); border-color: var(--border); }
     .plat-btn:hover { opacity: 0.72; transform: scale(1.05); }
     .no-platforms {

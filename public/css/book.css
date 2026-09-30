@@ -85,8 +85,6 @@
     .cta-kdp:hover { background: rgba(255,153,0,0.18); border-color: rgba(255,153,0,0.5); }
     .cta-wp  { background: rgba(251,146,60,0.1); border: 1px solid rgba(251,146,60,0.3); color: #fb923c; }
     .cta-wp:hover  { background: rgba(251,146,60,0.18); border-color: rgba(251,146,60,0.5); }
-    .cta-gumroad { background: rgba(255,144,232,0.1); border: 1px solid rgba(255,144,232,0.3); color: #FF90E8; }
-    .cta-gumroad:hover { background: rgba(255,144,232,0.18); border-color: rgba(255,144,232,0.5); }
     .cta-other { background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--text2); }
     .cta-other:hover { background: rgba(255,255,255,0.08); }
     .cta-read { background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.4); color: #c4b5fd; font-weight: 600; }

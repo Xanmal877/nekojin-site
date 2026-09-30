@@ -95,8 +95,8 @@ document.addEventListener('DOMContentLoaded', function() {
   setupSearch('drawer-search', 'drawer-search-results');
 })();
 
-const PLAT_CTA_CLASS = { rr: 'cta-rr', sh: 'cta-sh', kdp: 'cta-kdp', wp: 'cta-wp', gumroad: 'cta-gumroad' };
-const PLAT_CTA_LABEL = { rr: '📖 Royal Road', sh: '📖 ScribbleHub', kdp: '📚 Kindle', wp: '📖 Wattpad', gumroad: '🛒 Gumroad' };
+const PLAT_CTA_CLASS = { rr: 'cta-rr', sh: 'cta-sh', kdp: 'cta-kdp', wp: 'cta-wp' };
+const PLAT_CTA_LABEL = { rr: '📖 Royal Road', sh: '📖 ScribbleHub', kdp: '📚 Kindle', wp: '📖 Wattpad' };
 
 // Renamed book ids. "the-bedrock" turned out to be a series title, not a book —
 // its volume 1 is "The Foundation". Keep old links working rather than 404ing.

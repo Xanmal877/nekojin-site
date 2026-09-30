@@ -19,7 +19,7 @@
 // actually purchasable right now (a real book_platforms row with a URL),
 // not just DB status. Checked against the DB at the time this script was
 // written:
-//   - The Godling and Her Husband Vol. 1: real Gumroad link, genuinely out.
+//   - The Godling and Her Husband Vol. 1: genuine KDP listing, genuinely out.
 //   - The Bedrock: status says published but has zero real platform links,
 //     same situation as Tyrant's Rose. Not actually out yet.
 //   - Her Majesty, Tamaneko: only Volumes 1-4 are published books. The HMT

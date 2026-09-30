@@ -1,6 +1,6 @@
 // One-off backfill: import the 7 released Her Majesty, Tamaneko / Xanrean
 // Chronicles books (plus 3 in-progress titles as "Coming Soon") from the
-// author's local manuscript folder + verified Gumroad/KDP storefront links.
+// author's local manuscript folder + verified KDP storefront links.
 // Safe to re-run: InsertSeries/InsertBook are upserts keyed on id.
 const db = require('../database.js');
 
@@ -25,9 +25,8 @@ const books = [
         cover: '/covers/book-third-person-tempest.webp',
         blurb: "A powerful but simple Nekojin and a cynical but caring Kitsune stumble through goblin armies, undead liches, and ancient dragons.",
         description: "Tama is a ninja. She speaks in the third person, hates wearing clothes, and thinks her pet boar Jiggle is the best thing since burnt fish. She is also, apparently, the lost princess of a kingdom she's never heard of and the living avatar of the Goddess of Creation. Saki is a Kitsune who has spent her life manipulating everyone around her, hiding her true nature, and ignoring the voice in her head that whispers erase. She thought she was beyond caring about anyone. Then she met Tama. Together, a powerful but simple Nekojin and a cynical but caring Kitsune stumble through goblin armies, undead liches, and ancient dragons, and the worst enemy of all: responsibility.",
-        ctaPlatform: 'gumroad',
+        ctaPlatform: 'kdp',
         platforms: [
-            { type: 'gumroad', name: 'Gumroad', url: 'https://purplexanmal.gumroad.com/l/third-person-tempest' },
             { type: 'kdp', name: 'Kindle', url: 'https://www.amazon.com/Third-Person-Tempest-Xanrean-Chronicles-ebook/dp/B0F4RG6P86' }
         ]
     },
@@ -42,9 +41,8 @@ const books = [
         cover: '/covers/book-vulpine-mastermind.webp',
         blurb: "A Kitsune with a plan for revenge and none for what comes after. Captured, cornered, and about to find out what she's actually willing to fight for.",
         description: "Captured by goblins and forced to confront her failures, Saki discovers that Tama has been friends with their tribe since childhood. There's no time for shock. The Lich Jabrome has murdered Tama's Sensei and now marches on Drestor with an undead army. As goblins clash with the dead and the city faces annihilation, Saki must choose between revenge and redemption, and decide whether some monsters deserve saving.",
-        ctaPlatform: 'gumroad',
+        ctaPlatform: 'kdp',
         platforms: [
-            { type: 'gumroad', name: 'Gumroad', url: 'https://purplexanmal.gumroad.com/l/vulpine-mastermind' },
             { type: 'kdp', name: 'Kindle', url: 'https://www.amazon.com/Vulpine-Mastermind-Xanrean-Chronicles-Book-ebook/dp/B0FG3D9M47' }
         ]
     },
@@ -59,9 +57,8 @@ const books = [
         cover: '/covers/book-water-spirits-sin.webp',
         blurb: "A divine water spirit, ancient and powerful, who has decided Saki is her new best friend. She has no morals whatsoever, and she is delighted about it.",
         description: "Separated from Saki and stranded in the ruined underwater city of Muosil, Tama faces an impossible choice. Miles away, Saki wakes alone in an ancient temple, and she isn't alone for long. Anna, a water spirit as old as the ruins themselves, has claimed her as a host and wants to be the very best of friends. Goblin politics, ancient ruins, and the truth of Tama's royal blood are about to collide.",
-        ctaPlatform: 'gumroad',
+        ctaPlatform: 'kdp',
         platforms: [
-            { type: 'gumroad', name: 'Gumroad', url: 'https://purplexanmal.gumroad.com/l/water-spirits-sin' },
             { type: 'kdp', name: 'Kindle', url: 'https://www.amazon.com/Water-Spirits-Xanrean-Chronicles-Book-ebook/dp/B0G634SWGC' }
         ]
     },
@@ -76,9 +73,8 @@ const books = [
         cover: '/covers/book-the-guardian.webp',
         blurb: "A princess who never asked for a crown, an advisor out of her depth, and a dragon who isn't asking permission.",
         description: "When the carefree Nekojin princess and her cunning Foxkin advisor Saki return to Drestor after their ordeal in the ancient ruins of Muosil, they expect a moment of peace. Instead, they walk into a political storm. Regent Alissa has arrived with royal guards demanding the reluctant princess claim her throne for the sake of the kingdom. As Tama struggles to accept a crown she never wanted, Saki learns that for all her charm, she is utterly helpless when it comes to love. And when the ancient dragon Mantheria makes her move, Tama must confront a foe even she can't outrun.",
-        ctaPlatform: 'gumroad',
+        ctaPlatform: 'kdp',
         platforms: [
-            { type: 'gumroad', name: 'Gumroad', url: 'https://purplexanmal.gumroad.com/l/the-guardian' },
             { type: 'kdp', name: 'Kindle', url: 'https://www.amazon.com/Guardian-Xanrean-Chronicles-Book-ebook/dp/B0H9BH2DSM' }
         ]
     },
@@ -91,9 +87,8 @@ const books = [
         cover: '/covers/book-her-majesty-tamaneko.webp',
         blurb: "Tama is a ninja. Saki is a Kitsune. Together they stumble through goblin armies, undead liches, ancient dragons, and the worst enemy of all: responsibility.",
         description: "Tama is a ninja. She speaks in the third person, hates wearing clothes, and thinks her pet boar Jiggle is the best thing since burnt fish. She is also, apparently, the lost princess of a kingdom she's never heard of and the living avatar of the Goddess of Creation. She'd rather fight goblins. Saki is a Kitsune. She's spent her entire life manipulating everyone around her, hiding her true nature, and ignoring the voice in her head that whispers erase. She thought she was beyond caring about anyone. Then she met Tama. Together, a powerful but simple Nekojin and a cynical but caring Kitsune stumble through goblin armies, undead liches, ancient dragons, and the worst enemy of all: Responsibility. Along the way, they'll collect a divine water spirit who wants to be a pet, an elf child who wants to be a weapon, and a princess who wants to be a slave.",
-        ctaPlatform: 'gumroad',
+        ctaPlatform: 'kdp',
         platforms: [
-            { type: 'gumroad', name: 'Gumroad', url: 'https://purplexanmal.gumroad.com/l/her-majesty-tamaneko' },
             { type: 'kdp', name: 'Kindle', url: 'https://www.amazon.com/Her-Majesty-Tamaneko-Xanrean-Chronicles-ebook/dp/B0GX2TMKHG' }
         ]
     },
@@ -105,9 +100,8 @@ const books = [
         cover: '/covers/book-lucas-the-grand-strategist.webp',
         blurb: "He defeated a dragon, cleared eighty goblins, and dismantled a bandit operation. None of that is true. He tripped, panicked, and got lucky. Repeatedly.",
         description: "Lucas the Grand Strategist is the most feared adventurer in the kingdom. He defeated an ancient dragon on his first day, cleared eighty goblins in a single afternoon, and dismantled an entire bandit operation without breaking a sweat. None of that is true. The dragon died because he fell down. The goblins died because he ran in circles. The bandits died because he threw something out of spite and didn't know what it was. Unfortunately nobody believes him. Not the elf ranger who has decided she is on a grand romantic adventure with a tactical genius. Not the Nekojin who keeps showing up in his room at night, who he is absolutely certain is an assassin. Not the adventurers guild who keeps giving him quests he doesn't understand. And certainly not the Demon Queen, who will one day face him in single combat and lose in a way she will never be able to adequately explain. Lucas just wants to survive long enough to figure out why everyone in this world is trying to either kill him or marry him. He is not lucky enough for either.",
-        ctaPlatform: 'gumroad',
+        ctaPlatform: 'kdp',
         platforms: [
-            { type: 'gumroad', name: 'Gumroad', url: 'https://purplexanmal.gumroad.com/l/lucas-the-grand-strategist' },
             { type: 'kdp', name: 'Kindle', url: 'https://www.amazon.com/Lucas-Grand-Strategist-Purple-Xanmal-ebook/dp/B0GX2WYVZQ' }
         ]
     },
@@ -120,9 +114,8 @@ const books = [
         tags: ['Mature'],
         blurb: "The Toybox runs on broken quests, worse incentives, and mechanics that should not exist. Then one day, one of the NPCs wakes up.",
         description: "This is the lullaby sung to the residents of the Toybox from the moment they are born: The Hero is perfect, The Hero is grand. He is less a person and more a force of nature. There is just one tiny problem: \"The Hero\" has died countless times in the Toybox. He hates it, he hates them, and he wants to escape more than anything. Except there is no escape. The Toybox runs on broken quests, worse incentives, and mechanics that should not exist. Then one day, during a random iteration like any other, one of the NPCs wakes up. She was written to serve, to adore, to worship, a perfect NPC in a perfect role, never meant to awaken to the horrors of the Toybox. But she did. Now she's caught between what she was programmed to feel and what she actually feels. In a world built on broken mechanics, she might be the most broken of all.\n\nContent Warning: This story contains explicit sexual content, dubious consent that evolves into agency, psychological horror, existential themes, and meta commentary on game mechanics and player ethics.",
-        ctaPlatform: 'gumroad',
+        ctaPlatform: 'kdp',
         platforms: [
-            { type: 'gumroad', name: 'Gumroad', url: 'https://purplexanmal.gumroad.com/l/the-hero-is-perfect' },
             { type: 'kdp', name: 'Kindle', url: 'https://www.amazon.com/Hero-Perfect-Purple-Xanmal-ebook/dp/B0GBV1TGJ5' }
         ]
     },
