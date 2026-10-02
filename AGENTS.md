@@ -21,7 +21,6 @@ Everything a route calls lives in one named module under `lib/`:
 | `lib/cover-versioning.js` | the content hash appended to cover URLs |
 | `lib/integrations.js` | public YouTube / Discord / sales APIs |
 | `lib/admin-content.js` | admin CRUD for characters, timeline, lore topics |
-| `lib/calendar.js` | publishing calendar (public read + admin write) |
 | `lib/manuscripts.js` | optional .docx reading, off unless enabled |
 | `lib/publishing-api.js` | the admin publishing dashboard API |
 | `lib/{gumroad,youtube,url,newsletter-provider}.js` | provider clients and the URL rule |
@@ -69,7 +68,7 @@ npm audit                 # root dependency audit (also run in tools/publishing-
 
 ## Publishing DB env
 
-The admin publishing dashboard reads a read-only SQLite source, defaulting to `./data/Xanmal_Publishing_Database.sqlite`, overridable with `PUBLISHING_DB_PATH`. The admin-managed public calendar uses `PUBLISHING_CALENDAR_DB_PATH` (default `./data/publishing-calendar.db`).
+The admin publishing dashboard reads a read-only SQLite source, defaulting to `./data/Xanmal_Publishing_Database.sqlite`, overridable with `PUBLISHING_DB_PATH`.
 
 The manuscript reader/upload subsystem is disabled by default; set
 `MANUSCRIPTS_ENABLED=true` only after reviewing the deployment and upload

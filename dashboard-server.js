@@ -51,8 +51,6 @@ const { withCoverVersion } = cover;
 const { loginPage, registerPage, safeRedirectPath } = require('./lib/auth-pages');
 const manuscripts = require('./lib/manuscripts');
 const { MANUSCRIPT_DISABLED, handleManuscriptRequest, handleManuscriptUpload } = manuscripts;
-const calendar = require('./lib/calendar');
-const { handlePublicPublishingCalendar, handleAdminPublishingCalendar } = calendar;
 const { handlePublishingApi } = require('./lib/publishing-api');
 
 // ── DEPLOYMENT / ENV CONFIG ────────────────────────────────
@@ -98,7 +96,6 @@ rateLimit.configure({ trustProxy: TRUST_PROXY });
 staticFiles.configure({ publicDir: PUBLIC_DIR, sendText, notFound });
 publicRoutes.configure(PUBLIC_DIR);
 cover.configure(PUBLIC_DIR);
-calendar.configure({ getPublishingDB, getPublishingCalendar });
 manuscripts.configure({ manuscriptsDir: MANUSCRIPTS_DIR, mammoth });
 
 // Open database connection
@@ -117,17 +114,6 @@ function getPublishingDB() {
     return publishingDB;
 }
 
-// Publishing calendar store (manual public release entries). Loaded lazily on
-// first request; opened only when a calendar endpoint is actually hit so the
-// server still boots if publishing-calendar.js isn't shipped.
-let publishingCalendar = null;
-function getPublishingCalendar() {
-    if (!publishingCalendar) {
-        const PublishingCalendar = require('./publishing-calendar.js');
-        publishingCalendar = new PublishingCalendar();
-    }
-    return publishingCalendar;
-}
 
 
 
@@ -572,14 +558,6 @@ async function handleRequest(req, res) {
         }
     }
 
-    // ── PUBLIC PUBLISHING CALENDAR API ────────────────────
-    // Intentional before the auth gate: this is deliberately public. It only
-    // ever returns safe public fields (title, series, platform, local date/time,
-    // optional platform URL) — never notes or the underlying DB path. Uses the
-    // half-open [start, end) local-date window.
-    if (req.method === 'GET' && url === '/api/public/publishing-calendar') {
-        return handlePublicPublishingCalendar(req, res, query);
-    }
 
     // ── AUTH GATE ─────────────────────────────────────────
     if (!accounts.isAuthenticated(req)) {
@@ -957,25 +935,6 @@ async function handleRequest(req, res) {
         } catch (e) { return sendText(res, e.message, 500); }
     }
 
-    // ── PUBLISHING CALENDAR (ADMIN) ───────────────────────
-    // Admin-only. The page is served at /admin/publishing-calendar and the API
-    // lives under /api/admin/publishing-calendar. The auth gate above redirects
-    // unauthenticated requests to login; these require an admin role. POST and
-    // DELETE are additionally protected by the CSRF gate that runs earlier.
-
-    // Admin calendar page (admin only)
-    if (req.method === 'GET' && url === '/admin/publishing-calendar') {
-        if (!accounts.isAdmin(req)) { return forbidden(res); }
-        return serveFile(res, path.join(PUBLIC_DIR, 'publishing-calendar-admin.html'));
-    }
-
-    // Admin calendar API (admin only)
-    if (url.startsWith('/api/admin/publishing-calendar')) {
-        if (!accounts.isAdmin(req)) {
-            return sendJson(res, { error: 'Forbidden' }, 403);
-        }
-        return handleAdminPublishingCalendar(req, res, url);
-    }
 
     // ── PUBLISHING DASHBOARD ───────────────────────────────
     // Admin-only. The page is served at /admin/publishing and the read-only
@@ -1023,7 +982,6 @@ process.on('SIGTERM', async () => {
     console.log('\nSIGTERM received, closing database...');
     await contentDB.Close();
     if (publishingDB) await publishingDB.close();
-    if (publishingCalendar) await publishingCalendar.Close();
     process.exit(0);
 });
 
@@ -1031,7 +989,6 @@ process.on('SIGINT', async () => {
     console.log('\nSIGINT received, closing database...');
     await contentDB.Close();
     if (publishingDB) await publishingDB.close();
-    if (publishingCalendar) await publishingCalendar.Close();
     process.exit(0);
 });
 

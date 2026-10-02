@@ -18,10 +18,9 @@ const path = require('node:path');
 
 const ROOT = path.join(__dirname, '..');
 
-// Everything the server needs at runtime. publishing-db.js and
-// publishing-calendar.js are loaded lazily by the server, so copying them is
-// harmless for suites that don't exercise the publishing dashboard and
-// required for the one that does.
+// Everything the server needs at runtime. publishing-db.js is loaded lazily by
+// the server, so copying it is harmless for suites that don't exercise the
+// publishing dashboard and required for the one that does.
 const SERVER_FILES = [
     'dashboard-server.js',
     'accounts.js',
@@ -29,7 +28,6 @@ const SERVER_FILES = [
     'backup.js',
     'generate-meta.js',
     'publishing-db.js',
-    'publishing-calendar.js',
     'package.json'
 ];
 

@@ -279,39 +279,6 @@ test('public /content hides books and games that are not explicitly visible', as
     assert.equal(content.game.some(g => g.id === 'inv-game'), false);
 });
 
-test('calendar URLs are restricted to http(s) schemes', async () => {
-    const bad = await fetch(`${server.base}/api/admin/publishing-calendar`, {
-        method: 'POST', headers: admin.headers,
-        body: JSON.stringify({
-            title: 'Bad URL', series: 'Test', platform: 'Other',
-            release_date: '2099-03-01', url: 'javascript:alert(1)'
-        }),
-    });
-    assert.equal(bad.status, 400);
-
-    const good = await fetch(`${server.base}/api/admin/publishing-calendar`, {
-        method: 'POST', headers: admin.headers,
-        body: JSON.stringify({
-            title: 'Good URL', series: 'Test', platform: 'Other',
-            release_date: '2099-03-02', url: 'https://example.com/chapter'
-        }),
-    });
-    assert.equal(good.status, 200);
-    const created = (await good.json()).entry;
-
-    // Simulate a legacy row that predates URL validation. Public responses
-    // must still drop unsafe schemes at the serialization boundary.
-    await new Promise((resolve, reject) => {
-        const db = new sqlite3.Database(path.join(server.workdir, 'data', 'publishing-calendar.db'));
-        db.run('UPDATE publishing_calendar SET url = ? WHERE id = ?', ['javascript:alert(1)', created.id], err => {
-            db.close(closeErr => closeErr ? reject(closeErr) : (err ? reject(err) : resolve()));
-        });
-    });
-    const publicCalendar = await (await fetch(`${server.base}/api/public/publishing-calendar?start=2099-03-02&end=2099-03-03`)).json();
-    assert.equal(publicCalendar.entries.find(entry => entry.id === created.id).url, null);
-
-     await fetch(`${server.base}/api/admin/publishing-calendar/${created.id}`, { method: 'DELETE', headers: admin.headers });
-});
 
 test('book platform URLs are restricted to http(s) at the persistence boundary', async () => {
     // Seed a book whose platforms mix unsafe schemes with a valid URL. The
@@ -496,19 +463,12 @@ test('users.json file is created with restrictive permissions (0600)', async () 
     assert.equal(mode, '600', `users.json should have mode 0600, got ${mode}`);
 });
 
-test('publishing calendar data directory and database file have restrictive permissions', async () => {
+test('data directory has restrictive permissions', async () => {
     const dataDir = path.join(server.workdir, 'data');
     assert.ok(fs.existsSync(dataDir), 'data directory should exist');
     const dirStats = fs.statSync(dataDir);
     const dirMode = (dirStats.mode & parseInt('777', 8)).toString(8);
     assert.equal(dirMode, '700', `data directory should have mode 0700, got ${dirMode}`);
-
-    const dbPath = path.join(server.workdir, 'data', 'publishing-calendar.db');
-    if (fs.existsSync(dbPath)) {
-        const dbStats = fs.statSync(dbPath);
-        const dbMode = (dbStats.mode & parseInt('777', 8)).toString(8);
-        assert.equal(dbMode, '600', `publishing-calendar.db should have mode 0600, got ${dbMode}`);
-    }
 });
 
 test('timing-safe secret comparison is used for CSRF tokens', async () => {

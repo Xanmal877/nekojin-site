@@ -201,7 +201,41 @@ git commit -am "docs: mark feature complete"
 
 ## Known Issues: Nekojin Interactive Website
 
-> Last updated: 2026-09-21
+> Last updated: 2026-09-30
+
+
+### ✅ 2026-09-30 Session: KDP catalog resync (copy + covers)
+
+Ran `tools/sync-kdp-books.py` against the live DB. The Amazon listings are the
+source of record, so **every book's title, description and blurb now reads
+exactly as KDP ships it** — the hand-edited voice pass from 2026-08-21 was
+overwritten on purpose. The KDP blurbs run the length of the product
+description rather than a short card teaser, which changes how the `/books`
+and `/book` cards read; that is the intended trade.
+
+- **2 covers had drifted** and were replaced: `to-rule-a-kingdom` (Vol 5) and
+  `vulpine-mastermind` (Vol 2). The other 10 already matched the live art
+  byte for byte, so the resync left them alone.
+- **`rss.xml` / `sitemap.xml` regenerated.** This also cleared dead routes:
+  `the-bedrock` and `the-tyrants-rose` are no longer book rows, so their
+  `book?id=` / `books#` entries dropped out, and `the-foundation` came in.
+- **`tools/sync-kdp-books.py` fixes.** `--dry` no longer writes cover files —
+  it used to convert straight into `public/covers/`, so a "report only" run
+  overwrote real art. Added `--covers-only` for refreshing art without
+  touching copy or platform links.
+- **Buried Truths is deliberately never added.** `B0FDQ397YW` (hardcover) and
+  `B0FDQMRWKR` (paperback) are the retired volume-2 listing. It is not part
+  of the site catalog and must not be added; the `CATALOG` comment in the
+  sync tool says so.
+
+Verified against the public origin: 12/12 books exposed by `/content`, every
+cover URL fingerprinted to the hash of the bytes on disk, served bytes
+md5-match disk, `/`, `/books` and `/book?id=…` all 200. No service restart was
+needed — `/content` reads the DB per request and hashes covers live.
+
+Backup: `~/Backups/nekojin-kdp-sync-2026-09-30T15-44-24/` (DB + covers).
+
+---
 
 
 ### ✅ 2026-09-21 Session: KDP catalog + cover sync for Her Majesty, Tamaneko

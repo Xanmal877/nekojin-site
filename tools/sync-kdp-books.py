@@ -9,8 +9,14 @@ it straight off the product pages instead.
 
 Usage
 -----
-    python3 tools/sync-kdp-books.py --dry        # report, write nothing
-    python3 tools/sync-kdp-books.py             # fetch + update DB + covers
+    python3 tools/sync-kdp-books.py --dry           # report, write nothing
+    python3 tools/sync-kdp-books.py --covers-only   # refresh cover art, leave the copy alone
+    python3 tools/sync-kdp-books.py                # fetch + update DB + covers
+
+Note: a full run overwrites each book's `description`/`blurb`/`title` with the
+KDP listing. That is intentional — the Amazon listing is the source of record
+for the catalog. Use `--covers-only` when you want the art refreshed without
+touching copy or links.
 
 Requires Node.js on PATH (the DB write reuses database.js so the schema,
 field mapping and operation queue stay identical to the admin panel).
@@ -24,10 +30,16 @@ import argparse
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
 from html import unescape
+
+
+def read_bytes(path: str) -> bytes:
+    with open(path, "rb") as fh:
+        return fh.read()
 
 SITE_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 COVERS_DIR = os.path.join(SITE_ROOT, "public", "covers")
@@ -39,6 +51,11 @@ UA = ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
 # ---------------------------------------------------------------- catalog ----
 # series_slug is the `series.id` these volumes belong to. Omnibus/standalone
 # entries have series_slug = None.
+#
+# DELIBERATELY ABSENT — never add these:
+#   "Buried Truths" (B0FDQ397YW hardcover / B0FDQMRWKR paperback). It is the
+#   retired volume-2 listing and is NOT part of the site catalog. Xanmal has
+#   said explicitly to never bother with it. Leave it out.
 CATALOG = [
     # Her Majesty, Tamaneko — one KDP ebook per volume
     {"slug": "third-person-tempest", "series": "her-majesty-tamaneko", "volume": 1, "asin": "B0F4RG6P86"},
@@ -219,9 +236,9 @@ const dry = process.env.NEKOJIN_DRY === '1';
 """
 
 
-def convert_cover(src_jpg: str, slug: str) -> str:
+def convert_cover(src_jpg: str, slug: str, out_dir: str | None = None) -> str:
     """Run sharp on the Pi box so cover output matches /upload-cover exactly."""
-    out = os.path.join(COVERS_DIR, f"book-{slug}.webp")
+    out = os.path.join(out_dir or COVERS_DIR, f"book-{slug}.webp")
     script = (
         "const sharp=require(process.env.NEKOJIN_SHARP);"
         "(async()=>{const m=await sharp(process.env.NEKOJIN_SRC).metadata();"
@@ -244,6 +261,8 @@ def convert_cover(src_jpg: str, slug: str) -> str:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry", action="store_true", help="report only, write nothing")
+    ap.add_argument("--covers-only", action="store_true",
+                    help="refresh cover art only; do not touch title/blurb/description")
     ap.add_argument("--only", help="comma-separated slugs to limit the run")
     ap.add_argument("--skip-covers", action="store_true")
     args = ap.parse_args()
@@ -260,6 +279,15 @@ def main() -> int:
     work = tempfile.mkdtemp(prefix="kdp-sync-")
     payload_items = []
 
+    # --dry and --covers-only must not touch the live cover files while the
+    # product pages are being read: stage them, then install at the end. A
+    # bare --dry run used to rewrite the covers in place, which meant a
+    # "report only" run silently changed real art.
+    staged = os.path.join(work, "covers")
+    stage_covers = args.dry or args.covers_only
+    if stage_covers:
+        os.makedirs(staged, exist_ok=True)
+
     for item in items:
         url = f"https://www.amazon.com/dp/{item['asin']}"
         print(f"→ {item['slug']}  ({item['asin']})")
@@ -275,9 +303,10 @@ def main() -> int:
         if not args.skip_covers and product["image_id"]:
             jpg = os.path.join(work, f"{item['slug']}.jpg")
             if fetch_cover(product["image_id"], jpg):
-                webp = convert_cover(jpg, item["slug"])
+                webp = convert_cover(jpg, item["slug"], staged if stage_covers else None)
                 size = os.path.getsize(webp)
-                print(f"   cover: {os.path.basename(webp)} ({size} bytes, image {product['image_id']})")
+                where = "staged" if stage_covers else "written"
+                print(f"   cover: {os.path.basename(webp)} ({size} bytes, {where}, image {product['image_id']})")
             else:
                 print("   !! cover download failed; keeping existing art", file=sys.stderr)
 
@@ -295,6 +324,24 @@ def main() -> int:
     if not payload_items:
         print("nothing to do", file=sys.stderr)
         return 2
+
+    # --covers-only: install the staged art and stop. No DB write at all, so
+    # the hand-written blurbs stay exactly as they are.
+    if args.covers_only:
+        changed = 0
+        for item in items:
+            src = os.path.join(staged, f"book-{item['slug']}.webp")
+            if not os.path.exists(src):
+                continue
+            dst = os.path.join(COVERS_DIR, f"book-{item['slug']}.webp")
+            if os.path.exists(dst) and read_bytes(src) == read_bytes(dst):
+                print(f"   = {item['slug']}: cover unchanged")
+                continue
+            shutil.copyfile(src, dst)
+            changed += 1
+            print(f"   ✔ {item['slug']}: cover installed -> {os.path.basename(dst)}")
+        print(f"\ncovers-only: {changed} file(s) replaced, DB untouched.")
+        return 0
 
     payload_path = os.path.join(work, "payload.json")
     with open(payload_path, "w") as fh:
