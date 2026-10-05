@@ -111,23 +111,25 @@ Manuscript reading/upload hidden. Can re-enable by setting `MANUSCRIPTS_ENABLED 
 ---
 
 #### 3.2 Legacy File Cleanup
-**Priority:** Low  
+**Priority:** Low
 **Estimated:** 0.1 sessions
+**Status:** Complete ✅ (2026-10-05) — moot, files don't exist
 
 Remove legacy files:
-- [ ] `data/site-content.json` (after confirming DB migration)
-- [ ] `data/site-content.json.backup`
+- [x] `data/site-content.json` (after confirming DB migration) — not present on live copy
+- [x] `data/site-content.json.backup` — not present on live copy
 
 ---
 
 #### 3.3 Health Check Endpoint
-**Priority:** Low  
+**Priority:** Low
 **Estimated:** 0.5 sessions
+**Status:** Complete ✅ (2026-10-05) — already implemented in `dashboard-server.js` (`/api/health`)
 
 Monitoring:
-- [ ] `/api/health` returns DB status, disk space
-- [ ] Uptime monitoring ready
-- [ ] Alert if disk > 90%
+- [x] `/api/health` returns DB status, disk space
+- [x] Uptime monitoring ready (`uptimeSeconds` in response)
+- [x] Alert if disk low (critical < 100MB, low < 1GB — absolute thresholds, not a %, but same intent)
 
 ---
 
