@@ -99,14 +99,15 @@ Manuscript reading/upload hidden. Can re-enable by setting `MANUSCRIPTS_ENABLED 
 ### Phase 3: Technical Improvements
 
 #### 3.1 Content Validation
-**Priority:** Low  
+**Priority:** Low
 **Estimated:** 0.5 sessions
+**Status:** Complete ✅ (2026-10-05) — already implemented, verified against live code
 
-- [ ] Validate book slugs are URL-safe
-- [ ] Check for duplicate slugs on save
-- [ ] Required field enforcement (title, id)
-- [ ] Image file type validation (not just extension)
-- [ ] File size limits on uploads
+- [x] Validate book slugs are URL-safe — `isValidSlug` (`lib/http-helpers.js`), enforced in `/save-content`
+- [x] Check for duplicate slugs on save — `_saveAllContent` throws `DUPLICATE_SLUG` (409) in `database.js`
+- [x] Required field enforcement (title, id) — `/save-content` checks book title, series name, game title, about studio name before saving
+- [x] Image file type validation (not just extension) — `/upload-cover` runs the buffer through `sharp`; a non-image payload fails metadata/encode, not an extension check
+- [x] File size limits on uploads — `readMultipartFile` caps the raw body at 25MB, `/upload-cover` re-checks at 20MB before processing
 
 ---
 
