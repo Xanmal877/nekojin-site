@@ -79,7 +79,12 @@ async function loadBooks() {
       .filter(s => s._books.length > 0);
     const seriesIds = new Set(series.map(s => s.id));
 
-    const standalone = allBooks.filter(b => !b.series_id && !seriesIds.has(b.id));
+    // Novellas set in the Xanrean universe belong to the universe even though
+    // they sit in no series, so they must not land in the standalone grid:
+    // standalone means outside the universe, not merely outside a series.
+    const universeNovellas = allBooks.filter(b => b.tier === 'novella');
+    const standalone = allBooks.filter(b =>
+      !b.series_id && !seriesIds.has(b.id) && b.tier !== 'novella');
 
     if (!series.length && !standalone.length) {
       container.innerHTML = '<p style="text-align:center;color:var(--muted);padding:4rem 0;">No books available yet.</p>';
@@ -109,12 +114,30 @@ async function loadBooks() {
       `;
     });
 
+    // ── XANREAN UNIVERSE NOVELLAS ──
+    if (universeNovellas.length) {
+      html += `
+        <div class="series-block reveal">
+          <div class="series-header">
+            <div>
+              <span class="series-eyebrow">Xanrean Universe</span>
+              <h2 class="series-name">Novellas</h2>
+            </div>
+            <p class="series-desc">Self-contained Xanrean Chronicles stories. No prior reading required.</p>
+          </div>
+          <div class="book-grid">
+            ${universeNovellas.map((b, i) => `<div class="reveal reveal-d${Math.min(i + 1, 4)}">${renderBook(b)}</div>`).join('')}
+          </div>
+        </div>
+      `;
+    }
+
     // ── STANDALONE ──
     if (standalone.length) {
       html += `
         <div id="standalone" class="standalone-header reveal">
           <span class="standalone-eyebrow">Standalone</span>
-          <h2 class="standalone-title">Books Outside Series</h2>
+          <h2 class="standalone-title">Standalone Works</h2>
         </div>
         <div class="book-grid reveal">
           ${standalone.map((b, i) => `<div class="reveal reveal-d${Math.min(i + 1, 4)}">${renderBook(b)}</div>`).join('')}

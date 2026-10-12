@@ -111,13 +111,14 @@ async function loadBooks() {
       }));
     }
 
-    // Novellas that stand alone inside the master series.
+    // Novellas set in the Xanrean universe. They belong to no series, but they
+    // are not standalone works either — this page only ever renders the universe.
     sections.push(groupSection({
       id: 'novellas',
-      badge: '✨ Novella Standalones',
+      badge: '✨ Novellas',
       badgeClass: 'novella',
-      heading: 'Novella Standalones',
-      blurb: 'Self-contained stories, no prior reading required.',
+      heading: 'Novellas',
+      blurb: 'In-universe novellas. Self-contained stories, no prior reading required.',
       books: books.filter(b => b.tier === 'novella'),
     }));
 
