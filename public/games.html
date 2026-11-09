@@ -4,11 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Games - Nekojin Interactive</title>
-  <meta name="description" content="Autumn's Dungeoneering. A cozy tactical dungeon-crawling RPG with emergent AI. Built in Godot 4. Coming to Steam.">
-  <meta name="keywords" content="indie games, rpg, godot, dungeon crawler, tactical rpg, autumn's dungeoneering, xanrea">
+  <meta name="description" content="Games from Nekojin Interactive, set in the world of Xanrea: Sakilera's Guide to Dungeoneering, Xanrean Tides, and Echo World: The Adventurer's Terrarium.">
+  <meta name="keywords" content="indie games, godot, xanrea, rts, rpg, sakilera's guide to dungeoneering, xanrean tides, echo world, nekojin interactive">
   <meta property="og:title" content="Games - Nekojin Interactive">
-  <meta property="og:description" content="Autumn's Dungeoneering. A cozy tactical dungeon-crawling RPG with emergent AI. Built in Godot 4. Coming to Steam.">
-  <meta property="og:image" content="https://worldofxanrea.com/covers/game-cover-1772952121717.png">
+  <meta property="og:description" content="Three games, one world. Sakilera's Guide to Dungeoneering, Xanrean Tides, and Echo World: The Adventurer's Terrarium.">
+  <meta property="og:image" content="https://worldofxanrea.com/images/games/sakilera/main.webp">
   <meta property="og:url" content="https://worldofxanrea.com/games">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary_large_image">
@@ -30,7 +30,7 @@
   </script>
   <link rel="stylesheet" href="/css/games.css">
 </head>
-<body>
+<body class="gx-page">
 
 <nav>
   <div class="nav-left">
@@ -41,7 +41,7 @@
       <li><a href="/">Home</a></li>
       <li><a href="/books">Books</a></li>
       <li><a href="/games" class="active">Games</a></li>
-
+      <li><a href="/support">Support</a></li>
     </ul>
   </div>
   <div class="nav-right">
@@ -65,88 +65,291 @@
     <li><a href="/">Home</a></li>
     <li><a href="/books">Books</a></li>
     <li><a href="/games" class="active">Games</a></li>
-
+    <li><a href="/support">Support</a></li>
   </ul>
 </div>
 
 <main>
 
-  <!-- HERO -->
-  <!-- SIMPLE GAMES HEADER -->
-  <section class="games-header" id="games-header">
-    <h1 class="games-header-title">Games</h1>
-    <p class="games-header-subtitle">Interactive projects from Nekojin Interactive</p>
-  </section>
+  <!-- ═══════════ HERO ═══════════ -->
+  <header class="gx-hero">
+    <div class="gx-hero-slices" aria-hidden="true">
+      <div class="gx-slice gx-slice-sg"></div>
+      <div class="gx-slice gx-slice-xt"></div>
+      <div class="gx-slice gx-slice-ew"></div>
+    </div>
+    <div class="gx-hero-veil" aria-hidden="true"></div>
+    <div class="gx-hero-inner">
+      <p class="gx-eyebrow">Nekojin Interactive · Games</p>
+      <h1 class="gx-hero-title">Three games.<br><span>One world.</span></h1>
+      <p class="gx-hero-sub">Every one of them is set in Xanrea, and every one of them is full of people who think for themselves. You don't puppet them. You give them a reason.</p>
+      <div class="gx-picker">
+        <a href="#sakileras-guide" class="gx-pick gx-pick-sg">
+          <img src="/images/games/sakilera/capsule.webp" alt="">
+          <span class="gx-pick-text"><b>Sakilera's Guide</b><small>Watch-only dungeon RPG</small></span>
+        </a>
+        <a href="#xanrean-tides" class="gx-pick gx-pick-xt">
+          <img src="/images/games/tides/capsule.webp" alt="">
+          <span class="gx-pick-text"><b>Xanrean Tides</b><small>RTS with RPG heroes</small></span>
+        </a>
+        <a href="#echo-world" class="gx-pick gx-pick-ew">
+          <span class="gx-pick-art" aria-hidden="true"><span class="gx-orb"></span></span>
+          <span class="gx-pick-text"><b>Echo World</b><small>A living multiplayer world</small></span>
+        </a>
+      </div>
+    </div>
+    <a href="#sakileras-guide" class="gx-scroll" aria-label="Scroll to the games"><span></span></a>
+  </header>
 
-  <!-- GAMES LIST (Supports multiple games) -->
-  <section class="games-list" id="games-list">
-    <div class="games-list-container" id="games-container">
-      <!-- Games populated by JS -->
-      <div class="game-card-placeholder">
-        <div class="placeholder-art">
-          <span class="placeholder-icon">🎮</span>
-          <span class="placeholder-label">Loading games...</span>
+  <!-- ═══════════ SAKILERA'S GUIDE ═══════════ -->
+  <section class="gx-game gx-sg" id="sakileras-guide" aria-labelledby="sg-title">
+    <div class="gx-backdrop" style="--bg-img:url('/images/games/sakilera/hero.webp')" aria-hidden="true"></div>
+    <div class="gx-embers" aria-hidden="true"></div>
+
+    <div class="gx-wrap">
+      <div class="gx-showcase">
+        <div class="gx-copy reveal">
+          <span class="gx-status"><i></i>Alpha · In Development</span>
+          <h2 class="gx-title" id="sg-title">Sakilera's Guide<small>to Dungeoneering</small></h2>
+          <p class="gx-tagline">She picks the dungeon. You pick the snacks.</p>
+          <ul class="gx-chips">
+            <li>Single-player</li><li>Watch-only RPG</li><li>Godot 4</li><li>PC</li>
+          </ul>
+          <div class="gx-ctas">
+            <a class="gx-btn gx-btn-primary" href="#sg-media">See the art</a>
+            <a class="gx-btn gx-btn-ghost" href="/xanrean/community">Follow development</a>
+          </div>
+        </div>
+        <figure class="gx-keyart reveal" data-tilt>
+          <img src="/images/games/sakilera/capsule.webp" alt="Key art for Sakilera's Guide to Dungeoneering" width="600" height="900" loading="lazy">
+          <span class="gx-keyart-shine" aria-hidden="true"></span>
+        </figure>
+      </div>
+
+      <div class="gx-detail">
+        <div class="gx-about reveal">
+          <p class="gx-kicker">From the first page of the Guide</p>
+          <p>Saki is a fox-eared adventurer raised by kitsune, and she lives in the village of Trelmar. She eats, she drinks, she sleeps in. She takes long strolls she insists are scouting. And when she decides it's time, she heads into the Forest Den, fights whatever lives there, loots whatever isn't nailed down, and walks home to tell everyone about it.</p>
+          <p><strong>You do not control her.</strong> There is no Delve button and no order queue. You watch, you read why she made each choice, and you spend Influence on small gifts she is free to use, save, or completely ignore. Every run begins with one of her decisions.</p>
+        </div>
+        <ul class="gx-features">
+          <li class="reveal"><span class="gx-fi">🦊</span><b>She decides</b><span>Goals, routes, targets and when to go home are all hers.</span></li>
+          <li class="reveal"><span class="gx-fi">🎁</span><b>Gifts, not orders</b><span>Influence buys help she can accept. Or sell. Or eat.</span></li>
+          <li class="reveal"><span class="gx-fi">🏡</span><b>A life between runs</b><span>Trelmar keeps her busy with meals, naps and village life.</span></li>
+          <li class="reveal"><span class="gx-fi">📖</span><b>Read her mind</b><span>Every choice is explained, entry by entry, like a guidebook.</span></li>
+        </ul>
+      </div>
+
+      <div class="gx-media" id="sg-media">
+        <p class="gx-kicker reveal">Art from the Guide</p>
+        <div class="gx-gallery gx-gallery-3">
+          <button type="button" class="gx-shot reveal" data-full="/images/games/sakilera/main.webp" data-caption="Saki and Tama"><img src="/images/games/sakilera/main.webp" alt="Saki and Tama in Sakilera's Guide key art" loading="lazy"></button>
+          <button type="button" class="gx-shot reveal" data-full="/images/games/sakilera/banner.webp" data-caption="The adventuring party"><img src="/images/games/sakilera/banner.webp" alt="Sakilera's Guide banner art" loading="lazy"></button>
+          <button type="button" class="gx-shot reveal" data-full="/images/games/sakilera/landscape.webp" data-caption="The road out of Trelmar"><img src="/images/games/sakilera/landscape.webp" alt="An autumn landscape at dusk" loading="lazy"></button>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- GAME TABS -->
-  <section class="game-tabs-section" id="game-tabs-section">
-    <div class="section-inner">
-      <div class="game-tabs" role="tablist" aria-label="Game sections">
-        <button class="game-tab active" role="tab" aria-selected="true" aria-controls="tab-overview" id="tab-btn-overview" data-tab="overview" type="button">Overview</button>
-        <button class="game-tab" role="tab" aria-selected="false" aria-controls="tab-features" id="tab-btn-features" data-tab="features" type="button">Features</button>
-        <button class="game-tab" role="tab" aria-selected="false" aria-controls="tab-media" id="tab-btn-media" data-tab="media" type="button">Media</button>
-        <button class="game-tab" role="tab" aria-selected="false" aria-controls="tab-devlog" id="tab-btn-devlog" data-tab="devlog" type="button">Devlog</button>
+  <!-- ═══════════ XANREAN TIDES ═══════════ -->
+  <section class="gx-game gx-xt" id="xanrean-tides" aria-labelledby="xt-title">
+    <div class="gx-backdrop" style="--bg-img:url('/images/games/tides/hero.webp')" aria-hidden="true"></div>
+    <div class="gx-moonlight" aria-hidden="true"></div>
+
+    <div class="gx-wrap">
+      <div class="gx-showcase gx-flip">
+        <div class="gx-copy reveal">
+          <span class="gx-status"><i></i>Alpha · In Development</span>
+          <h2 class="gx-title" id="xt-title">Xanrean <em>Tides</em></h2>
+          <p class="gx-tagline">Raise a kingdom. Hire heroes. Hold the line.</p>
+          <ul class="gx-chips">
+            <li>Real-time strategy</li><li>1 to 4 players</li><li>LAN multiplayer</li><li>Linux · Windows</li>
+          </ul>
+          <div class="gx-ctas">
+            <a class="gx-btn gx-btn-primary" href="#xt-media">See it in action</a>
+            <a class="gx-btn gx-btn-ghost" href="/xanrean/community">Follow development</a>
+          </div>
+        </div>
+        <figure class="gx-keyart reveal" data-tilt>
+          <img src="/images/games/tides/capsule.webp" alt="Xanrean Tides key art" width="600" height="900" loading="lazy">
+          <span class="gx-keyart-shine" aria-hidden="true"></span>
+        </figure>
       </div>
 
-      <div class="game-tab-panels">
-        <div class="game-tab-panel active" id="tab-overview" role="tabpanel" aria-labelledby="tab-btn-overview">
-          <div class="overview-layout">
-            <div class="overview-description" id="overview-description"></div>
-            <aside class="overview-requirements" id="overview-requirements" aria-label="System requirements"></aside>
+      <div class="gx-detail">
+        <div class="gx-about reveal">
+          <p class="gx-kicker">The war for Xanrea</p>
+          <p>A classic real-time strategy game with RPG heroes at its heart. Gather gold and lumber, raise your town hall through its tiers, and field the armies of <strong>Trissaile</strong> or <strong>the Empire</strong>, each with its own units, buildings and heroes.</p>
+          <p>Heroes aren't stat blocks. Every hire is an individual with a name and a personality who levels up, carries items, leads armies and makes their own calls on the field. The computer plays the same way you do: from what it owns and what it can actually see. No scripted build orders. No cheating clocks.</p>
+        </div>
+        <ul class="gx-features">
+          <li class="reveal"><span class="gx-fi">⚔️</span><b>Heroes with minds</b><span>They level, gear up, lead armies and act on their own.</span></li>
+          <li class="reveal"><span class="gx-fi">🏰</span><b>Two peoples</b><span>Trissaile and the Empire play nothing alike.</span></li>
+          <li class="reveal"><span class="gx-fi">🗺️</span><b>Skirmish, campaign, editor</b><span>Hand-made maps, story missions, and a map editor of your own.</span></li>
+          <li class="reveal"><span class="gx-fi">🌐</span><b>Play together</b><span>Up to four seats, teams or free-for-all, over LAN.</span></li>
+        </ul>
+      </div>
+
+      <div class="gx-media" id="xt-media">
+        <p class="gx-kicker reveal">From the battlefield</p>
+        <div class="gx-gallery gx-gallery-wide">
+          <button type="button" class="gx-shot gx-shot-big reveal" data-full="/images/games/tides/shot-3.webp" data-caption="Defending the base"><img src="/images/games/tides/shot-3.webp" alt="Defending the base in daylight" loading="lazy"></button>
+          <button type="button" class="gx-shot reveal" data-full="/images/games/tides/shot-5.webp" data-caption="A Trissaile base at night"><img src="/images/games/tides/shot-5.webp" alt="A Trissaile base at night" loading="lazy"></button>
+          <button type="button" class="gx-shot reveal" data-full="/images/games/tides/shot-2.webp" data-caption="Combat"><img src="/images/games/tides/shot-2.webp" alt="Armies clashing" loading="lazy"></button>
+          <button type="button" class="gx-shot reveal" data-full="/images/games/tides/shot-1.webp" data-caption="Workers mining gold"><img src="/images/games/tides/shot-1.webp" alt="Workers mining gold beside a town hall" loading="lazy"></button>
+          <button type="button" class="gx-shot reveal" data-full="/images/games/tides/shot-7.webp" data-caption="Adventurers fighting creeps"><img src="/images/games/tides/shot-7.webp" alt="Adventurers fighting monsters" loading="lazy"></button>
+          <button type="button" class="gx-shot reveal" data-full="/images/games/tides/shot-4.webp" data-caption="The Undead"><img src="/images/games/tides/shot-4.webp" alt="An Undead base" loading="lazy"></button>
+          <button type="button" class="gx-shot reveal" data-full="/images/games/tides/shot-8.webp" data-caption="Setting up a skirmish"><img src="/images/games/tides/shot-8.webp" alt="The skirmish setup screen" loading="lazy"></button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ ECHO WORLD ═══════════ -->
+  <section class="gx-game gx-ew" id="echo-world" aria-labelledby="ew-title">
+    <div class="gx-starfield" aria-hidden="true"></div>
+
+    <div class="gx-wrap">
+      <div class="gx-showcase">
+        <div class="gx-copy reveal">
+          <span class="gx-status"><i></i>Early Development</span>
+          <h2 class="gx-title" id="ew-title">Echo World<small>The Adventurer's Terrarium</small></h2>
+          <p class="gx-tagline gx-tagline-big">Log out. <span>Xanrea doesn't.</span></p>
+          <ul class="gx-chips">
+            <li>Persistent world</li><li>Multiplayer</li><li>Godot 4</li><li>PC</li>
+          </ul>
+          <div class="gx-ctas">
+            <a class="gx-btn gx-btn-primary" href="/xanrean/community">Follow development</a>
+            <a class="gx-btn gx-btn-ghost" href="/xanrean/lore">Explore the lore</a>
           </div>
         </div>
 
-        <div class="game-tab-panel" id="tab-features" role="tabpanel" aria-labelledby="tab-btn-features" hidden>
-          <div class="section-header reveal">
-            <p class="section-eyebrow">✦ Features</p>
-            <h2 class="section-title">What to Expect</h2>
-            <p class="section-desc">Every system interlocks. Every NPC thinks. Every world runs while you're not watching.</p>
-          </div>
-          <div class="features-grid" id="features-grid"></div>
-        </div>
+        <figure class="gx-terrarium reveal">
+          <svg viewBox="0 40 600 470" role="img" aria-label="A glass terrarium holding the Caldera, with village lights glowing inside">
+            <defs>
+              <radialGradient id="ew-sky" cx="50%" cy="38%" r="60%">
+                <stop offset="0%" stop-color="#1b3f6b"/>
+                <stop offset="55%" stop-color="#121c45"/>
+                <stop offset="100%" stop-color="#080a1e"/>
+              </radialGradient>
+              <linearGradient id="ew-rim" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#5b4b8a"/>
+                <stop offset="100%" stop-color="#1c1538"/>
+              </linearGradient>
+              <linearGradient id="ew-rim-far" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#34407a"/>
+                <stop offset="100%" stop-color="#151a3a"/>
+              </linearGradient>
+              <radialGradient id="ew-lake" cx="50%" cy="40%" r="60%">
+                <stop offset="0%" stop-color="#67e8f9" stop-opacity=".9"/>
+                <stop offset="60%" stop-color="#2563eb" stop-opacity=".55"/>
+                <stop offset="100%" stop-color="#1e1b4b" stop-opacity=".2"/>
+              </radialGradient>
+              <linearGradient id="ew-glass" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#ffffff" stop-opacity=".30"/>
+                <stop offset="30%" stop-color="#ffffff" stop-opacity=".03"/>
+                <stop offset="100%" stop-color="#a5f3fc" stop-opacity=".12"/>
+              </linearGradient>
+              <linearGradient id="ew-base" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#3b2a66"/>
+                <stop offset="100%" stop-color="#140d2a"/>
+              </linearGradient>
+              <clipPath id="ew-dome"><path d="M70 430 A230 300 0 0 1 530 430 Z"/></clipPath>
+              <filter id="ew-glow" x="-100%" y="-100%" width="300%" height="300%">
+                <feGaussianBlur stdDeviation="3" result="b"/>
+                <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+            </defs>
 
-        <div class="game-tab-panel" id="tab-media" role="tabpanel" aria-labelledby="tab-btn-media" hidden>
-          <div class="video-section" id="video-section"></div>
-          <div class="section-header reveal">
-            <p class="section-eyebrow">📸 Gallery</p>
-            <h2 class="section-title">Screenshots</h2>
-          </div>
-          <div class="screenshots-grid" id="screenshots-grid"></div>
-        </div>
+            <g clip-path="url(#ew-dome)">
+              <rect x="60" y="120" width="480" height="320" fill="url(#ew-sky)"/>
+              <g class="ew-stars" fill="#e0e7ff">
+                <circle cx="150" cy="260" r="1.4"/><circle cx="210" cy="200" r="1"/><circle cx="380" cy="190" r="1.6"/>
+                <circle cx="440" cy="260" r="1.1"/><circle cx="300" cy="170" r="1.2"/><circle cx="250" cy="280" r=".9"/>
+                <circle cx="350" cy="250" r="1"/><circle cx="470" cy="320" r=".8"/><circle cx="130" cy="330" r="1"/>
+                <circle cx="270" cy="230" r=".8"/><circle cx="330" cy="210" r="1.1"/><circle cx="180" cy="300" r=".8"/>
+              </g>
+              <circle cx="400" cy="240" r="22" fill="#fef3c7" opacity=".92" filter="url(#ew-glow)"/>
+              <circle cx="392" cy="234" r="22" fill="#121c45" opacity=".55"/>
+              <path d="M60 380 L120 326 L170 350 L230 296 L285 330 L330 286 L390 326 L440 300 L540 370 L540 440 L60 440 Z" fill="url(#ew-rim-far)"/>
+              <path d="M60 400 L110 358 L150 378 L190 350 C230 392 370 392 410 350 L450 374 L490 356 L540 396 L540 440 L60 440 Z" fill="url(#ew-rim)"/>
+              <ellipse cx="300" cy="408" rx="120" ry="22" fill="url(#ew-lake)"/>
+              <ellipse class="ew-shimmer" cx="290" cy="404" rx="60" ry="4" fill="#cffafe" opacity=".35"/>
+              <g class="ew-lights" filter="url(#ew-glow)">
+                <circle cx="190" cy="398" r="3" fill="#fcd34d"/>
+                <circle cx="205" cy="391" r="2.4" fill="#fbbf24"/>
+                <circle cx="219" cy="401" r="2.6" fill="#fde68a"/>
+                <circle cx="391" cy="394" r="2.8" fill="#fcd34d"/>
+                <circle cx="407" cy="402" r="2.2" fill="#fbbf24"/>
+                <circle cx="300" cy="366" r="2.4" fill="#f9a8d4"/>
+              </g>
+              <g filter="url(#ew-glow)">
+                <circle class="ew-t1" cx="300" cy="300" r="3" fill="#67e8f9"/>
+                <circle class="ew-t2" cx="300" cy="300" r="2.6" fill="#c4b5fd"/>
+              </g>
+            </g>
 
-        <div class="game-tab-panel" id="tab-devlog" role="tabpanel" aria-labelledby="tab-btn-devlog" hidden>
-          <div class="devlog-progress" id="devlog-progress"></div>
-          <div class="section-header reveal">
-            <p class="section-eyebrow">✦ Development</p>
-            <h2 class="section-title">Recent Progress</h2>
-            <p class="section-desc">A solo dev build. Real updates, real challenges, real progress.</p>
-          </div>
-          <div class="devlog-list" id="devlog-list"></div>
+            <path d="M70 430 A230 300 0 0 1 530 430" fill="url(#ew-glass)" stroke="#c4f1ff" stroke-opacity=".55" stroke-width="2.5"/>
+            <path d="M112 340 C126 240 186 168 262 140" fill="none" stroke="#ffffff" stroke-opacity=".5" stroke-width="5" stroke-linecap="round"/>
+            <path d="M126 380 C130 366 134 356 140 344" fill="none" stroke="#ffffff" stroke-opacity=".3" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="300" cy="128" r="9" fill="#2a1f52" stroke="#c4f1ff" stroke-opacity=".5" stroke-width="2"/>
+            <path d="M48 430 L552 430 L530 482 L70 482 Z" fill="url(#ew-base)" stroke="#7c3aed" stroke-opacity=".55"/>
+            <rect x="70" y="482" width="460" height="14" rx="4" fill="#100a22"/>
+            <text x="300" y="463" text-anchor="middle" class="ew-plaque">THE CALDERA</text>
+          </svg>
+          <figcaption>Natives live here. Travelers visit.</figcaption>
+        </figure>
+      </div>
+
+      <div class="gx-detail">
+        <div class="gx-about reveal">
+          <p class="gx-kicker">The premise</p>
+          <p>Echo World is an attempt to simulate what it would actually be like to live in Xanrea, starting with one bounded corner of it: <strong>the Caldera</strong>.</p>
+          <p>The people who live there are <strong>Natives</strong>. They have lives, goals, work, friendships, rivalries and dangers of their own. Real players enter that same world as <strong>Travelers</strong>, and the world doesn't stop to wait for them. Leave, come back later, and you return to a world that kept going, not a save file that paused.</p>
         </div>
+        <ul class="gx-features">
+          <li class="reveal"><span class="gx-fi">🧑‍🌾</span><b>Natives with lives</b><span>Work, rest, relationships and ambitions. Not set dressing.</span></li>
+          <li class="reveal"><span class="gx-fi">🧳</span><b>You are a Traveler</b><span>Real players arrive in a world that was already there.</span></li>
+          <li class="reveal"><span class="gx-fi">🌋</span><b>The Caldera</b><span>One small piece of Xanrea, made to convincingly live.</span></li>
+          <li class="reveal"><span class="gx-fi">⏳</span><b>It never pauses</b><span>Events happen whether anyone is watching or not.</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ CALL TO ACTION ═══════════ -->
+  <section class="gx-outro">
+    <div class="gx-outro-inner reveal">
+      <div class="gx-outro-mascots" aria-hidden="true">
+        <span class="gx-sprite" style="background-image:url('/images/saki-idle.png')"></span>
+        <span class="gx-sprite" style="background-image:url('/images/tama-idle.png'); animation-delay:-.4s"></span>
+      </div>
+      <h2>Want to see them grow?</h2>
+      <p>Every game here is built one milestone at a time. Come hang out, watch the builds land, and tell us what you think.</p>
+      <div class="gx-ctas gx-ctas-center">
+        <a class="gx-btn gx-btn-primary" href="/xanrean/community">Join the community</a>
+        <a class="gx-btn gx-btn-ghost" href="/support">Report a bug</a>
       </div>
     </div>
   </section>
 
 </main>
 
+<div class="gx-lightbox" id="gx-lightbox" role="dialog" aria-modal="true" aria-label="Screenshot viewer" hidden>
+  <button class="gx-lb-close" type="button" aria-label="Close">×</button>
+  <button class="gx-lb-nav gx-lb-prev" type="button" aria-label="Previous screenshot">‹</button>
+  <figure>
+    <img id="gx-lb-img" alt="">
+    <figcaption id="gx-lb-cap"></figcaption>
+  </figure>
+  <button class="gx-lb-nav gx-lb-next" type="button" aria-label="Next screenshot">›</button>
+</div>
+
 <footer>
   <div class="footer-inner">
     <div class="footer-logo"><div class="tama-icon" aria-hidden="true"></div> Nekojin Interactive</div>
     <p class="footer-tagline" id="footer-tagline">Crafting worlds</p>
-    <div class="footer-links"></div>
+    <div class="footer-links"><a href="/support">Support</a></div>
     <p class="footer-copy">© <span id="footer-year"></span> Nekojin Interactive LLC. All rights reserved.</p>
     <script>document.getElementById('footer-year').textContent = new Date().getFullYear();</script>
   </div>

@@ -1,0 +1,206 @@
+/* Support page: a ticket form that follows the site theme. */
+
+.sp-visually-hidden {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap;
+}
+
+.sp-main {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: clamp(2.5rem, 6vw, 4.5rem) clamp(1.1rem, 4vw, 2rem) 5rem;
+}
+
+.sp-header { text-align: center; max-width: 640px; margin: 0 auto 2.75rem; }
+.sp-sprite {
+  display: block;
+  width: 96px; height: 96px;
+  margin: 0 auto .5rem;
+  background: url('/images/saki-idle.png') no-repeat 0 0 / 768px 96px;
+  image-rendering: pixelated;
+  animation: spSprite 1s steps(8) infinite;
+}
+.sp-eyebrow {
+  font-family: var(--font-mono);
+  font-size: .76rem;
+  letter-spacing: .3em;
+  text-transform: uppercase;
+  color: var(--royal-light);
+}
+.sp-header h1 {
+  font-family: var(--font-display);
+  font-size: clamp(2.3rem, 5.5vw, 3.6rem);
+  color: var(--ink);
+  margin: .5rem 0 .9rem;
+  line-height: 1.05;
+}
+.sp-lede { color: var(--text); line-height: 1.8; font-size: 1.04rem; }
+
+.sp-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 1.75rem;
+  align-items: start;
+}
+
+.sp-card {
+  position: relative;
+  padding: clamp(1.4rem, 3.5vw, 2.4rem);
+  border-radius: 22px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  box-shadow: var(--shadow-card), var(--shadow-glow);
+}
+.sp-card::before {
+  content: ''; position: absolute; inset: 0 0 auto; height: 4px;
+  border-radius: 22px 22px 0 0;
+  background: linear-gradient(90deg, #fb923c, #a78bfa, #22d3ee);
+}
+
+#sp-form { display: grid; gap: 1.1rem; }
+.sp-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.1rem; }
+
+.sp-field { display: grid; gap: .45rem; position: relative; }
+.sp-field > span {
+  font-size: .86rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+.sp-field em {
+  font-style: normal; font-weight: 400;
+  color: var(--muted); font-size: .78rem; margin-left: .3rem;
+}
+.sp-field input,
+.sp-field select,
+.sp-field textarea {
+  width: 100%;
+  font: inherit;
+  font-size: .97rem;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1.5px solid var(--border2);
+  border-radius: 12px;
+  padding: .78rem .95rem;
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+.sp-field select {
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 20px) 52%, calc(100% - 14px) 52%;
+  background-size: 6px 6px;
+  background-repeat: no-repeat;
+  padding-right: 2.4rem;
+  cursor: pointer;
+}
+.sp-field textarea { resize: vertical; min-height: 170px; line-height: 1.6; }
+.sp-field input::placeholder, .sp-field textarea::placeholder { color: var(--muted); opacity: .8; }
+.sp-field input:focus, .sp-field select:focus, .sp-field textarea:focus {
+  outline: none;
+  border-color: var(--royal-light);
+  box-shadow: 0 0 0 4px rgba(124,58,237,.18);
+}
+.sp-field .sp-invalid { border-color: #ef4444; }
+.sp-count { justify-self: end; font-size: .76rem; color: var(--muted); font-family: var(--font-mono); }
+
+.sp-hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+.sp-error {
+  padding: .8rem 1rem;
+  border-radius: 12px;
+  font-size: .92rem;
+  color: #b91c1c;
+  background: rgba(239,68,68,.1);
+  border: 1px solid rgba(239,68,68,.35);
+}
+[data-theme="dark"] .sp-error { color: #fca5a5; }
+
+.sp-submit {
+  position: relative;
+  justify-self: start;
+  display: inline-flex; align-items: center; gap: .6rem;
+  padding: .95rem 2.1rem;
+  border: none;
+  border-radius: 12px;
+  font: inherit; font-weight: 700; font-size: 1rem;
+  color: #fff;
+  background: linear-gradient(135deg, #7c3aed, #4f46e5);
+  box-shadow: 0 10px 30px -10px rgba(124,58,237,.8);
+  cursor: pointer;
+  transition: transform .2s ease, box-shadow .2s ease, opacity .2s ease;
+}
+.sp-submit:hover { transform: translateY(-2px); box-shadow: 0 16px 36px -10px rgba(124,58,237,.9); }
+.sp-submit:disabled { opacity: .7; cursor: progress; transform: none; }
+.sp-spinner {
+  display: none;
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spSpin .7s linear infinite;
+}
+.sp-submit.is-busy .sp-spinner { display: inline-block; }
+
+.sp-done { text-align: center; padding: 2rem 0 1rem; outline: none; }
+.sp-done-icon {
+  width: 72px; height: 72px; margin: 0 auto 1rem;
+  display: grid; place-items: center;
+  font-size: 2.2rem; color: #fff;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #22c55e, #14b8a6);
+  box-shadow: 0 10px 40px -8px rgba(34,197,94,.7);
+  animation: spPop .5s cubic-bezier(.2,1.4,.4,1) both;
+}
+.sp-done h2 { font-family: var(--font-display); font-size: 2rem; color: var(--ink); margin-bottom: .5rem; }
+.sp-done p { color: var(--text); }
+.sp-ticket {
+  display: inline-block;
+  margin: .6rem 0 1rem;
+  padding: .55rem 1.1rem;
+  border-radius: 10px;
+  font-family: var(--font-mono);
+  font-size: 1.15rem;
+  letter-spacing: .06em;
+  color: var(--ink) !important;
+  background: var(--surface2);
+  border: 1px dashed var(--border2);
+}
+.sp-done-note { font-size: .9rem; max-width: 420px; margin: 0 auto 1.5rem; line-height: 1.7; }
+.sp-again {
+  font: inherit; font-weight: 700;
+  padding: .7rem 1.4rem;
+  border-radius: 10px;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--border2);
+  cursor: pointer;
+}
+.sp-again:hover { border-color: var(--royal-light); }
+
+.sp-aside { display: grid; gap: 1rem; }
+.sp-tip {
+  padding: 1.25rem 1.3rem;
+  border-radius: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+.sp-tip h3 { font-size: 1rem; color: var(--ink); margin-bottom: .6rem; }
+.sp-tip p, .sp-tip li { font-size: .9rem; line-height: 1.65; color: var(--text); }
+.sp-tip ul { padding-left: 1.1rem; display: grid; gap: .3rem; }
+.sp-link { display: inline-block; margin-top: .6rem; font-weight: 700; color: var(--royal-light); text-decoration: none; }
+.sp-link:hover { text-decoration: underline; }
+
+@keyframes spSprite { to { background-position: -768px 0; } }
+@keyframes spSpin { to { transform: rotate(360deg); } }
+@keyframes spPop { from { transform: scale(.4); opacity: 0; } to { transform: none; opacity: 1; } }
+
+@media (max-width: 880px) {
+  .sp-layout { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .sp-row { grid-template-columns: 1fr; }
+  .sp-submit { justify-self: stretch; justify-content: center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sp-sprite, .sp-done-icon { animation: none; }
+}
+

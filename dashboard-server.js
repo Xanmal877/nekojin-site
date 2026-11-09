@@ -52,6 +52,7 @@ const { loginPage, registerPage, safeRedirectPath } = require('./lib/auth-pages'
 const manuscripts = require('./lib/manuscripts');
 const { MANUSCRIPT_DISABLED, handleManuscriptRequest, handleManuscriptUpload } = manuscripts;
 const { handlePublishingApi } = require('./lib/publishing-api');
+const supportTickets = require('./lib/support-tickets');
 
 // ── DEPLOYMENT / ENV CONFIG ────────────────────────────────
 // Only trust X-Forwarded-For / X-Real-IP when actually running behind a
@@ -97,6 +98,7 @@ staticFiles.configure({ publicDir: PUBLIC_DIR, sendText, notFound });
 publicRoutes.configure(PUBLIC_DIR);
 cover.configure(PUBLIC_DIR);
 manuscripts.configure({ manuscriptsDir: MANUSCRIPTS_DIR, mammoth });
+supportTickets.configure(path.join(__dirname, 'data'));
 
 // Open database connection
 contentDB.Open();
@@ -531,6 +533,29 @@ async function handleRequest(req, res) {
             return sendJson(res, { ok: true });
         } catch (e) {
             return sendText(res, e.message, 500);
+        }
+    }
+
+    // ── PUBLIC SUPPORT TICKETS ────────────────────────────
+    // Stored on disk, then forwarded to the studio inbox server-side; the
+    // inbox address is never sent to the browser.
+    if (req.method === 'POST' && url === '/api/support') {
+        if (enforceRateLimit(req, res, '/api/support', { json: true })) return;
+        try {
+            const body = await readRawBody(req, 32 * 1024);
+            let payload;
+            try { payload = JSON.parse(body.toString()); } catch (_) {
+                return sendJson(res, { error: 'Invalid request.' }, 400);
+            }
+            const result = await supportTickets.submitTicket(payload, {
+                ip: rateLimit.getClientIP(req),
+                userAgent: req.headers['user-agent'] || ''
+            });
+            if (!result.ok) return sendJson(res, { error: result.error }, result.status || 400);
+            return sendJson(res, { ok: true, ticket: result.id });
+        } catch (e) {
+            console.error('[Support] request failed:', e.message);
+            return sendJson(res, { error: 'Something went wrong. Please try again later.' }, 500);
         }
     }
 

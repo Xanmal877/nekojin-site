@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Support - Nekojin Interactive</title>
+  <meta name="description" content="Need help with a Nekojin Interactive game, book or the website? Send us a support ticket.">
+  <meta property="og:title" content="Support - Nekojin Interactive">
+  <meta property="og:description" content="Report a bug or ask for help with a Nekojin Interactive game, book or the website.">
+  <meta property="og:url" content="https://worldofxanrea.com/support">
+  <meta property="og:type" content="website">
+  <meta name="theme-color" content="#0a0614">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="/style.css">
+  <script>
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+  </script>
+  <link rel="stylesheet" href="/css/support.css">
+</head>
+<body class="sp-page">
+
+<nav>
+  <div class="nav-left">
+    <a href="/" class="nav-logo">
+      <div class="paw" aria-hidden="true"></div> Nekojin Interactive
+    </a>
+    <ul class="nav-links">
+      <li><a href="/">Home</a></li>
+      <li><a href="/books">Books</a></li>
+      <li><a href="/games">Games</a></li>
+      <li><a href="/support" class="active">Support</a></li>
+    </ul>
+  </div>
+  <div class="nav-right">
+    <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode" onclick="toggleTheme()">
+      <span class="theme-icon sun">☀️</span>
+      <span class="theme-icon moon">🌙</span>
+    </button>
+  </div>
+  <button class="nav-hamburger" id="nav-hamburger" aria-label="Menu" onclick="toggleNav()">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+<div class="nav-drawer" id="nav-drawer">
+  <ul>
+    <li><a href="/">Home</a></li>
+    <li><a href="/books">Books</a></li>
+    <li><a href="/games">Games</a></li>
+    <li><a href="/support" class="active">Support</a></li>
+  </ul>
+</div>
+
+<main class="sp-main">
+  <header class="sp-header">
+    <span class="sp-sprite" aria-hidden="true"></span>
+    <p class="sp-eyebrow">Support</p>
+    <h1>How can we help?</h1>
+    <p class="sp-lede">Found a bug, stuck somewhere, or something on the site acting up? Fill out a ticket and it goes straight to the team. We read every one.</p>
+  </header>
+
+  <div class="sp-layout">
+    <section class="sp-card" aria-labelledby="sp-form-title">
+      <h2 id="sp-form-title" class="sp-visually-hidden">Support ticket</h2>
+
+      <form id="sp-form" novalidate>
+        <div class="sp-row">
+          <label class="sp-field">
+            <span>Your name</span>
+            <input name="name" type="text" autocomplete="name" maxlength="80" required>
+          </label>
+          <label class="sp-field">
+            <span>Email for our reply</span>
+            <input name="email" type="email" autocomplete="email" maxlength="254" required>
+          </label>
+        </div>
+
+        <div class="sp-row">
+          <label class="sp-field">
+            <span>What's this about?</span>
+            <select name="category" required>
+              <option value="" disabled selected>Choose one…</option>
+              <option>Bug report</option>
+              <option>Game help</option>
+              <option>Website problem</option>
+              <option>Purchase or account</option>
+              <option>Feedback</option>
+              <option>Other</option>
+            </select>
+          </label>
+          <label class="sp-field">
+            <span>Which game or product?</span>
+            <select name="product" required>
+              <option value="" disabled selected>Choose one…</option>
+              <option>Sakilera's Guide to Dungeoneering</option>
+              <option>Xanrean Tides</option>
+              <option>Echo World</option>
+              <option>Books</option>
+              <option>Website</option>
+              <option>Other</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="sp-row" id="sp-tech">
+          <label class="sp-field">
+            <span>Platform <em>optional</em></span>
+            <input name="platform" type="text" maxlength="120" placeholder="e.g. Windows 11, Steam Deck, Linux">
+          </label>
+          <label class="sp-field">
+            <span>Game version <em>optional</em></span>
+            <input name="version" type="text" maxlength="60" placeholder="e.g. v0.6.0">
+          </label>
+        </div>
+
+        <label class="sp-field">
+          <span>Subject</span>
+          <input name="subject" type="text" maxlength="140" required placeholder="A short summary">
+        </label>
+
+        <label class="sp-field">
+          <span>Tell us what happened</span>
+          <textarea name="message" rows="8" maxlength="5000" required placeholder="What were you doing, what did you expect, and what happened instead? Steps to make it happen again help a lot."></textarea>
+          <small class="sp-count" id="sp-count">0 / 5000</small>
+        </label>
+
+        <!-- Leave this empty. It is hidden from people and catches bots. -->
+        <label class="sp-hp" aria-hidden="true">Website <input name="website" type="text" tabindex="-1" autocomplete="off"></label>
+
+        <p class="sp-error" id="sp-error" role="alert" hidden></p>
+
+        <button class="sp-submit" type="submit" id="sp-submit">
+          <span class="sp-submit-label">Send ticket</span>
+          <span class="sp-spinner" aria-hidden="true"></span>
+        </button>
+      </form>
+
+      <div class="sp-done" id="sp-done" hidden tabindex="-1">
+        <div class="sp-done-icon" aria-hidden="true">✓</div>
+        <h2>Ticket sent!</h2>
+        <p>Your ticket number is</p>
+        <p class="sp-ticket" id="sp-ticket"></p>
+        <p class="sp-done-note">Keep it handy in case you need to follow up. We'll reply to the email you gave us.</p>
+        <button type="button" class="sp-again" id="sp-again">Send another</button>
+      </div>
+    </section>
+
+    <aside class="sp-aside">
+      <div class="sp-tip">
+        <h3>🐞 Reporting a bug?</h3>
+        <ul>
+          <li>Say which game and version you're on.</li>
+          <li>List the steps that make it happen.</li>
+          <li>Tell us what you expected instead.</li>
+          <li>Crashes: mention roughly when it happened.</li>
+        </ul>
+      </div>
+      <div class="sp-tip">
+        <h3>💬 Just want to chat?</h3>
+        <p>For questions, ideas and hanging out, the community is the faster place.</p>
+        <a class="sp-link" href="/xanrean/community">Join the community →</a>
+      </div>
+      <div class="sp-tip">
+        <h3>🔒 Your info</h3>
+        <p>We only use your email to answer this ticket. No newsletters, no sharing.</p>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-logo"><div class="tama-icon" aria-hidden="true"></div> Nekojin Interactive</div>
+    <p class="footer-tagline">Crafting worlds</p>
+    <p class="footer-copy">© <span id="footer-year"></span> Nekojin Interactive LLC. All rights reserved.</p>
+    <script>document.getElementById('footer-year').textContent = new Date().getFullYear();</script>
+  </div>
+</footer>
+
+<script src="/common.js" defer></script>
+<script src="/js/support.js" defer></script>
+</body>
+</html>
