@@ -638,3 +638,22 @@
 @media (max-width: 768px) {
   .gx-page .nav-search-wrap { display: none; }
 }
+
+/* Gameplay trailers: framed like the screenshots, 16:9, sitting above the gallery. */
+.gx-trailer {
+  margin: 0 0 1.4rem;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #05030c;
+  border: 1px solid rgba(255,255,255,.12);
+  box-shadow: 0 30px 70px -30px rgba(0,0,0,.9), 0 0 0 1px rgba(255,255,255,.04) inset;
+}
+.gx-trailer video { display: block; width: 100%; aspect-ratio: 16 / 9; background: #05030c; }
+.gx-trailer figcaption {
+  padding: .7rem 1rem;
+  font-size: .8rem;
+  letter-spacing: .04em;
+  color: rgba(230,220,255,.72);
+  background: rgba(255,255,255,.03);
+  border-top: 1px solid rgba(255,255,255,.08);
+}
